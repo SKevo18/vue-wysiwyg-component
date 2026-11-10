@@ -46,7 +46,7 @@ import CodeBlock from "@tiptap/extension-code-block";
 import { HorizontalRule } from "@tiptap/extension-horizontal-rule";
 import Image from "@tiptap/extension-image";
 import { AlignCenter, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, AlignHorizontalJustifyStart, AlignJustify, AlignLeft, AlignRight, Baseline, BetweenHorizontalEnd, BetweenHorizontalStart, BetweenVerticalEnd, BetweenVerticalStart, Bold as Bold$1, Check, ChevronDown, ChevronRight, ChevronsDownUp, Code as Code$1, Columns3, Copy, CopyPlus, Ellipsis, FileCode, FileCode2, GripHorizontal, GripVertical, Heading as Heading$1, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, Highlighter, Image as Image$1, ImagePlus, Italic as Italic$1, Link as Link$1, List, ListOrdered, ListTodo, Maximize2, MessageSquareQuote, Minimize2, Minus, MoreHorizontal, PanelLeft, PanelRight, Paperclip, Pencil, Pilcrow, Plus, Quote, Redo2, Scaling, Sigma, Sparkles, SquareFunction, Strikethrough, Trash2, Underline as Underline$1, Undo2, Ungroup, X } from "@lucide/vue";
-import { Fragment as Fragment$1, Teleport, computed, createBlock, createCommentVNode, createElementBlock, createElementVNode, createSlots, createTextVNode, createVNode, defineComponent, getCurrentInstance, getCurrentScope, inject, mergeProps, nextTick, normalizeClass, normalizeStyle, onBeforeUnmount, onMounted, onScopeDispose, openBlock, provide, ref, renderList, renderSlot, resolveComponent, resolveDynamicComponent, shallowRef, toDisplayString, toValue, unref, vModelText, vShow, watch, withCtx, withDirectives, withKeys, withModifiers } from "vue";
+import { Fragment as Fragment$1, Teleport, computed, createBlock, createCommentVNode, createElementBlock, createElementVNode, createSlots, createTextVNode, createVNode, defineComponent, getCurrentInstance, getCurrentScope, inject, mergeProps, nextTick, normalizeClass, normalizeStyle, onBeforeUnmount, onMounted, onScopeDispose, openBlock, provide, ref, renderList, renderSlot, resolveComponent, resolveDynamicComponent, shallowRef, toDisplayString, toRaw, toValue, unref, vModelText, vShow, watch, withCtx, withDirectives, withKeys, withModifiers } from "vue";
 import { EditorContent, NodeViewContent, NodeViewWrapper, VueNodeViewRenderer, VueRenderer, nodeViewProps, useEditor } from "@tiptap/vue-3";
 import { NodeSelection, Plugin, PluginKey, Selection, TextSelection } from "@tiptap/pm/state";
 import Suggestion from "@tiptap/suggestion";
@@ -1439,7 +1439,7 @@ function resolveConfig(format, base, extensions = NO_EXTENSIONS) {
 	byKey.set(key, config);
 	return config;
 }
-function coreExtensions(config, inline) {
+function coreExtensions(config, inline, history) {
 	const b = config.base;
 	const lists = b.lists && !inline;
 	const listItems = lists || !inline && b.taskLists;
@@ -1452,7 +1452,8 @@ function coreExtensions(config, inline) {
 		width: 2
 	}), Gapcursor, HardBreak);
 	if (!inline && b.headings.length) out.push(Heading.configure({ levels: b.headings }));
-	out.push(UndoRedo.configure({ newGroupDelay: 500 }), Italic);
+	if (history) out.push(UndoRedo.configure({ newGroupDelay: 500 }));
+	out.push(Italic);
 	if (listItems) out.push(ListItem);
 	if (!inline) out.push(ListKeymap);
 	if (b.links) out.push(Link.configure({
@@ -1471,12 +1472,16 @@ function coreExtensions(config, inline) {
 	if (!inline) out.push(TrailingNode);
 	return out;
 }
-function schemaExtensions(config, inline = false) {
+/**
+* not cached: `history: false` leaves the local undo history out for a collaborative editor, whose
+* collaboration extension owns it. the history adds no schema, so `schemaFor` is the same either way.
+*/
+function schemaExtensions(config, inline = false, history = true) {
 	const b = config.base;
 	const html = config.format === "html";
 	const out = [];
 	if (inline) out.push(InlineDocument);
-	out.push(...coreExtensions(config, inline));
+	out.push(...coreExtensions(config, inline, history));
 	if (b.highlight) out.push(Highlight.configure({ multicolor: html }));
 	if (b.color) out.push(TextStyle, Color);
 	if (b.textAlign && !inline) out.push(TextAlign.configure({ types: ["heading", "paragraph"] }));
@@ -1498,7 +1503,7 @@ function schemaFor(config, inline = false) {
 	let entry = schemas.get(config);
 	if (!entry) schemas.set(config, entry = {});
 	const key = inline ? "inline" : "block";
-	return entry[key] ??= getSchema(schemaExtensions(config, inline));
+	return entry[key] ??= getSchema(schemaExtensions(config, inline, false));
 }
 // src/markdown/rules.ts
 function imageAttrsRule(state, silent) {
@@ -4490,9 +4495,16 @@ function replaceDocument(editor, doc) {
 var ServerHistory = Extension.create({
 	name: "serverHistory",
 	addOptions() {
-		return { bridge: () => null };
+		return {
+			bridge: () => null,
+			collaborative: false
+		};
 	},
 	addCommands() {
+		if (this.options.collaborative) return {
+			historyUndo: () => ({ commands }) => commands.undo?.() ?? false,
+			historyRedo: () => ({ commands }) => commands.redo?.() ?? false
+		};
 		const step = (dir) => () => ({ state, dispatch, tr }) => {
 			const before = tr.doc;
 			if ((dir === "undo" ? undo : redo)(state, dispatch) && !tr.doc.eq(before)) return true;
@@ -6639,14 +6651,17 @@ function editorExtensions(ctx, opts) {
 	const views = { ...BASE_VIEWS };
 	for (const e of ctx.config.extensions) Object.assign(views, e.nodeViews);
 	const out = [
-		...schemaExtensions(ctx.config, ctx.inline).map((ext) => {
+		...schemaExtensions(ctx.config, ctx.inline, !opts.collaboration).map((ext) => {
 			const view = views[ext.name];
 			if (!view || !(ext instanceof Node$1)) return ext;
 			return ext.extend({ addNodeView: () => VueNodeViewRenderer(view, { stopEvent: blockStopEvent }) });
 		}),
 		ContextStorage.configure({ context: ctx }),
 		HostKeys.configure({ keys: opts.hostKeys }),
-		ServerHistory.configure({ bridge: opts.bridge }),
+		ServerHistory.configure({
+			bridge: opts.bridge,
+			collaborative: !!opts.collaboration
+		}),
 		InlineAtomClick,
 		clipboardExtension(ctx.markdown, ctx.config.format === "markdown")
 	];
@@ -6655,6 +6670,7 @@ function editorExtensions(ctx, opts) {
 			placeholder: opts.placeholder,
 			showOnlyWhenEditable: true
 		}));
+		if (opts.collaboration) out.push(...opts.collaboration);
 		return out;
 	}
 	out.push(BlockKeys, TableCells, Placeholder.configure({
@@ -6679,6 +6695,7 @@ function editorExtensions(ctx, opts) {
 			})
 		}));
 	}
+	if (opts.collaboration) out.push(...opts.collaboration);
 	return out;
 }
 // src/plugin.ts
@@ -7268,7 +7285,8 @@ var BubbleMenu_default = /* @__PURE__ */ defineComponent({
 	__name: "BubbleMenu",
 	props: {
 		editor: {},
-		tick: {}
+		tick: {},
+		readonly: { type: Boolean }
 	},
 	emits: ["link", "convert"],
 	setup(__props, { emit: __emit }) {
@@ -7279,6 +7297,7 @@ var BubbleMenu_default = /* @__PURE__ */ defineComponent({
 		const b = ctx.config.base;
 		const html = ctx.config.format === "html";
 		const bubble = ref(null);
+		const tools = computed(() => props.readonly ? ctx.bubble.filter((item) => item.readonly) : ctx.bubble);
 		const state = computed(() => {
 			props.tick;
 			const e = props.editor;
@@ -7291,7 +7310,7 @@ var BubbleMenu_default = /* @__PURE__ */ defineComponent({
 			};
 		});
 		function shouldShow({ editor: e, from, to }) {
-			if (from === to || !e.isEditable) return false;
+			if (from === to || !e.isEditable && !tools.value.length) return false;
 			if (e.state.selection instanceof NodeSelection || e.state.selection instanceof CellSelection) return false;
 			if (e.isActive("codeBlock")) return false;
 			return e.state.doc.textBetween(from, to, " ").trim().length > 0;
@@ -7377,19 +7396,18 @@ var BubbleMenu_default = /* @__PURE__ */ defineComponent({
 					role: "toolbar",
 					"aria-label": unref(t)("bubble.label")
 				}, [
-					state.value.convert ? (openBlock(), createElementBlock(Fragment$1, { key: 0 }, [createElementVNode("button", {
+					!__props.readonly ? (openBlock(), createElementBlock(Fragment$1, { key: 0 }, [state.value.convert ? (openBlock(), createElementBlock(Fragment$1, { key: 0 }, [createElementVNode("button", {
 						type: "button",
 						class: "wy-tool is-wide",
 						"aria-haspopup": "menu",
 						"data-convert-menu": "",
 						onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
 						onClick: _cache[1] || (_cache[1] = ($event) => emit("convert", $event.currentTarget))
-					}, [createElementVNode("span", _hoisted_2$6, toDisplayString(unref(t)("convert.title")), 1), createVNode(unref(ChevronDown), { size: 14 })], 32), _cache[8] || (_cache[8] = createElementVNode("span", { class: "wy-sep" }, null, -1))], 64)) : createCommentVNode("", true),
-					createVNode(MarkButtons_default, {
+					}, [createElementVNode("span", _hoisted_2$6, toDisplayString(unref(t)("convert.title")), 1), createVNode(unref(ChevronDown), { size: 14 })], 32), _cache[8] || (_cache[8] = createElementVNode("span", { class: "wy-sep" }, null, -1))], 64)) : createCommentVNode("", true), createVNode(MarkButtons_default, {
 						editor: __props.editor,
 						tick: __props.tick
-					}, null, 8, ["editor", "tick"]),
-					html && (unref(b).color || unref(b).highlight) ? (openBlock(), createBlock(Dropdown_default, {
+					}, null, 8, ["editor", "tick"])], 64)) : createCommentVNode("", true),
+					!__props.readonly && html && (unref(b).color || unref(b).highlight) ? (openBlock(), createBlock(Dropdown_default, {
 						key: 1,
 						"panel-class": "wy-color-panel"
 					}, {
@@ -7418,7 +7436,7 @@ var BubbleMenu_default = /* @__PURE__ */ defineComponent({
 						])]),
 						_: 1
 					})) : createCommentVNode("", true),
-					unref(b).links ? withDirectives((openBlock(), createElementBlock("button", {
+					!__props.readonly && unref(b).links ? withDirectives((openBlock(), createElementBlock("button", {
 						key: 2,
 						type: "button",
 						class: "wy-tool",
@@ -7430,7 +7448,7 @@ var BubbleMenu_default = /* @__PURE__ */ defineComponent({
 						text: unref(t)("toolbar.link"),
 						keys: "Mod-k"
 					}]]) : createCommentVNode("", true),
-					unref(b).math ? withDirectives((openBlock(), createElementBlock("button", {
+					!__props.readonly && unref(b).math ? withDirectives((openBlock(), createElementBlock("button", {
 						key: 3,
 						type: "button",
 						class: "wy-tool",
@@ -7438,7 +7456,7 @@ var BubbleMenu_default = /* @__PURE__ */ defineComponent({
 						onMousedown: _cache[5] || (_cache[5] = withModifiers(() => {}, ["prevent"])),
 						onClick: toMath
 					}, [createVNode(unref(SquareFunction), { size: 18 })], 40, _hoisted_5$5)), [[unref(vTooltip), unref(t)("slash.items.mathInline.label")]]) : createCommentVNode("", true),
-					(openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(ctx).bubble, (item) => {
+					(openBlock(true), createElementBlock(Fragment$1, null, renderList(tools.value, (item) => {
 						return withDirectives((openBlock(), createElementBlock("button", {
 							key: item.id,
 							type: "button",
@@ -7453,7 +7471,7 @@ var BubbleMenu_default = /* @__PURE__ */ defineComponent({
 							keys: item.shortcut
 						}]]);
 					}), 128)),
-					unref(ctx).services.askAi ? (openBlock(), createElementBlock(Fragment$1, { key: 4 }, [_cache[9] || (_cache[9] = createElementVNode("span", { class: "wy-sep" }, null, -1)), withDirectives((openBlock(), createElementBlock("button", {
+					unref(ctx).services.askAi && !__props.readonly ? (openBlock(), createElementBlock(Fragment$1, { key: 4 }, [_cache[9] || (_cache[9] = createElementVNode("span", { class: "wy-sep" }, null, -1)), withDirectives((openBlock(), createElementBlock("button", {
 						type: "button",
 						class: "wy-tool is-wide",
 						"aria-label": unref(t)("bubble.askAi"),
@@ -9198,6 +9216,7 @@ var WysiwygEditor_default = /* @__PURE__ */ defineComponent({
 			default: true
 		},
 		draft: { default: null },
+		collaboration: { default: null },
 		shortcuts: { default: () => [] },
 		trailingNewline: {
 			type: Boolean,
@@ -9227,6 +9246,8 @@ var WysiwygEditor_default = /* @__PURE__ */ defineComponent({
 		const locale = props.locale ?? inherited.locale ?? defaults.locale ?? "en";
 		const overrides = props.messages ?? inherited.messages ?? defaults.messages;
 		setKatexLoader(services.katex);
+		const shared = toRaw(props.collaboration)?.extensions ?? null;
+		const activeDraft = computed(() => shared ? null : props.draft);
 		const config = resolveConfig(props.format, base, extensions);
 		const markdown = markdownFor(config);
 		const html = props.format === "html";
@@ -9292,6 +9313,7 @@ var WysiwygEditor_default = /* @__PURE__ */ defineComponent({
 		};
 		ctx.slashItems = isInline ? [] : slashCatalog(config, files, services, text);
 		provide(EDITOR_CONTEXT, ctx);
+		const readonlyBubble = ctx.bubble.some((item) => item.readonly);
 		const root = ref(null);
 		const mode = ref("visual");
 		const fullscreen = ref(false);
@@ -9338,7 +9360,7 @@ var WysiwygEditor_default = /* @__PURE__ */ defineComponent({
 		function setUnsent(v) {
 			if (unsent === v) return;
 			unsent = v;
-			props.draft?.pending(v);
+			activeDraft.value?.pending(v);
 			emit("pending", v);
 		}
 		function flush(history = false) {
@@ -9349,7 +9371,7 @@ var WysiwygEditor_default = /* @__PURE__ */ defineComponent({
 				value = serialize(e);
 				if (value !== lastEmitted) {
 					lastEmitted = value;
-					if (history && props.draft) props.draft.historyStep(value);
+					if (history && activeDraft.value) activeDraft.value.historyStep(value);
 					emit("update:modelValue", value);
 				}
 			}
@@ -9357,7 +9379,7 @@ var WysiwygEditor_default = /* @__PURE__ */ defineComponent({
 			return value;
 		}
 		function bridge() {
-			const draft = props.draft;
+			const draft = activeDraft.value;
 			if (!draft) return null;
 			const apply = (value) => {
 				const e = editor.value;
@@ -9460,7 +9482,8 @@ var WysiwygEditor_default = /* @__PURE__ */ defineComponent({
 					menuOpen: () => blockMenu.value !== null
 				} : null,
 				bridge,
-				hostKeys
+				hostKeys,
+				collaboration: shared
 			}),
 			editorProps: {
 				attributes: {
@@ -9477,7 +9500,7 @@ var WysiwygEditor_default = /* @__PURE__ */ defineComponent({
 				}
 			},
 			onCreate: ({ editor: e }) => {
-				load(e, props.modelValue);
+				if (!shared) load(e, props.modelValue);
 				lastEmitted = props.modelValue;
 				if (props.autofocus) e.commands.focus(props.autofocus === "start" ? "start" : "end");
 				emit("ready", handle);
@@ -9509,13 +9532,13 @@ var WysiwygEditor_default = /* @__PURE__ */ defineComponent({
 			}
 		});
 		watch(() => props.modelValue, (value) => {
-			if (mode.value === "source" || value === lastEmitted || !editor.value) return;
+			if (shared || mode.value === "source" || value === lastEmitted || !editor.value) return;
 			lastEmitted = value;
 			load(editor.value, value);
 		});
 		watch(() => props.readonly, (ro) => editor.value?.setEditable(!ro));
 		let detach = null;
-		watch(() => props.draft, (d) => {
+		watch(() => activeDraft.value, (d) => {
 			detach?.();
 			detach = d ? d.attach(() => void flush()) : null;
 		}, { immediate: true });
@@ -9601,7 +9624,7 @@ var WysiwygEditor_default = /* @__PURE__ */ defineComponent({
 				editor.value.commands.focus("end");
 			}
 		}
-		const draftStatus = computed(() => props.draft?.status.value ?? "none");
+		const draftStatus = computed(() => activeDraft.value?.status.value ?? "none");
 		function selectionAs(e) {
 			const { from, to, empty } = e.state.selection;
 			const fragment = e.state.selection.content().content;
@@ -9719,15 +9742,15 @@ var WysiwygEditor_default = /* @__PURE__ */ defineComponent({
 					fullscreen: fullscreen.value,
 					"block-menu-open": !!blockMenu.value && !blockMenu.value.convertOnly,
 					"show-focus": __props.focusMode,
-					"show-source": __props.sourceMode && !html,
-					"server-undo": __props.draft?.canUndo.value ?? false,
-					"server-redo": __props.draft?.canRedo.value ?? false,
+					"show-source": __props.sourceMode && !html && !unref(shared),
+					"server-undo": activeDraft.value?.canUndo.value ?? false,
+					"server-redo": activeDraft.value?.canRedo.value ?? false,
 					onLink: openLink,
 					onBlockMenu: openCaretMenu,
 					onToggleFullscreen: _cache[0] || (_cache[0] = ($event) => setFullscreen(!fullscreen.value)),
 					onSetMode: setMode
 				}, createSlots({
-					status: withCtx(() => [renderSlot(_ctx.$slots, "status", {}, () => [__props.draft ? (openBlock(), createBlock(SaveStatus_default, {
+					status: withCtx(() => [renderSlot(_ctx.$slots, "status", {}, () => [activeDraft.value ? (openBlock(), createBlock(SaveStatus_default, {
 						key: 0,
 						status: draftStatus.value
 					}, null, 8, ["status"])) : createCommentVNode("", true)])]),
@@ -9752,13 +9775,18 @@ var WysiwygEditor_default = /* @__PURE__ */ defineComponent({
 						editor: unref(editor),
 						class: "wy-host"
 					}, null, 8, ["editor"]),
-					unref(editor) && !__props.readonly ? withDirectives((openBlock(), createBlock(BubbleMenu_default, {
+					unref(editor) && (!__props.readonly || unref(readonlyBubble)) ? withDirectives((openBlock(), createBlock(BubbleMenu_default, {
 						key: 0,
 						editor: unref(editor),
 						tick: tick.value,
+						readonly: __props.readonly,
 						onLink: openLink,
 						onConvert: openConvertMenu
-					}, null, 8, ["editor", "tick"])), [[vShow, mode.value === "visual"]]) : createCommentVNode("", true),
+					}, null, 8, [
+						"editor",
+						"tick",
+						"readonly"
+					])), [[vShow, mode.value === "visual"]]) : createCommentVNode("", true),
 					unref(editor) && !__props.readonly && unref(config).base.tables ? (openBlock(), createBlock(TableControls_default, {
 						key: 1,
 						editor: unref(editor),
@@ -9827,7 +9855,7 @@ var WysiwygEditor_default = /* @__PURE__ */ defineComponent({
 						"aria-label": unref(t)("slash.items.mathInline.label"),
 						onClick: toMath
 					}, [createVNode(unref(SquareFunction), { size: 15 })], 8, _hoisted_5)), [[unref(vTooltip), unref(t)("slash.items.mathInline.label")]]) : createCommentVNode("", true),
-					__props.expandable && !unref(isInline) ? withDirectives((openBlock(), createElementBlock("button", {
+					__props.expandable && !unref(isInline) && !unref(shared) ? withDirectives((openBlock(), createElementBlock("button", {
 						key: 3,
 						type: "button",
 						class: "wy-tool is-sm",
@@ -9842,13 +9870,13 @@ var WysiwygEditor_default = /* @__PURE__ */ defineComponent({
 					editor: unref(editor),
 					class: "wy-host"
 				}, null, 8, ["editor"])], 32),
-				__props.draft ? (openBlock(), createBlock(SaveStatus_default, {
+				activeDraft.value ? (openBlock(), createBlock(SaveStatus_default, {
 					key: 0,
 					class: "wy-field-status",
 					status: draftStatus.value,
 					dot: ""
 				}, null, 8, ["status"])) : createCommentVNode("", true),
-				!unref(isInline) ? (openBlock(), createBlock(Modal_default, {
+				!unref(isInline) && !unref(shared) ? (openBlock(), createBlock(Modal_default, {
 					key: 1,
 					open: expanded.value,
 					size: "lg",
@@ -9866,7 +9894,7 @@ var WysiwygEditor_default = /* @__PURE__ */ defineComponent({
 						services: unref(services),
 						locale: unref(locale),
 						messages: unref(overrides),
-						draft: __props.draft,
+						draft: activeDraft.value,
 						"trailing-newline": unref(trailing),
 						placeholder: __props.placeholder,
 						autofocus: "end",

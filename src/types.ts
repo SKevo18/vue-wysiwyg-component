@@ -219,6 +219,8 @@ export interface ToolItemDef {
   rank?: number;
   active?: (editor: Editor) => boolean;
   enabled?: (editor: Editor) => boolean;
+  /** bubble tools only: also shown on a selection in a readonly editor, where every other tool is hidden (e.g. "Comment"). */
+  readonly?: boolean;
   run(editor: Editor, services: EditorServices): void;
 }
 
@@ -299,6 +301,15 @@ export interface EditorExtension {
   figure?: FigureHooks;
   math?: MathHooks;
   messages?: Partial<Record<Locale, DeepPartial<Messages> & Record<string, unknown>>>;
+}
+
+/**
+ * Live collaboration. The extensions own the document and its undo history, e.g.
+ * `Collaboration.configure({ document: ydoc, field: "default" })` and
+ * `CollaborationCaret.configure({ provider, user: { name, color } })`.
+ */
+export interface CollaborationOptions {
+  extensions: AnyExtension[];
 }
 
 export type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };

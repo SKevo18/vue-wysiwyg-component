@@ -1,5 +1,5 @@
 import { type Locale, type Messages } from "../i18n";
-import type { BaseOptions, DeepPartial, EditorExtension, EditorFormat, EditorHandle, EditorServices, EditorSize } from "../types";
+import type { BaseOptions, CollaborationOptions, DeepPartial, EditorExtension, EditorFormat, EditorHandle, EditorServices, EditorSize } from "../types";
 import type { DraftHandle } from "../draft/useDraft";
 type __VLS_Props = {
     modelValue: string;
@@ -21,7 +21,10 @@ type __VLS_Props = {
     focusMode?: boolean;
     sourceMode?: boolean;
     gutter?: boolean;
+    /** ignored in collaboration mode */
     draft?: DraftHandle | null;
+    /** read once at mount (remount with a `key` to switch documents): the shared document replaces modelValue, which is then only emitted */
+    collaboration?: CollaborationOptions | null;
     /** tiptap key notation (`Mod-Shift-b`); the editor ignores them and emits `shortcut` */
     shortcuts?: string[];
     trailingNewline?: boolean;
@@ -429,6 +432,7 @@ declare const __VLS_base: import("vue").DefineComponent<__VLS_Props, EditorHandl
     sourceMode: boolean;
     gutter: boolean;
     draft: DraftHandle | null;
+    collaboration: CollaborationOptions | null;
     shortcuts: string[];
     trailingNewline: boolean;
     contentClass: string;

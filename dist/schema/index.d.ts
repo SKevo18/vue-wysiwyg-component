@@ -10,5 +10,9 @@ export interface EditorConfig {
 /** shared default, so callers without extensions hit the same cache entry */
 export declare const NO_EXTENSIONS: readonly EditorExtension[];
 export declare function resolveConfig(format: EditorFormat, base: BaseOptions | undefined, extensions?: readonly EditorExtension[]): EditorConfig;
-export declare function schemaExtensions(config: EditorConfig, inline?: boolean): Extensions;
+/**
+ * not cached: `history: false` leaves the local undo history out for a collaborative editor, whose
+ * collaboration extension owns it. the history adds no schema, so `schemaFor` is the same either way.
+ */
+export declare function schemaExtensions(config: EditorConfig, inline?: boolean, history?: boolean): Extensions;
 export declare function schemaFor(config: EditorConfig, inline?: boolean): Schema;

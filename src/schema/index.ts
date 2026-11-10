@@ -80,7 +80,7 @@ export function resolveConfig(format: EditorFormat, base: BaseOptions | undefine
   return config;
 }
 
-function coreExtensions(config: EditorConfig, inline: boolean): AnyExtension[] {
+function coreExtensions(config: EditorConfig, inline: boolean, history: boolean): AnyExtension[] {
   const b = config.base;
   const lists = b.lists && !inline;
   const listItems = lists || (!inline && b.taskLists);
@@ -90,7 +90,8 @@ function coreExtensions(config: EditorConfig, inline: boolean): AnyExtension[] {
   out.push(Code);
   if (!inline) out.push(Document, Dropcursor.configure({ color: "var(--vc-accent)", width: 2 }), Gapcursor, HardBreak);
   if (!inline && b.headings.length) out.push(Heading.configure({ levels: b.headings }));
-  out.push(UndoRedo.configure({ newGroupDelay: 500 }), Italic);
+  if (history) out.push(UndoRedo.configure({ newGroupDelay: 500 }));
+  out.push(Italic);
   if (listItems) out.push(ListItem);
   if (!inline) out.push(ListKeymap);
   if (b.links) out.push(Link.configure({ openOnClick: false, autolink: true, linkOnPaste: true, defaultProtocol: "https", HTMLAttributes: { target: "_blank", rel: "noopener noreferrer" } }));
@@ -101,12 +102,16 @@ function coreExtensions(config: EditorConfig, inline: boolean): AnyExtension[] {
   return out;
 }
 
-export function schemaExtensions(config: EditorConfig, inline = false): Extensions {
+/**
+ * not cached: `history: false` leaves the local undo history out for a collaborative editor, whose
+ * collaboration extension owns it. the history adds no schema, so `schemaFor` is the same either way.
+ */
+export function schemaExtensions(config: EditorConfig, inline = false, history = true): Extensions {
   const b = config.base;
   const html = config.format === "html";
   const out: AnyExtension[] = [];
   if (inline) out.push(InlineDocument);
-  out.push(...coreExtensions(config, inline));
+  out.push(...coreExtensions(config, inline, history));
   if (b.highlight) out.push(Highlight.configure({ multicolor: html }));
   if (b.color) out.push(TextStyle, Color);
   if (b.textAlign && !inline) out.push(TextAlign.configure({ types: ["heading", "paragraph"] }));
@@ -130,5 +135,5 @@ export function schemaFor(config: EditorConfig, inline = false): Schema {
   let entry = schemas.get(config);
   if (!entry) schemas.set(config, (entry = {}));
   const key = inline ? "inline" : "block";
-  return (entry[key] ??= getSchema(schemaExtensions(config, inline)));
+  return (entry[key] ??= getSchema(schemaExtensions(config, inline, false)));
 }

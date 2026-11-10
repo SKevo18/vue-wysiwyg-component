@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, getCurrentInstance, inject, onBeforeUnmount, onMounted, provide, ref, shallowRef, watch } from "vue";
+import { computed, getCurrentInstance, inject, onBeforeUnmount, onMounted, provide, ref, shallowRef, toRaw, watch } from "vue";
 import { EditorContent, useEditor } from "@tiptap/vue-3";
 import { createDocument, type Editor } from "@tiptap/core";
 import type { Node as PMNode } from "@tiptap/pm/model";
@@ -9,7 +9,7 @@ import { createTranslator, hasMessage, MESSAGES, type Locale, type Messages } fr
 import { fragmentHtml, fragmentMarkdown, markdownFor } from "../markdown";
 import { NO_EXTENSIONS, resolveConfig } from "../schema";
 import { setKatexLoader } from "../core/math";
-import type { BaseOptions, DeepPartial, EditorExtension, EditorFormat, EditorHandle, EditorSelection, EditorServices, EditorSize, MaybeText } from "../types";
+import type { BaseOptions, CollaborationOptions, DeepPartial, EditorExtension, EditorFormat, EditorHandle, EditorSelection, EditorServices, EditorSize, MaybeText } from "../types";
 import type { DraftHandle } from "../draft/useDraft";
 import { applyLink, linkAtSelection, removeLink } from "../editor/behaviour";
 import { slashCatalog } from "../editor/catalog";
@@ -55,7 +55,10 @@ const props = withDefaults(
     focusMode?: boolean;
     sourceMode?: boolean;
     gutter?: boolean;
+    /** ignored in collaboration mode */
     draft?: DraftHandle | null;
+    /** read once at mount (remount with a `key` to switch documents): the shared document replaces modelValue, which is then only emitted */
+    collaboration?: CollaborationOptions | null;
     /** tiptap key notation (`Mod-Shift-b`); the editor ignores them and emits `shortcut` */
     shortcuts?: string[];
     trailingNewline?: boolean;
@@ -80,6 +83,7 @@ const props = withDefaults(
     sourceMode: false,
     gutter: true,
     draft: null,
+    collaboration: null,
     shortcuts: () => [],
     trailingNewline: undefined,
     contentClass: "",
@@ -106,6 +110,9 @@ const services: EditorServices = props.services ?? inherited.services ?? default
 const locale: Locale = props.locale ?? inherited.locale ?? defaults.locale ?? "en";
 const overrides = props.messages ?? inherited.messages ?? defaults.messages;
 setKatexLoader(services.katex);
+// a reactive proxy would hide the Y.Doc's own identity checks from yjs
+const shared = toRaw(props.collaboration)?.extensions ?? null;
+const activeDraft = computed(() => (shared ? null : props.draft));
 
 const config = resolveConfig(props.format, base, extensions);
 const markdown = markdownFor(config);
@@ -150,6 +157,7 @@ const ctx: EditorContext = {
 };
 ctx.slashItems = isInline ? [] : slashCatalog(config, files, services, text);
 provide(EDITOR_CONTEXT, ctx);
+const readonlyBubble = ctx.bubble.some((item) => item.readonly);
 
 const root = ref<HTMLElement | null>(null);
 const mode = ref<"visual" | "source">("visual");
@@ -200,7 +208,7 @@ function load(e: Editor, value: string, history = false) {
 function setUnsent(v: boolean) {
   if (unsent === v) return;
   unsent = v;
-  props.draft?.pending(v);
+  activeDraft.value?.pending(v);
   emit("pending", v);
 }
 
@@ -212,7 +220,7 @@ function flush(history = false): string | null {
     value = serialize(e);
     if (value !== lastEmitted) {
       lastEmitted = value;
-      if (history && props.draft) void props.draft.historyStep(value);
+      if (history && activeDraft.value) void activeDraft.value.historyStep(value);
       emit("update:modelValue", value);
     }
   }
@@ -221,7 +229,7 @@ function flush(history = false): string | null {
 }
 
 function bridge(): HistoryBridge | null {
-  const draft = props.draft;
+  const draft = activeDraft.value;
   if (!draft) return null;
   const apply = (value: string | null) => {
     const e = editor.value;
@@ -318,6 +326,7 @@ const editor = useEditor({
     gutter: full && props.gutter ? { onInsertAfter: insertAfter, onMenu: openGripMenu, menuOpen: () => blockMenu.value !== null } : null,
     bridge,
     hostKeys,
+    collaboration: shared,
   }),
   editorProps: {
     attributes: { class: `wy-prose wy-content${isInline ? " is-inline" : ""}${props.contentClass ? ` ${props.contentClass}` : ""}`, spellcheck: "true" },
@@ -328,7 +337,7 @@ const editor = useEditor({
     },
   },
   onCreate: ({ editor: e }) => {
-    load(e, props.modelValue);
+    if (!shared) load(e, props.modelValue);
     lastEmitted = props.modelValue;
     if (props.autofocus) e.commands.focus(props.autofocus === "start" ? "start" : "end");
     emit("ready", handle);
@@ -363,7 +372,7 @@ const editor = useEditor({
 watch(
   () => props.modelValue,
   (value) => {
-    if (mode.value === "source" || value === lastEmitted || !editor.value) return;
+    if (shared || mode.value === "source" || value === lastEmitted || !editor.value) return;
     lastEmitted = value;
     load(editor.value, value);
   },
@@ -375,7 +384,7 @@ watch(
 
 let detach: (() => void) | null = null;
 watch(
-  () => props.draft,
+  () => activeDraft.value,
   (d) => {
     detach?.();
     detach = d ? d.attach(() => void flush()) : null;
@@ -480,7 +489,7 @@ function onFieldMouseDown(e: MouseEvent) {
   }
 }
 
-const draftStatus = computed(() => props.draft?.status.value ?? "none");
+const draftStatus = computed(() => activeDraft.value?.status.value ?? "none");
 
 function selectionAs(e: Editor): EditorSelection {
   const { from, to, empty } = e.state.selection;
@@ -581,22 +590,22 @@ defineExpose(handle);
         :fullscreen="fullscreen"
         :block-menu-open="!!blockMenu && !blockMenu.convertOnly"
         :show-focus="focusMode"
-        :show-source="sourceMode && !html"
-        :server-undo="draft?.canUndo.value ?? false"
-        :server-redo="draft?.canRedo.value ?? false"
+        :show-source="sourceMode && !html && !shared"
+        :server-undo="activeDraft?.canUndo.value ?? false"
+        :server-redo="activeDraft?.canRedo.value ?? false"
         @link="openLink"
         @block-menu="openCaretMenu"
         @toggle-fullscreen="setFullscreen(!fullscreen)"
         @set-mode="setMode"
       >
         <template #status>
-          <slot name="status"><SaveStatus v-if="draft" :status="draftStatus" /></slot>
+          <slot name="status"><SaveStatus v-if="activeDraft" :status="draftStatus" /></slot>
         </template>
         <template v-if="$slots.actions" #actions><slot name="actions" /></template>
       </Toolbar>
       <div v-show="mode === 'visual'" class="wy-surface" :class="{ 'has-gutter': gutter && !readonly }">
         <EditorContent :editor="editor" class="wy-host" />
-        <BubbleMenu v-if="editor && !readonly" v-show="mode === 'visual'" :editor="editor" :tick="tick" @link="openLink" @convert="openConvertMenu" />
+        <BubbleMenu v-if="editor && (!readonly || readonlyBubble)" v-show="mode === 'visual'" :editor="editor" :tick="tick" :readonly="readonly" @link="openLink" @convert="openConvertMenu" />
         <TableControls v-if="editor && !readonly && config.base.tables" :editor="editor" :tick="tick" />
         <span ref="menuAnchor" class="wy-menu-anchor" aria-hidden="true"></span>
         <BlockActionsMenu
@@ -622,13 +631,13 @@ defineExpose(handle);
         <MarkButtons v-if="editor" :editor="editor" :tick="tick" small />
         <button v-if="config.base.links" v-tooltip="{ text: t('toolbar.link'), keys: 'Mod-k' }" type="button" class="wy-tool is-sm" :aria-label="t('toolbar.link')" :aria-pressed="linkActive" @click="openLink"><LinkIcon :size="15" /></button>
         <button v-if="config.base.math" v-tooltip="t('slash.items.mathInline.label')" type="button" class="wy-tool is-sm" :aria-label="t('slash.items.mathInline.label')" @click="toMath"><SquareFunction :size="15" /></button>
-        <button v-if="expandable && !isInline" v-tooltip="t('field.expand')" type="button" class="wy-tool is-sm" :aria-label="t('field.expand')" @click="expanded = true"><Maximize2 :size="15" /></button>
+        <button v-if="expandable && !isInline && !shared" v-tooltip="t('field.expand')" type="button" class="wy-tool is-sm" :aria-label="t('field.expand')" @click="expanded = true"><Maximize2 :size="15" /></button>
       </div>
       <div class="wy-field-body" @mousedown="onFieldMouseDown">
         <EditorContent :editor="editor" class="wy-host" />
       </div>
-      <SaveStatus v-if="draft" class="wy-field-status" :status="draftStatus" dot />
-      <Modal v-if="!isInline" :open="expanded" size="lg" :title="expandTitle ?? t('field.expandTitle')" :close-label="t('field.close')" @close="expanded = false">
+      <SaveStatus v-if="activeDraft" class="wy-field-status" :status="draftStatus" dot />
+      <Modal v-if="!isInline && !shared" :open="expanded" size="lg" :title="expandTitle ?? t('field.expandTitle')" :close-label="t('field.close')" @close="expanded = false">
         <WysiwygEditor
           v-if="expanded"
           :model-value="modelValue"
@@ -639,7 +648,7 @@ defineExpose(handle);
           :services="services"
           :locale="locale"
           :messages="overrides"
-          :draft="draft"
+          :draft="activeDraft"
           :trailing-newline="trailing"
           :placeholder="placeholder"
           autofocus="end"

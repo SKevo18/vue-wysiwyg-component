@@ -2,6 +2,7 @@
 import { ref, watch } from "vue";
 import { WysiwygEditor, type EditorServices } from "@skevo18/vue-wysiwyg-component";
 import { badgerCensus } from "./badger";
+import { collaborators } from "./collab";
 
 const dark = ref(false);
 watch(dark, (d) => document.documentElement.classList.toggle("dark", d));
@@ -45,6 +46,12 @@ otter: 1
 const compactMd = ref("A **short** comment about otters.");
 const fullHtml = ref('<h2>Hello otters</h2><p style="text-align: center"><span style="color: #dc2626">Red</span> and <mark data-color="#bbf7d0" style="background-color: #bbf7d0">green</mark>.</p><div data-type="callout" data-variant="warning"><p>Cold water.</p></div>');
 const compactHtml = ref("<p>Reply to the <strong>badger</strong> club.</p>");
+const [ada, bob] = collaborators([
+  { name: "Ada", color: "#e5484d" },
+  { name: "Bob", color: "#0090ff" },
+]);
+const adaMd = ref("");
+const bobMd = ref("");
 </script>
 
 <template>
@@ -72,6 +79,14 @@ const compactHtml = ref("<p>Reply to the <strong>badger</strong> club.</p>");
       <h2>Compact, html</h2>
       <WysiwygEditor v-model="compactHtml" format="html" size="compact" :services="services" placeholder="Reply" />
       <pre class="pg-out" data-testid="compact-html">{{ compactHtml }}</pre>
+    </section>
+    <section>
+      <h2>Live collaboration, two peers on one document</h2>
+      <div class="pg-pair">
+        <WysiwygEditor v-model="adaMd" size="full" :collaboration="ada" placeholder="Ada writes here" />
+        <WysiwygEditor v-model="bobMd" size="full" :collaboration="bob" placeholder="Bob writes here" />
+      </div>
+      <pre class="pg-out" data-testid="collab-md">{{ bobMd }}</pre>
     </section>
     <pre class="pg-out">{{ log.slice(0, 8).join("\n") }}</pre>
   </main>

@@ -1544,6 +1544,30 @@ button.wy-grip {
     height: 24px;
   }
 }
+
+/* live collaboration: CollaborationCaret sets each user's color inline */
+.wy-content .collaboration-carets__caret {
+  position: relative;
+  margin-right: -1px;
+  margin-left: -1px;
+  border-right: 1px solid var(--vc-accent);
+  border-left: 1px solid var(--vc-accent);
+  word-break: normal;
+  pointer-events: none;
+}
+.wy-content .collaboration-carets__label {
+  position: absolute;
+  top: -1.45em;
+  left: -1px;
+  padding: 1px 5px;
+  border-radius: var(--vc-radius-sm) var(--vc-radius-sm) var(--vc-radius-sm) 0;
+  background: var(--vc-accent);
+  color: var(--vc-accent-fg);
+  font: 600 11px/1.4 var(--vc-font);
+  font-style: normal;
+  white-space: nowrap;
+  user-select: none;
+}
 .wy-block-frame {
   --wy-block-pad: 12px;
   position: relative;

@@ -69,8 +69,11 @@
   "devDependencies": {
     "@lucide/vue": "^1.66.0",
     "@tiptap/core": "^3.32.2",
+    "@tiptap/extension-collaboration": "3.32.2",
+    "@tiptap/extension-collaboration-caret": "3.32.2",
     "@tiptap/pm": "^3.32.2",
     "@tiptap/vue-3": "^3.32.2",
+    "@tiptap/y-tiptap": "3.3.0",
     "@types/node": "^26.6.6",
     "@vitejs/plugin-vue": "^6.0.10",
     "@vue/test-utils": "^2.5.1",
@@ -81,6 +84,8 @@
     "vite": "^8.3.5",
     "vitest": "^5.0.5",
     "vue": "^3.5.44",
-    "vue-tsc": "^3.3.14"
+    "vue-tsc": "^3.3.14",
+    "y-protocols": "1.0.7",
+    "yjs": "13.6.31"
   }
 }

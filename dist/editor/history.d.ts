@@ -18,4 +18,5 @@ declare module "@tiptap/core" {
 export declare function replaceDocument(editor: Editor, doc: PMNode): void;
 export declare const ServerHistory: Extension<{
     bridge: () => HistoryBridge | null;
+    collaborative: boolean;
 }, any>;

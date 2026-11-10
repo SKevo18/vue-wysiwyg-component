@@ -1,4 +1,5 @@
-// mod+z steps the local history first; once it is exhausted (or only holds remapped steps) the bridge steps the server history
+// mod+z steps the local history first; once it is exhausted (or only holds remapped steps) the bridge steps the server history.
+// in collaboration mode the collaboration extension's undo/redo commands (y-undo, this client's changes only) take over.
 import { Extension, type CommandProps, type Editor } from "@tiptap/core";
 import { TextSelection } from "@tiptap/pm/state";
 import { redo, undo } from "@tiptap/pm/history";
@@ -29,12 +30,18 @@ export function replaceDocument(editor: Editor, doc: PMNode) {
   view.dispatch(tr);
 }
 
-export const ServerHistory = Extension.create<{ bridge: () => HistoryBridge | null }>({
+export const ServerHistory = Extension.create<{ bridge: () => HistoryBridge | null; collaborative: boolean }>({
   name: "serverHistory",
   addOptions() {
-    return { bridge: () => null };
+    return { bridge: () => null, collaborative: false };
   },
   addCommands() {
+    if (this.options.collaborative) {
+      return {
+        historyUndo: () => ({ commands }) => commands.undo?.() ?? false,
+        historyRedo: () => ({ commands }) => commands.redo?.() ?? false,
+      };
+    }
     // the local step runs on the command's own transaction; the bridge dispatches on its own after this returns
     const step =
       (dir: "undo" | "redo") =>

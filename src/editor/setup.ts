@@ -34,12 +34,14 @@ export interface SetupOptions {
   gutter: { onInsertAfter(pos: number): void; onMenu(pos: number, grip: HTMLElement): void; menuOpen(): boolean } | null;
   bridge(): HistoryBridge | null;
   hostKeys(): Record<string, () => boolean>;
+  /** the host's collaboration extensions; they replace the local undo history and own the document */
+  collaboration: AnyExtension[] | null;
 }
 
 export function editorExtensions(ctx: EditorContext, opts: SetupOptions): Extensions {
   const views: Record<string, Component> = { ...BASE_VIEWS };
   for (const e of ctx.config.extensions) Object.assign(views, e.nodeViews);
-  const base = schemaExtensions(ctx.config, ctx.inline).map((ext): AnyExtension => {
+  const base = schemaExtensions(ctx.config, ctx.inline, !opts.collaboration).map((ext): AnyExtension => {
     const view = views[ext.name];
     if (!view || !(ext instanceof Node)) return ext;
     return ext.extend({ addNodeView: () => VueNodeViewRenderer(view, { stopEvent: blockStopEvent }) });
@@ -48,12 +50,13 @@ export function editorExtensions(ctx: EditorContext, opts: SetupOptions): Extens
     ...base,
     ContextStorage.configure({ context: ctx }),
     HostKeys.configure({ keys: opts.hostKeys }),
-    ServerHistory.configure({ bridge: opts.bridge }),
+    ServerHistory.configure({ bridge: opts.bridge, collaborative: !!opts.collaboration }),
     InlineAtomClick,
     clipboardExtension(ctx.markdown, ctx.config.format === "markdown"),
   ];
   if (ctx.inline) {
     out.push(InlineKeys, Placeholder.configure({ placeholder: opts.placeholder, showOnlyWhenEditable: true }));
+    if (opts.collaboration) out.push(...opts.collaboration);
     return out;
   }
   out.push(
@@ -71,5 +74,6 @@ export function editorExtensions(ctx: EditorContext, opts: SetupOptions): Extens
     const g = opts.gutter;
     out.push(GutterHandle.configure({ onInsertAfter: g.onInsertAfter, onMenu: g.onMenu, menuOpen: g.menuOpen, labels: () => ({ drag: ctx.t("gutter.drag"), add: ctx.t("gutter.add") }) }));
   }
+  if (opts.collaboration) out.push(...opts.collaboration);
   return out;
 }
