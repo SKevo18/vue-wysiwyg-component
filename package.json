@@ -1,0 +1,86 @@
+{
+  "name": "@skevo18/vue-wysiwyg-component",
+  "version": "0.1.0",
+  "description": "Tiptap based WYSIWYG editor for Vue 3 with markdown and HTML formats, compact and full sizes and an extension API.",
+  "license": "MIT",
+  "repository": "github:SKevo18/vue-wysiwyg-component",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./style.css": "./dist/style.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "browserslist": [
+    "baseline 2024"
+  ],
+  "scripts": {
+    "dev": "vite --config playground/vite.config.ts",
+    "build": "vite build && vue-tsc -p tsconfig.build.json",
+    "check": "vue-tsc -p tsconfig.json --noEmit && vitest run",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "@lucide/vue": "^1.52.0",
+    "@tiptap/core": "^3.32.2",
+    "@tiptap/pm": "^3.32.2",
+    "@tiptap/vue-3": "^3.32.2",
+    "vue": "^3.5.0"
+  },
+  "dependencies": {
+    "@floating-ui/dom": "^1.8.0",
+    "@tiptap/extension-blockquote": "^3.32.2",
+    "@tiptap/extension-bold": "^3.32.2",
+    "@tiptap/extension-code": "^3.32.2",
+    "@tiptap/extension-code-block": "^3.32.2",
+    "@tiptap/extension-document": "^3.32.2",
+    "@tiptap/extension-hard-break": "^3.32.2",
+    "@tiptap/extension-heading": "^3.32.2",
+    "@tiptap/extension-highlight": "^3.32.2",
+    "@tiptap/extension-horizontal-rule": "^3.32.2",
+    "@tiptap/extension-image": "^3.32.2",
+    "@tiptap/extension-italic": "^3.32.2",
+    "@tiptap/extension-link": "^3.32.2",
+    "@tiptap/extension-list": "^3.32.2",
+    "@tiptap/extension-paragraph": "^3.32.2",
+    "@tiptap/extension-strike": "^3.32.2",
+    "@tiptap/extension-table": "^3.32.2",
+    "@tiptap/extension-text": "^3.32.2",
+    "@tiptap/extension-text-align": "^3.32.2",
+    "@tiptap/extension-text-style": "^3.32.2",
+    "@tiptap/extension-underline": "^3.32.2",
+    "@tiptap/extensions": "^3.32.2",
+    "@tiptap/suggestion": "^3.32.2",
+    "highlight.js": "^11.12.0",
+    "markdown-it": "^15.0.3",
+    "markdown-it-mark": "^4.0.0",
+    "prosemirror-markdown": "^1.13.9"
+  },
+  "devDependencies": {
+    "@lucide/vue": "^1.66.0",
+    "@tiptap/core": "^3.32.2",
+    "@tiptap/pm": "^3.32.2",
+    "@tiptap/vue-3": "^3.32.2",
+    "@types/node": "^26.6.6",
+    "@vitejs/plugin-vue": "^6.0.10",
+    "@vue/test-utils": "^2.5.1",
+    "@vue/tsconfig": "^0.9.1",
+    "happy-dom": "^21.0.4",
+    "katex": "^0.19.1",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5",
+    "vue": "^3.5.44",
+    "vue-tsc": "^3.3.14"
+  }
+}

@@ -1,0 +1,66 @@
+html.dark {
+  --vc-bg: #18181b;
+  --vc-bg-subtle: #1f1f23;
+  --vc-bg-muted: #2a2a30;
+  --vc-bg-active: #34343b;
+  --vc-fg: #e4e4e7;
+  --vc-fg-strong: #fafafa;
+  --vc-fg-muted: #a1a1aa;
+  --vc-fg-faint: #71717a;
+  --vc-border: #2f2f35;
+  --vc-border-strong: #45454d;
+  --vc-accent: #60a5fa;
+  --vc-accent-fg: #0b1220;
+  --vc-accent-soft: #1e293b;
+  --vc-danger: #f87171;
+  --vc-danger-soft: #3b1d1d;
+  --vc-warning: #fbbf24;
+  --vc-warning-soft: #3a2e12;
+  --vc-success: #4ade80;
+  --vc-success-soft: #14301f;
+  --vc-code-bg: #111114;
+  --vc-code-fg: #e4e4e7;
+  --vc-code-keyword: #ff7b72;
+  --vc-code-string: #a5d6ff;
+  --vc-code-number: #79c0ff;
+  --vc-code-comment: #8b949e;
+  --vc-code-function: #d2a8ff;
+  --vc-code-type: #ffa657;
+  --vc-code-attr: #7ee787;
+  --vc-code-tag: #7ee787;
+  color-scheme: dark;
+}
+body {
+  margin: 0;
+  background: var(--vc-bg);
+  color: var(--vc-fg);
+  font-family: var(--vc-font);
+}
+.pg {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 16px;
+}
+.pg-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.pg section {
+  margin: 24px 0 40px;
+}
+.pg-out {
+  max-height: 10rem;
+  overflow: auto;
+  font-size: 12px;
+  background: var(--vc-bg-subtle);
+  padding: 8px;
+  white-space: pre-wrap;
+}
+.census ul {
+  margin: 4px 0 0;
+}
+.census-form {
+  display: grid;
+  gap: 8px;
+}

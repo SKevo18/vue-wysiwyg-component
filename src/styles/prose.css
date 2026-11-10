@@ -1,0 +1,385 @@
+.wy-prose {
+  color: var(--vc-fg);
+  font-family: var(--vc-font);
+  font-size: 1rem;
+  line-height: 1.65;
+  overflow-wrap: break-word;
+}
+.wy-prose > :first-child {
+  margin-top: 0;
+}
+.wy-prose > :last-child {
+  margin-bottom: 0;
+}
+.wy-prose p {
+  margin: 0.75em 0;
+}
+.wy-prose :is(h1, h2, h3, h4, h5, h6) {
+  color: var(--vc-fg-strong);
+  font-weight: 650;
+  line-height: 1.25;
+  margin: 1.4em 0 0.5em;
+}
+.wy-prose h1 {
+  font-size: 1.85em;
+}
+.wy-prose h2 {
+  font-size: 1.45em;
+}
+.wy-prose h3 {
+  font-size: 1.2em;
+}
+.wy-prose h4 {
+  font-size: 1.05em;
+}
+.wy-prose h5 {
+  font-size: 0.95em;
+}
+.wy-prose h6 {
+  font-size: 0.875em;
+  color: var(--vc-fg-muted);
+}
+.wy-prose a {
+  color: var(--vc-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.wy-prose a[data-file-size] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.05em 0.5em;
+  border: 1px solid var(--vc-border);
+  border-radius: var(--vc-radius-sm);
+  background: var(--vc-bg-subtle);
+  color: var(--vc-fg);
+  text-decoration: none;
+  font-size: 0.9em;
+}
+.wy-prose a[data-file-size]::before {
+  content: "";
+  width: 0.95em;
+  height: 0.95em;
+  flex: none;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z'/%3E%3Cpath d='M14 2v5a1 1 0 0 0 1 1h5'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z'/%3E%3Cpath d='M14 2v5a1 1 0 0 0 1 1h5'/%3E%3C/svg%3E") center / contain no-repeat;
+  color: var(--vc-fg-muted);
+}
+.wy-prose a[data-file-size]::after {
+  content: attr(data-file-size);
+  color: var(--vc-fg-muted);
+  font-size: 0.85em;
+}
+/* no own colour: text colour marks around bold text must win */
+.wy-prose strong {
+  font-weight: 650;
+}
+.wy-prose mark {
+  background: color-mix(in srgb, #facc15 38%, transparent);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 0.1em;
+}
+/* tiptap writes `color: inherit` inline; pastel mark colours need dark text in dark themes too */
+.wy-prose mark[data-color] {
+  color: #18181b !important;
+}
+.wy-prose :not(pre) > code {
+  font-family: var(--vc-font-mono);
+  font-size: 0.875em;
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  background: var(--vc-bg-muted);
+  color: var(--vc-fg-strong);
+}
+.wy-prose pre {
+  margin: 1em 0;
+  padding: 0.85em 1em;
+  border-radius: var(--vc-radius);
+  background: var(--vc-code-bg);
+  color: var(--vc-code-fg);
+  font-family: var(--vc-font-mono);
+  font-size: 0.875em;
+  line-height: 1.55;
+  overflow-x: auto;
+  white-space: pre;
+  tab-size: 4;
+}
+.wy-prose pre code {
+  font: inherit;
+  background: none;
+  padding: 0;
+  color: inherit;
+}
+.wy-prose blockquote {
+  margin: 1em 0;
+  padding: 0.1em 0 0.1em 1em;
+  border-left: 3px solid var(--vc-border-strong);
+  color: var(--vc-fg-muted);
+}
+.wy-prose :is(ul, ol) {
+  margin: 0.75em 0;
+  padding-left: 1.6em;
+}
+.wy-prose li {
+  margin: 0.2em 0;
+}
+.wy-prose li > :is(p, ul, ol) {
+  margin: 0.2em 0;
+}
+.wy-prose ol.wy-list-lower-alpha {
+  list-style-type: lower-alpha;
+}
+.wy-prose ol.wy-list-upper-alpha {
+  list-style-type: upper-alpha;
+}
+.wy-prose ol.wy-list-lower-roman {
+  list-style-type: lower-roman;
+}
+.wy-prose ol.wy-list-upper-roman {
+  list-style-type: upper-roman;
+}
+.wy-prose ul.wy-list-circle {
+  list-style-type: circle;
+}
+.wy-prose ul.wy-list-square {
+  list-style-type: square;
+}
+.wy-prose ul.wy-list-marker > li::marker {
+  content: var(--wy-list-marker);
+}
+.wy-prose ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0.2em;
+}
+.wy-prose ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55em;
+}
+.wy-prose ul[data-type="taskList"] li > label {
+  flex: none;
+  margin-top: 0.3em;
+  user-select: none;
+}
+.wy-prose ul[data-type="taskList"] li > label input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--vc-accent);
+}
+.wy-prose ul[data-type="taskList"] li > div {
+  flex: 1;
+  min-width: 0;
+}
+.wy-prose ul[data-type="taskList"] li[data-checked="true"] > div {
+  color: var(--vc-fg-muted);
+  text-decoration: line-through;
+}
+.wy-prose :is(hr, .wy-divider) {
+  --wy-divider-width: 1px;
+  --wy-divider-style: solid;
+  --wy-divider-color: var(--vc-border-strong);
+  border: 0;
+  margin: 1.6em 0;
+}
+.wy-prose hr,
+.wy-divider:not(.has-ornament) {
+  border-top: var(--wy-divider-width, 1px) var(--wy-divider-style, solid) var(--wy-divider-color, var(--vc-border-strong));
+}
+.wy-divider.has-ornament {
+  display: flex;
+  align-items: center;
+  gap: 0.9em;
+  color: var(--wy-divider-color, var(--vc-fg-muted));
+}
+.wy-divider.has-ornament::before,
+.wy-divider.has-ornament::after {
+  content: "";
+  flex: 1;
+  border-top: var(--wy-divider-width, 1px) var(--wy-divider-style, solid) var(--wy-divider-color, var(--vc-border-strong));
+}
+.wy-divider-ornament {
+  line-height: 1;
+  font-size: 0.95em;
+}
+.wy-prose table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  font-size: 0.95em;
+}
+.wy-prose .tableWrapper {
+  overflow-x: auto;
+  margin: 1em 0;
+}
+.wy-prose .tableWrapper table {
+  margin: 0;
+}
+.wy-prose :is(th, td) {
+  border: 1px solid var(--vc-border);
+  padding: 0.4em 0.65em;
+  text-align: left;
+  vertical-align: top;
+  min-width: 3em;
+}
+.wy-prose th {
+  background: var(--vc-bg-subtle);
+  font-weight: 600;
+  color: var(--vc-fg-strong);
+}
+.wy-prose :is(th, td) > p {
+  margin: 0;
+}
+.wy-prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+.wy-prose .wy-figure,
+.wy-prose figure,
+.wy-prose p[data-type="image"] {
+  margin: 1.1em 0;
+}
+.wy-prose .wy-figure {
+  width: var(--wy-figure-width, fit-content);
+  max-width: 100%;
+}
+.wy-prose .wy-figure.wy-align-center {
+  margin-left: auto;
+  margin-right: auto;
+}
+.wy-prose .wy-figure.wy-align-right {
+  margin-left: auto;
+}
+.wy-prose .wy-figure.wy-align-float-left {
+  float: left;
+  margin: 0.3em 1.2em 0.6em 0;
+  max-width: 50%;
+}
+.wy-prose .wy-figure.wy-align-float-right {
+  float: right;
+  margin: 0.3em 0 0.6em 1.2em;
+  max-width: 50%;
+}
+.wy-prose figure img,
+.wy-prose .wy-figure img {
+  display: block;
+}
+.wy-prose p[data-type="image"] img {
+  display: inline-block;
+}
+/* static html of a resized image: the box spans the column and the image keeps its inline `width: N%` of it (the
+ * editor's node view sizes its box through --wy-figure-width instead and carries no data-width) */
+.wy-prose .wy-figure[data-width] {
+  width: 100%;
+}
+.wy-prose figure.wy-figure.wy-align-center img {
+  margin-inline: auto;
+}
+.wy-prose figure.wy-figure.wy-align-right img {
+  margin-left: auto;
+}
+.wy-prose figcaption {
+  margin-top: 0.4em;
+  font-size: 0.875em;
+  color: var(--vc-fg-muted);
+  text-align: center;
+}
+.wy-prose :is(video, audio) {
+  max-width: 100%;
+}
+
+.wy-callout {
+  --wy-callout: var(--vc-accent);
+  --wy-callout-soft: var(--vc-accent-soft);
+  margin: 1em 0;
+  padding: 0.7em 0.95em;
+  border: 1px solid color-mix(in srgb, var(--wy-callout) 28%, transparent);
+  border-left: 3px solid var(--wy-callout);
+  border-radius: var(--vc-radius-sm);
+  background: var(--wy-callout-soft);
+  color: var(--vc-fg);
+}
+.wy-callout[data-variant="tip"],
+.wy-callout[data-variant="success"] {
+  --wy-callout: var(--vc-success);
+  --wy-callout-soft: var(--vc-success-soft);
+}
+.wy-callout[data-variant="important"],
+.wy-callout[data-variant="example"] {
+  --wy-callout: var(--vc-tint-violet);
+  --wy-callout-soft: color-mix(in srgb, var(--vc-tint-violet) 10%, var(--vc-bg));
+}
+.wy-callout[data-variant="warning"] {
+  --wy-callout: var(--vc-warning);
+  --wy-callout-soft: var(--vc-warning-soft);
+}
+.wy-callout[data-variant="caution"],
+.wy-callout[data-variant="danger"] {
+  --wy-callout: var(--vc-danger);
+  --wy-callout-soft: var(--vc-danger-soft);
+}
+.wy-callout[data-variant="question"] {
+  --wy-callout: var(--vc-tint-teal);
+  --wy-callout-soft: color-mix(in srgb, var(--vc-tint-teal) 10%, var(--vc-bg));
+}
+.wy-callout[data-variant="details"] {
+  --wy-callout: var(--vc-fg-muted);
+  --wy-callout-soft: var(--vc-bg-subtle);
+}
+/* static html (readers) has the title only as data-title; the editor's node view shows its own input */
+.wy-prose .wy-callout[data-title]::before {
+  content: attr(data-title);
+  display: block;
+  margin-bottom: 0.3em;
+  font-weight: 600;
+  color: var(--wy-callout);
+}
+.wy-callout > :first-child {
+  margin-top: 0;
+}
+.wy-callout > :last-child {
+  margin-bottom: 0;
+}
+
+.wy-prose details {
+  margin: 1em 0;
+  padding: 0.5em 0.9em;
+  border: 1px solid var(--vc-border);
+  border-radius: var(--vc-radius-sm);
+}
+.wy-prose details > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.wy-footnote-def {
+  margin: 0.5em 0;
+  font-size: 0.875em;
+  color: var(--vc-fg-muted);
+  white-space: pre-wrap;
+}
+.wy-footnote-def::before {
+  content: "[^" attr(data-label) "]: ";
+  font-family: var(--vc-font-mono);
+  font-size: 0.85em;
+}
+.wy-footnote-ref {
+  font-family: var(--vc-font-mono);
+  font-size: 0.75em;
+  color: var(--vc-accent);
+}
+.wy-math-block {
+  margin: 1em 0;
+  overflow-x: auto;
+  text-align: center;
+}
+.wy-math-source {
+  font-family: var(--vc-font-mono);
+  font-size: 0.875em;
+  color: var(--vc-fg-muted);
+}
+.wy-math-error {
+  color: var(--vc-danger);
+}

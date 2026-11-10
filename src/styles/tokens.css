@@ -1,0 +1,48 @@
+:where(:root) {
+  --vc-bg: #ffffff;
+  --vc-bg-subtle: #f7f7f8;
+  --vc-bg-muted: #efeff2;
+  --vc-bg-active: #e5e5ea;
+  --vc-fg: #27272a;
+  --vc-fg-strong: #09090b;
+  --vc-fg-muted: #61616b;
+  --vc-fg-faint: #9d9da6;
+  --vc-border: #e4e4e8;
+  --vc-border-strong: #c8c8cf;
+  --vc-accent: #2563eb;
+  --vc-accent-fg: #ffffff;
+  --vc-accent-soft: #e7eefe;
+  --vc-danger: #dc2626;
+  --vc-danger-soft: #fdecec;
+  --vc-warning: #d97706;
+  --vc-warning-soft: #fdf3dc;
+  --vc-success: #16a34a;
+  --vc-radius: 8px;
+  --vc-radius-sm: 6px;
+  --vc-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --vc-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --vc-shadow-pop: 0 10px 28px rgb(0 0 0 / 0.12), 0 2px 6px rgb(0 0 0 / 0.08);
+  --vc-ring: 0 0 0 3px color-mix(in srgb, var(--vc-accent) 28%, transparent);
+
+  --vc-code-bg: #f6f7f9;
+  --vc-code-fg: #24292f;
+  --vc-code-keyword: #cf222e;
+  --vc-code-string: #0a3069;
+  --vc-code-number: #0550ae;
+  --vc-code-comment: #6e7781;
+  --vc-code-function: #8250df;
+  --vc-code-type: #953800;
+  --vc-code-attr: #116329;
+  --vc-code-tag: #116329;
+
+  --vc-success-soft: #e7f6ec;
+  --vc-tint-red: #e5484d;
+  --vc-tint-orange: #f76b15;
+  --vc-tint-amber: #d4a106;
+  --vc-tint-green: #30a46c;
+  --vc-tint-teal: #12a594;
+  --vc-tint-blue: #0090ff;
+  --vc-tint-violet: #6e56cf;
+  --vc-tint-pink: #d6409f;
+  --wy-toolbar-top: 0px;
+}

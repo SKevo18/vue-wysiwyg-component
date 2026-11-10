@@ -1,0 +1,13 @@
+import { Extension, Node } from "@tiptap/core";
+import { Fragment, type Node as PMNode, type Schema } from "@tiptap/pm/model";
+export declare const InlineImage: Node<import("@tiptap/extension-image").ImageOptions, any>;
+export declare const Figure: Node<any, any>;
+export declare const Callout: Node<any, any>;
+export declare const Divider: Node<import("@tiptap/extension-horizontal-rule").HorizontalRuleOptions, any>;
+export declare const ListStyles: Extension<any, any>;
+export declare const FileChips: Extension<any, any>;
+export declare const GenericCodeBlock: Node<import("@tiptap/extension-code-block").CodeBlockOptions, any>;
+export declare function flattenToParagraph(content: Fragment, schema: Schema): PMNode;
+export declare const InlineTableCell: Node<import("@tiptap/extension-table").TableCellOptions, any>;
+export declare const InlineTableHeader: Node<import("@tiptap/extension-table").TableHeaderOptions, any>;
+export declare const InlineDocument: Node<any, any>;
