@@ -1,12 +1,16 @@
-import type { StateInline } from "markdown-it";
-import type { MentionKind } from "../types";
+import { escapeChipLabel } from "../inline";
+
+/** kinds of the `mention` node; pages are `pageLink` chips */
+export type MentionNodeKind = "user" | "date";
 
 export interface MentionAttrs {
-  kind: MentionKind;
+  kind: MentionNodeKind;
   id: string;
   label: string;
   start: string | null;
   end: string | null;
+  /** dates only: a reminder, shown with a bell */
+  remind: boolean;
 }
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2})?)?$/;
@@ -16,60 +20,31 @@ export function isMentionDate(v: unknown): v is string {
   return typeof v === "string" && DATE_RE.test(v);
 }
 
-/** the target in `@[label](<target>)`: `user:<id>`, `page:<id>`, `date:<start>` or `date:<start>/<end>` */
-export function mentionTarget(a: Pick<MentionAttrs, "kind" | "id" | "start" | "end">): string | null {
+/** the target in `@[label](<target>)`: `user:<id>`, `date:<start>`, `date:<start>/<end>`, with `!` after a reminder's dates */
+export function mentionTarget(a: Pick<MentionAttrs, "kind" | "id" | "start" | "end" | "remind">): string | null {
   if (a.kind === "date") {
     if (!isMentionDate(a.start)) return null;
-    return `date:${a.start}${isMentionDate(a.end) ? `/${a.end}` : ""}`;
+    return `date:${a.start}${isMentionDate(a.end) ? `/${a.end}` : ""}${a.remind ? "!" : ""}`;
   }
-  return (a.kind === "user" || a.kind === "page") && ID_RE.test(a.id) ? `${a.kind}:${a.id}` : null;
+  return a.kind === "user" && ID_RE.test(a.id) ? `user:${a.id}` : null;
 }
 
 export function parseMentionTarget(target: string): Omit<MentionAttrs, "label"> | null {
-  const m = /^(user|page|date):(.+)$/.exec(target);
+  const m = /^(user|date):(.+)$/.exec(target);
   if (!m) return null;
-  const kind = m[1] as MentionKind;
-  const value = m[2]!;
-  if (kind !== "date") return ID_RE.test(value) ? { kind, id: value, start: null, end: null } : null;
+  const kind = m[1] as MentionNodeKind;
+  let value = m[2]!;
+  if (kind === "user") return ID_RE.test(value) ? { kind, id: value, start: null, end: null, remind: false } : null;
+  const remind = value.endsWith("!");
+  if (remind) value = value.slice(0, -1);
   const [start, end, extra] = value.split("/");
   if (extra !== undefined || !isMentionDate(start) || (end !== undefined && !isMentionDate(end))) return null;
-  return { kind, id: "", start, end: end ?? null };
-}
-
-export function escapeMentionLabel(label: string): string {
-  return label.replace(/[\\[\]]/g, "\\$&").replace(/\s*\n\s*/g, " ");
+  return { kind, id: "", start, end: end ?? null, remind };
 }
 
 export function mentionMarkdown(a: MentionAttrs): string | null {
   const target = mentionTarget(a);
-  return target ? `@[${escapeMentionLabel(a.label)}](${target})` : null;
-}
-
-/** inline rule for `@[label](kind:value)`; must run before `link` */
-export function mentionRule(state: StateInline, silent: boolean): boolean {
-  const src = state.src;
-  const at = state.pos;
-  if (src.charCodeAt(at) !== 0x40 || src.charCodeAt(at + 1) !== 0x5b) return false;
-  let label = "";
-  let i = at + 2;
-  for (; i < state.posMax; i++) {
-    const ch = src[i]!;
-    if (ch === "\\" && i + 1 < state.posMax) {
-      label += src[++i];
-      continue;
-    }
-    if (ch === "]" || ch === "\n") break;
-    if (ch === "[") return false;
-    label += ch;
-  }
-  if (src[i] !== "]" || src[i + 1] !== "(") return false;
-  const close = src.indexOf(")", i + 2);
-  if (close < 0 || close > state.posMax) return false;
-  const parsed = parseMentionTarget(src.slice(i + 2, close));
-  if (!parsed) return false;
-  if (!silent) state.push("mention", "span", 0).meta = { ...parsed, label };
-  state.pos = close + 1;
-  return true;
+  return target ? `@[${escapeChipLabel(a.label)}](${target})` : null;
 }
 
 function parseDate(v: string): { date: Date; time: boolean } {

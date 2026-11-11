@@ -10,7 +10,7 @@ import { blockColorStyle, isBgToken, isColorToken, isTextToken, tokenCss, tokenF
 const OUTSIDE_LINKS = 1100;
 
 /** node types that take a block colour; types missing from the schema are ignored */
-export const BLOCK_COLOR_TYPES = ["paragraph", "heading", "listItem", "taskItem", "blockquote", "callout", "details", "tableCell", "tableHeader", "pageLink"];
+export const BLOCK_COLOR_TYPES = ["paragraph", "heading", "listItem", "taskItem", "blockquote", "callout", "details", "tableCell", "tableHeader"];
 
 function textToken(el: HTMLElement): string | null {
   const data = el.getAttribute("data-color");

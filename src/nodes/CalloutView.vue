@@ -12,6 +12,7 @@ import EmojiPicker from "../components/EmojiPicker.vue";
 import PalettePicker from "../components/PalettePicker.vue";
 import { vTooltip } from "../components/tooltip";
 import CalloutIcon from "./CalloutIcon.vue";
+import { parseBlockAttrs } from "../core/attrs";
 
 const props = defineProps(nodeViewProps);
 const ctx = contextOf(props.editor);
@@ -38,6 +39,14 @@ function setIcon(next: string) {
   update({ icon: next });
   picker.value = false;
   props.editor.commands.focus();
+}
+
+const own = ref("");
+const validIcon = (v: string) => !!v && parseBlockAttrs({ icon: v }) !== null;
+
+function applyOwn() {
+  const v = own.value.trim();
+  if (validIcon(v)) setIcon(v);
 }
 
 function setColor(next: string | null) {
@@ -96,7 +105,15 @@ async function addTitle() {
         <NodeViewContent class="wy-callout-body" />
       </div>
       <AnchoredPopover v-if="picker" :anchor="iconButton" class="wy-menu wy-callout-picker" @escape="picker = false">
-        <EmojiPicker :value="icon" :t="t" @pick="setIcon" />
+        <EmojiPicker :value="icon" :t="t" @pick="setIcon">
+          <template #footer>
+            <form class="wy-emoji-own" @submit.prevent="applyOwn">
+              <input v-model="own" class="wy-input is-sm" maxlength="32" :placeholder="t('callout.ownIcon')" :aria-label="t('callout.ownIcon')" />
+              <button type="submit" class="wy-btn is-sm" :disabled="!validIcon(own.trim())">{{ t("callout.useIcon") }}</button>
+            </form>
+            <button v-if="icon" type="button" class="wy-btn is-sm" @click="setIcon('')">{{ t("callout.defaultIcon") }}</button>
+          </template>
+        </EmojiPicker>
       </AnchoredPopover>
       <template #menu>
         <BlockMenu :open="menu" :convert="props" @close="menu = false">

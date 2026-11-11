@@ -74,17 +74,17 @@ describe("notion blocks in the editor", () => {
     const resolveLink = vi.fn(async (href: string) => ({ href, title: "Sett map", icon: "🗺️" }));
     await mountEditor({ modelValue: "```page href=/p/map title=Old\n```\n", services: { openLink, resolveLink } satisfies EditorServices });
     await settle();
-    const link = document.querySelector(".wy-node-page-link .wy-page-link") as HTMLElement;
+    const link = document.querySelector(".wy-page-link-atom .wy-page-link") as HTMLElement;
     expect(link.textContent).toContain("Sett map");
     link.click();
     expect(openLink).toHaveBeenCalledWith("/p/map", expect.any(MouseEvent));
   });
 
-  it("navigates from a page mention chip with the page path template", async () => {
+  it("navigates from a legacy page mention with the page path template", async () => {
     const openLink = vi.fn(() => true);
     await mountEditor({ modelValue: "See @[Map](page:abc)\n", base: { ...BASE, pageHref: "/w/{id}" }, services: { openLink } satisfies EditorServices });
     await settle();
-    (document.querySelector(".wy-mention.is-page") as HTMLElement).click();
+    (document.querySelector(".wy-page-link") as HTMLElement).click();
     expect(openLink).toHaveBeenCalledWith("/w/abc", expect.any(MouseEvent));
   });
 

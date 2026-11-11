@@ -348,6 +348,22 @@ function retagFences(state: StateCore, tokens: Token[], opts: RetagOptions) {
           t.type = name;
           t.meta = withAttrs(meta);
         },
+        inline: (name, meta) => {
+          const open = new state.Token("paragraph_open", "p", 1);
+          open.block = true;
+          open.map = t.map;
+          open.meta = withAttrs({});
+          // the core inline rule appends what it parses from the empty content to these children
+          const inline = new state.Token("inline", "", 0);
+          inline.content = "";
+          const chip = new state.Token(name, "span", 0);
+          chip.meta = meta;
+          inline.children = [chip];
+          const close = new state.Token("paragraph_close", "p", -1);
+          close.block = true;
+          tokens.splice(i, 1, open, inline, close);
+          advance = 2;
+        },
       };
       rule.parse(ctx);
       i += advance;

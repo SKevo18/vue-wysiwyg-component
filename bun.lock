@@ -28,6 +28,7 @@
         "@tiptap/extension-underline": "^3.32.2",
         "@tiptap/extensions": "^3.32.2",
         "@tiptap/suggestion": "^3.32.2",
+        "emojibase-data": "18.0.0",
         "highlight.js": "^11.12.0",
         "katex": "^0.19.1",
         "markdown-it": "^15.0.3",
@@ -438,6 +439,10 @@
     "editorconfig": ["editorconfig@3.0.2", "", { "dependencies": { "@one-ini/wasm": "0.2.1", "commander": "^14.0.3", "minimatch": "~10.2.4", "semver": "^7.7.4" }, "bin": { "editorconfig": "bin/editorconfig" } }, "sha512-T0ix8GhtxyKVfUFEcvdNDt3YGqlwkFHbD4/5bgFUDgFmxhI/cSRAeJ87/Sz//Cq8Eam6JX/e23RkoFO71P7aAA=="],
 
     "elkjs": ["elkjs@0.12.1", "", {}, "sha512-IhMYKHE4S2vtx0QrhBP3lYOIKDeIiJXBrdq9MGYkuB8ZHqhrBnHNfSUndjXFewrX1CPK8chwq+2NA0K0hliYuw=="],
+
+    "emojibase": ["emojibase@18.0.0", "", {}, "sha512-5PG+EEt5zQ9qvqdHZw61+T9iz96g+r621QS/w8jEzPg+3mjzAdjl8LPLc+e9ABv/yboNfMwEair7aK9qKnwAbQ=="],
+
+    "emojibase-data": ["emojibase-data@18.0.0", "", { "peerDependencies": { "emojibase": "*" } }, "sha512-TPPRRYv2zPd0jKI+pTpMquwWNZXYAsC3IVsCMeg2X8y8fEzKwOks4/5bz0YavF5r6d71aGPpb6oDnUEwSLLMoA=="],
 
     "entities": ["entities@7.0.1", "", {}, "sha512-TWrgLOFUQTH994YUyl1yT4uyavY5nNB5muff+RtWaqNVCAK408b5ZnnbNAUEWLTCpum9w6arT70i1XdQ4UeOPA=="],
 

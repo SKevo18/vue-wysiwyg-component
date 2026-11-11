@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { NodeViewWrapper, nodeViewProps } from "@tiptap/vue-3";
-import { computed, ref, watch } from "vue";
-import { CalendarDays, FileText } from "@lucide/vue";
+import { nodeViewProps } from "@tiptap/vue-3";
+import { computed, ref } from "vue";
+import { Bell, CalendarDays } from "@lucide/vue";
 import { mentionText } from "../builtins/mention";
-import { dateLabel, isMentionDate, pageHref, type MentionAttrs } from "../core/mentions";
+import { dateLabel, isMentionDate, type MentionAttrs } from "../core/mentions";
 import { contextOf } from "../editor/context";
-import { followLink, resolveOnce } from "../editor/navigate";
 import { useBlockNode } from "../blocks/useBlockNode";
+import InlineChip from "../blocks/InlineChip.vue";
 import AnchoredPopover from "../components/AnchoredPopover.vue";
 
 const props = defineProps(nodeViewProps);
@@ -15,26 +15,20 @@ const t = ctx.t;
 const { selected, editing, startEdit, finishEdit, update, readonly, onKeydown } = useBlockNode(props);
 const anchor = ref<HTMLElement | null>(null);
 const a = computed(() => props.node.attrs as MentionAttrs);
-const href = computed(() => (a.value.kind === "page" && a.value.id ? pageHref(ctx.config.base.pageHref, a.value.id) : ""));
-const resolved = ref<{ title: string; icon?: string } | null>(null);
-const text = computed(() => (a.value.kind === "page" && resolved.value?.title) || mentionText(a.value, ctx.locale));
-// an emoji icon; image icons stay out of the line of text
-const icon = computed(() => (/^(https?:|\/|data:|blob:)/.test(resolved.value?.icon ?? "") ? "" : resolved.value?.icon || ""));
-
-watch(
-  href,
-  async (h) => {
-    resolved.value = null;
-    const r = await resolveOnce(ctx.services, h);
-    if (h === href.value) resolved.value = r;
-  },
-  { immediate: true },
-);
+const text = computed(() => mentionText(a.value, ctx.locale));
 
 const startDate = computed(() => (a.value.start ?? "").slice(0, 10));
 const startTime = computed(() => (a.value.start ?? "").slice(11, 16));
 const endDate = computed(() => (a.value.end ?? "").slice(0, 10));
 const withTime = computed(() => (a.value.start ?? "").includes("T"));
+// a reminder whose moment has passed
+const overdue = computed(() => {
+  if (!a.value.remind || !isMentionDate(a.value.start)) return false;
+  const [d, time] = a.value.start.split("T");
+  const [y, m, day] = d!.split("-").map(Number) as [number, number, number];
+  const [hh, mm] = (time ?? "23:59").split(":").map(Number) as [number, number];
+  return new Date(y, m - 1, day, hh, mm) < new Date();
+});
 
 /** date attributes and a fresh label in the editor's locale */
 function setDate(next: { date?: string; time?: string | null; end?: string | null }) {
@@ -47,9 +41,8 @@ function setDate(next: { date?: string; time?: string | null; end?: string | nul
   update({ start, end, label: dateLabel(start, end, ctx.locale) });
 }
 
-function onClick(e: MouseEvent) {
-  if (a.value.kind === "page" && href.value) followLink(ctx.services, href.value, e, true);
-  else if (a.value.kind === "date" && !readonly.value) startEdit();
+function onClick() {
+  if (a.value.kind === "date" && !readonly.value) startEdit();
 }
 
 function onKey(e: KeyboardEvent) {
@@ -61,11 +54,14 @@ function onKey(e: KeyboardEvent) {
 </script>
 
 <template>
-  <NodeViewWrapper as="span" class="wy-inline-atom wy-mention-atom" :class="{ 'is-selected': selected, 'is-editing': editing }">
-    <a v-if="a.kind === 'page'" ref="anchor" class="wy-mention is-page" :href="href || undefined" draggable="false" @click="onClick">
-      <span class="wy-mention-icon" aria-hidden="true"><template v-if="icon">{{ icon }}</template><FileText v-else :size="14" /></span>{{ text }}</a
-    ><span v-else ref="anchor" class="wy-mention" :class="`is-${a.kind}`" :title="a.kind === 'date' && !readonly ? t('mention.editDate') : undefined" @click="onClick"
-      ><CalendarDays v-if="a.kind === 'date'" class="wy-mention-icon" :size="14" aria-hidden="true" />{{ text }}</span
+  <InlineChip :selected="selected" :editing="editing" class="wy-mention-atom">
+    <span
+      ref="anchor"
+      class="wy-mention"
+      :class="[`is-${a.kind}`, { 'is-reminder': a.remind, 'is-overdue': overdue }]"
+      :title="a.kind === 'date' && !readonly ? t(a.remind ? 'mention.editReminder' : 'mention.editDate') : undefined"
+      @click="onClick"
+      ><Bell v-if="a.kind === 'date' && a.remind" class="wy-mention-icon" :size="14" aria-hidden="true" /><CalendarDays v-else-if="a.kind === 'date'" class="wy-mention-icon" :size="14" aria-hidden="true" />{{ text }}</span
     >
     <AnchoredPopover v-if="editing && a.kind === 'date'" :anchor="anchor" class="wy-popover wy-date-picker" @escape="onKeydown">
       <label class="wy-field">
@@ -82,6 +78,10 @@ function onKey(e: KeyboardEvent) {
         {{ t("mention.endDate") }}
       </label>
       <input v-if="endDate" class="wy-input is-sm" type="date" :value="endDate" :min="startDate" :aria-label="t('mention.endDate')" @change="setDate({ end: ($event.target as HTMLInputElement).value || null })" @keydown="onKey" />
+      <label class="wy-check">
+        <input type="checkbox" :checked="a.remind" @change="update({ remind: ($event.target as HTMLInputElement).checked })" />
+        {{ t("mention.remind") }}
+      </label>
     </AnchoredPopover>
-  </NodeViewWrapper>
+  </InlineChip>
 </template>

@@ -93,17 +93,14 @@ describe("notion blocks: markdown", () => {
     expect(e.attrs.src).toBe("");
   });
 
-  it("keeps the table of contents and page links with their color", () => {
+  it("keeps the table of contents with its color", () => {
     expectExact("```toc\n```\n");
     expectExact("```toc\n```\n{color=gray}\n\n# Title\n");
     expect(md.parse("```toc\n```\n{color=gray}\n").child(0).attrs.color).toBe("gray");
-    const page = "```page href=/p/abc123 title=\"Team handbook\" icon=📘\n```\n{color=blue_bg}\n";
-    expectExact(page);
-    expect(md.parse(page).child(0).attrs).toEqual({ href: "/p/abc123", title: "Team handbook", icon: "📘", color: "blue_bg" });
   });
 
   it("keeps every mention form", () => {
-    const src = "Ask @[Ada Lovelace](user:58501171) about @[Q3 plan](page:p_9x) on @[May 1, 2024](date:2024-05-01), @[May 1 to 3](date:2024-05-01/2024-05-03) or @[10am](date:2024-05-01T10:00).\n";
+    const src = "Ask @[Ada Lovelace](user:58501171) on @[May 1, 2024](date:2024-05-01), @[May 1 to 3](date:2024-05-01/2024-05-03), @[10am](date:2024-05-01T10:00) or @[Call](date:2024-05-01T09:30!).\n";
     expectExact(src);
     const p = md.parse(src).child(0);
     const mentions: Record<string, unknown>[] = [];
@@ -111,11 +108,11 @@ describe("notion blocks: markdown", () => {
       if (n.type.name === "mention") mentions.push(n.attrs);
     });
     expect(mentions).toEqual([
-      { kind: "user", id: "58501171", label: "Ada Lovelace", start: null, end: null },
-      { kind: "page", id: "p_9x", label: "Q3 plan", start: null, end: null },
-      { kind: "date", id: "", label: "May 1, 2024", start: "2024-05-01", end: null },
-      { kind: "date", id: "", label: "May 1 to 3", start: "2024-05-01", end: "2024-05-03" },
-      { kind: "date", id: "", label: "10am", start: "2024-05-01T10:00", end: null },
+      { kind: "user", id: "58501171", label: "Ada Lovelace", start: null, end: null, remind: false },
+      { kind: "date", id: "", label: "May 1, 2024", start: "2024-05-01", end: null, remind: false },
+      { kind: "date", id: "", label: "May 1 to 3", start: "2024-05-01", end: "2024-05-03", remind: false },
+      { kind: "date", id: "", label: "10am", start: "2024-05-01T10:00", end: null, remind: false },
+      { kind: "date", id: "", label: "Call", start: "2024-05-01T09:30", end: null, remind: true },
     ]);
   });
 
@@ -191,8 +188,9 @@ describe("notion blocks: markdown", () => {
     expect(html).toContain('href="https://example.com"');
     expect(html).toContain('src="https://player.vimeo.com/video/123"');
     expect(html).toContain('sandbox="allow-scripts');
-    expect(html).toContain('data-type="page-link"');
-    expect(html).toContain('<a data-type="mention" class="wy-mention is-page" data-kind="page" data-id="x" data-label="Doc" href="/p/x">Doc</a>');
+    expect(html).toContain('<p><a data-type="page-link" class="wy-page-link" data-href="/p/x" data-title="Doc" href="/p/x">Doc</a></p>');
+    expect(html).toContain('<a data-type="page-link" class="wy-page-link" data-href="page:x" data-title="Doc" href="/p/x">Doc</a>');
+    expect(html).toContain('<span data-type="mention" class="wy-mention is-user" data-kind="user" data-id="1" data-label="Ada">@Ada</span>');
   });
 
   it("renders callout colors and toggle headings in html", () => {

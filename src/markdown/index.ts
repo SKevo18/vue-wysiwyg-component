@@ -20,7 +20,7 @@ type FlushState = MarkdownSerializerState & { closed: PMNode | null; flushClose(
 /** inline tokens whose mark the schema may lack (e.g. no text colour); they are dropped then, keeping their text */
 const OPTIONAL_MARK_TOKENS: Record<string, true> = { text_color: true, bg_color: true, ins: true };
 /** these write their own attribute line, or none: a list item writes its line after its first child, a bookmark's `icon` is its favicon */
-const OWN_ATTR_LINE: Record<string, true> = { listItem: true, taskItem: true, tableCell: true, tableHeader: true, horizontalRule: true, callout: true, pageLink: true, tableOfContents: true, bookmark: true };
+const OWN_ATTR_LINE: Record<string, true> = { listItem: true, taskItem: true, tableCell: true, tableHeader: true, horizontalRule: true, callout: true, tableOfContents: true, bookmark: true };
 const ITEMS: Record<string, true> = { listItem: true, taskItem: true };
 
 function markStart(parent: PMNode, index: number, m: Mark): number {

@@ -1,6 +1,7 @@
-import { CalendarDays, FileText, User } from "@lucide/vue";
+import { Bell, CalendarDays, FileText, User } from "@lucide/vue";
 import type { Component } from "vue";
 import type { SuggestionEntry } from "../components/SuggestionList.vue";
+import { completeNaturalDate, parseNaturalDate } from "../core/dates";
 import { dateLabel, isoDate } from "../core/mentions";
 import type { EditorServices, MentionKind, MentionSuggestion } from "../types";
 import type { EditorContext } from "./context";
@@ -13,20 +14,34 @@ export const MENTION_ICONS: Record<MentionKind, Component> = { user: User, page:
 
 export function mentionEntry(s: MentionSuggestion, ctx: Pick<EditorContext, "t">): MentionEntry {
   return {
-    key: `${s.kind}:${s.id || s.start || s.label}`,
+    key: `${s.kind}:${s.id || s.start || s.label}${s.remind ? "!" : ""}`,
     title: s.label,
     detail: s.detail,
-    icon: s.icon || MENTION_ICONS[s.kind],
-    group: ctx.t(`mention.groups.${s.kind}`),
+    icon: s.icon || (s.remind ? Bell : MENTION_ICONS[s.kind]),
+    group: ctx.t(s.remind ? "mention.groups.reminder" : `mention.groups.${s.kind}`),
     suggestion: s,
   };
 }
 
-/** today, tomorrow, yesterday and an ISO date typed as the query */
-export function dateSuggestions(query: string, ctx: Pick<EditorContext, "t" | "locale">): MentionSuggestion[] {
-  const q = query.trim().toLowerCase();
+const MAX_DATES = 5;
+
+/**
+ * dates the query names. empty: today, tomorrow and yesterday. otherwise the parsed phrase ("next friday 9am",
+ * "remind me tomorrow", "2024-05-01"), the translated day names it starts and the English phrases it starts
+ */
+export function dateSuggestions(query: string, ctx: Pick<EditorContext, "t" | "locale">, now: Date = new Date()): MentionSuggestion[] {
+  const q = query.trim().replace(/\s+/g, " ");
+  const lower = q.toLowerCase();
+  const out: MentionSuggestion[] = [];
+  const seen = new Set<string>();
+  const add = (start: string, remind: boolean, detail: string) => {
+    const key = start + (remind ? "!" : "");
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push({ kind: "date", id: "", label: dateLabel(start, null, ctx.locale), detail: remind ? ctx.t("mention.reminder") : detail, start, remind });
+  };
   const day = (offset: number) => {
-    const d = new Date();
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     d.setDate(d.getDate() + offset);
     return isoDate(d);
   };
@@ -35,11 +50,14 @@ export function dateSuggestions(query: string, ctx: Pick<EditorContext, "t" | "l
     { name: ctx.t("mention.tomorrow"), start: day(1) },
     { name: ctx.t("mention.yesterday"), start: day(-1) },
   ];
-  const out: MentionSuggestion[] = named
-    .filter((n) => !q || n.name.toLowerCase().startsWith(q))
-    .map((n) => ({ kind: "date", id: "", label: dateLabel(n.start, null, ctx.locale), detail: n.name, start: n.start }));
-  if (/^\d{4}-\d{2}-\d{2}$/.test(q) && !Number.isNaN(Date.parse(q))) out.unshift({ kind: "date", id: "", label: dateLabel(q, null, ctx.locale), start: q });
-  return out;
+  const parsed = q ? parseNaturalDate(q, now) : null;
+  if (parsed) add(parsed.start, parsed.remind, q.charAt(0).toUpperCase() + q.slice(1));
+  for (const n of named) if (n.name.toLowerCase().startsWith(lower)) add(n.start, false, n.name);
+  for (const phrase of completeNaturalDate(q)) {
+    const p = parseNaturalDate(phrase, now);
+    if (p) add(p.start, p.remind, phrase.charAt(0).toUpperCase() + phrase.slice(1));
+  }
+  return out.slice(0, MAX_DATES);
 }
 
 /** host results (users and pages) after the matching dates; aborted searches resolve to [] */
