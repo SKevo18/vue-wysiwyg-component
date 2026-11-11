@@ -45,7 +45,7 @@ const KEEP_ATTRS: Record<string, string[]> = {
   FIGURE: ["data-type", "data-align", "data-width", "data-caption"],
   SPAN: ["data-color", "data-math-inline", "data-tex"],
   MARK: ["data-color"],
-  PRE: ["data-meta"],
+  PRE: ["data-meta", "data-nowrap"],
   CODE: ["class"],
   INPUT: ["type", "checked"],
   DETAILS: ["open", "data-title"],

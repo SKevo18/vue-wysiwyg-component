@@ -1,11 +1,13 @@
 import { Extension, Node, mergeAttributes } from "@tiptap/core";
 import { DOMParser, Fragment, type Node as PMNode, type Schema } from "@tiptap/pm/model";
+import { NodeSelection } from "@tiptap/pm/state";
 import CodeBlock from "@tiptap/extension-code-block";
 import { HorizontalRule } from "@tiptap/extension-horizontal-rule";
 import Image from "@tiptap/extension-image";
 import { TableCell, TableHeader } from "@tiptap/extension-table";
 import { DEFAULT_DIVIDER, dividerOrnament, dividerStyle, listLook, parseDividerAttrs, parseListAttrs, type DividerAttrs, type ListAttrs } from "../core/attrs";
 import { FIGURE_ALIGNS, SIZE_RE, shownAlign, type FigureAlign } from "../core/media";
+import { codeWraps, setCodeWrap } from "../core/codewrap";
 import { calloutStyle, isPaletteToken } from "../core/palette";
 
 /** a palette token from `data-color`; html may carry other colors, which stay out of the palette attribute */
@@ -195,11 +197,51 @@ export const FileChips = Extension.create({
   },
 });
 
+declare module "@tiptap/core" {
+  interface Commands<ReturnType> {
+    codeWrap: {
+      /** turns line wrapping of the code block at the selection on or off (the `nowrap` word of its fence info) */
+      toggleCodeWrap: () => ReturnType;
+    };
+  }
+}
+
 export const GenericCodeBlock = CodeBlock.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
-      meta: { default: "", parseHTML: (el: HTMLElement) => el.getAttribute("data-meta") ?? "", renderHTML: (a: { meta: string }) => (a.meta ? { "data-meta": a.meta } : {}) },
+      // `nowrap` renders as its own `data-nowrap`, the other info words as `data-meta`
+      meta: {
+        default: "",
+        parseHTML: (el: HTMLElement) => setCodeWrap(el.getAttribute("data-meta") ?? "", !el.hasAttribute("data-nowrap")),
+        renderHTML: (a: { meta: string }) => {
+          const rest = setCodeWrap(a.meta, true);
+          return { ...(rest ? { "data-meta": rest } : {}), ...(codeWraps(a.meta) ? {} : { "data-nowrap": "" }) };
+        },
+      },
+    };
+  },
+  addCommands() {
+    return {
+      ...this.parent?.(),
+      toggleCodeWrap:
+        () =>
+        ({ state, tr, dispatch }) => {
+          const { selection } = state;
+          const $from = selection.$from;
+          let pos = -1;
+          if (selection instanceof NodeSelection && selection.node.type.name === this.name) pos = selection.from;
+          else
+            for (let d = $from.depth; d > 0; d--)
+              if ($from.node(d).type.name === this.name) {
+                pos = $from.before(d);
+                break;
+              }
+          if (pos < 0) return false;
+          const meta = String(state.doc.nodeAt(pos)!.attrs.meta ?? "");
+          if (dispatch) tr.setNodeAttribute(pos, "meta", setCodeWrap(meta, !codeWraps(meta)));
+          return true;
+        },
     };
   },
 }).configure({ defaultLanguage: null });

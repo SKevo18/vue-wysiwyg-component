@@ -251,6 +251,20 @@ defineProps(nodeViewProps);
 
 Attributes keep their default's type and render in html as `data-<kebab-name>`; the node renders as `span[data-type=<kebab-name>]` (an `a` when `html.href` returns an address) holding `text(attrs)`. Options: `html.class`, `html.href`, `html.parse` (more parse rules), `markdown.before` (the markdown-it rule it runs before, default `link`), `slash`, `tiptap` (more extensions), `formats`, `messages`. `inlineChipKeys(name)` gives an existing inline node the same keys; `escapeChipLabel`, `unescapeChipLabel` and `AT_LINK` help with `@[label](target)` style syntaxes. A fence rule can turn a fence into a paragraph holding one chip with `ctx.inline(inlineBlockToken(name), attrs)`.
 
+### Code blocks
+
+`codeBlock` has the attributes `language` and `meta`, the fence info words after the language (```` ```js title="app.js" ```` gives `meta` `title="app.js"`), kept as written. Long lines wrap by default. The word `nowrap` in `meta` keeps the lines unwrapped with a horizontal scroll bar:
+
+````md
+```js nowrap title="app.js"
+const otters = await fetch("/api/otters?include=dens,rivers,families&sort=age").then((r) => r.json());
+```
+````
+
+Grammar: ```` ```<language> [nowrap] [<other words>] ````. `nowrap` is a whole word anywhere in the info after the language; the editor writes it first after the language. The first info word is always the language, so a block without one that keeps info words is written as ```` ```text nowrap ````. Mermaid and PlantUML blocks ignore it. The "Wrap lines" checkbox in the block menu and the command `editor.commands.toggleCodeWrap()` (the code block at the selection) switch it. In the html format a nowrap block renders as `<pre data-nowrap>` (the other words stay in `data-meta`), and the html output wraps `pre` unless it has `data-nowrap`.
+
+Hosts reading or writing fences themselves use the exported helpers on the info after the language: `codeWraps(meta)` is false when `meta` holds the word `nowrap`; `setCodeWrap(meta, wrap)` returns `meta` without `nowrap` when `wrap` is true and with `nowrap` leading the other words when it is false. Other readers match the same rule: split the info at the first whitespace, the rest is `meta`, and the block is unwrapped when `meta` contains `nowrap` delimited by whitespace or the ends.
+
 ### Notes
 
 Fence info values are written on one line: `"` and backticks become `'` in text values and are percent encoded in addresses. A `{color=…}` line right after the fence keeps the color of a `tableOfContents` (`{color=blue_bg}`). Callouts keep an emoji and a color on the line after the quote:

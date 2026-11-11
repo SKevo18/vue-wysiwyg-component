@@ -495,8 +495,9 @@ function buildConverter(config: EditorConfig): MarkdownConverter {
       state.closeBlock(node);
     },
     codeBlock(state, node) {
-      const lang = String(node.attrs.language ?? "");
       const meta = String(node.attrs.meta ?? "");
+      // the first info word is the language, so info words (`nowrap`) without one go after `text`
+      const lang = String(node.attrs.language ?? "") || (meta ? "text" : "");
       writeFence(state, node, lang ? lang + (meta ? " " + meta : "") : "", node.textContent);
     },
     heading(state, node) {

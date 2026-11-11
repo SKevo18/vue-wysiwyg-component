@@ -8,6 +8,7 @@ import MediaTools from "./MediaTools.vue";
 import { rightAnchored, startMediaResize } from "./media";
 import { highlightCode } from "../core/highlight";
 import { DIAGRAM_ALIGNS, diagramLayout, withDiagramLayout, type DiagramLayout } from "../core/media";
+import { codeWraps, setCodeWrap } from "../core/codewrap";
 import { contextOf } from "../editor/context";
 import BlockFrame from "../blocks/BlockFrame.vue";
 import BlockMenu from "../blocks/BlockMenu.vue";
@@ -33,6 +34,8 @@ const diagram = computed(() => ((ctx.config.base.diagrams as string[]).includes(
 // a diagram hides its source until the block is selected or the caret is in it
 const sourceShown = computed(() => !diagram.value || sourceOpen.value || selected.value || !props.node.textContent.trim());
 const layout = computed(() => diagramLayout(String(props.node.attrs.meta ?? "")));
+// diagrams ignore the flag, their source always wraps
+const wraps = computed(() => !!diagram.value || codeWraps(String(props.node.attrs.meta ?? "")));
 const shownAlign = computed(() => layout.value.align ?? "center");
 const mediaTools = computed(() => !!diagram.value && !readonly.value && (selected.value || sourceOpen.value));
 const diagramBox = ref<HTMLElement | null>(null);
@@ -107,6 +110,10 @@ function setLanguage(e: Event) {
   update({ language: (e.target as HTMLInputElement).value.trim().toLowerCase() || null });
 }
 
+function setWrap(e: Event) {
+  update({ meta: setCodeWrap(String(props.node.attrs.meta ?? ""), (e.target as HTMLInputElement).checked) });
+}
+
 function commit(e: Event) {
   setLanguage(e);
   menu.value = false;
@@ -117,7 +124,7 @@ function commit(e: Event) {
 <template>
   <NodeViewWrapper as="div" class="wy-node wy-node-code" :class="{ 'is-editing': sourceOpen, 'is-diagram': diagram, 'is-source-hidden': !sourceShown }">
     <BlockFrame :label="label" :selected="selected" :readonly="readonly" :copy-text="copyText" :editable="false" @delete="remove" @more="menu = !menu">
-      <pre class="wy-code"><code v-if="!sourceOpen" class="wy-code-highlight" aria-hidden="true" contenteditable="false" v-html="highlighted"></code><NodeViewContent as="code" :class="language ? `language-${language}` : ''" spellcheck="false" /></pre>
+      <pre class="wy-code" :data-nowrap="wraps ? undefined : ''"><code v-if="!sourceOpen" class="wy-code-highlight" aria-hidden="true" contenteditable="false" v-html="highlighted"></code><NodeViewContent as="code" :class="language ? `language-${language}` : ''" spellcheck="false" /></pre>
       <div
         v-if="diagram"
         ref="diagramBox"
@@ -156,6 +163,10 @@ function commit(e: Event) {
           <datalist :id="listId">
             <option v-for="l in languages" :key="l" :value="l"></option>
           </datalist>
+          <label v-if="!diagram" class="wy-check wy-code-wrap">
+            <input type="checkbox" :checked="wraps" :disabled="readonly" @change="setWrap" />
+            {{ t("code.wrap") }}
+          </label>
           <component :is="h.menu" v-for="(h, i) in ctx.codeBlock.filter((x) => x.menu)" :key="i" v-bind="props" />
         </BlockMenu>
       </template>

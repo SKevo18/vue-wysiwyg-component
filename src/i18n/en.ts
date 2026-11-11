@@ -205,6 +205,7 @@ export const en = {
     label: "Code",
     language: "Language",
     languagePlaceholder: "e.g. python",
+    wrap: "Wrap lines",
   },
   callout: {
     label: "Callout",

@@ -114,13 +114,21 @@
   cursor: pointer;
 }
 
+/* the highlight layer and the editable code share one grid cell; both wrap at the cell's width unless the block is nowrap,
+   where the auto column grows to the longest line and the pre scrolls */
 .wy-node-code .wy-code {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   margin: 0;
+}
+.wy-node-code .wy-code[data-nowrap] {
+  grid-template-columns: auto;
 }
 .wy-node-code .wy-code > code {
   grid-area: 1 / 1;
-  white-space: pre;
+  /* beats tiptap's inline pre-wrap on the editable code, which would wrap a nowrap block while its source is edited */
+  white-space: inherit !important;
+  overflow-wrap: inherit;
 }
 .wy-node-code:not(.is-editing) .wy-code > code:not(.wy-code-highlight) {
   color: transparent;

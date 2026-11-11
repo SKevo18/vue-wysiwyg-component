@@ -116,8 +116,13 @@
   font-size: 0.875em;
   line-height: 1.55;
   overflow-x: auto;
-  white-space: pre;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   tab-size: 4;
+}
+.wy-prose pre[data-nowrap] {
+  white-space: pre;
+  overflow-wrap: normal;
 }
 .wy-prose pre code {
   font: inherit;

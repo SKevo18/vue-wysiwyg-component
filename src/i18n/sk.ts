@@ -207,6 +207,7 @@ export const sk: Messages = {
     label: "Kód",
     language: "Jazyk",
     languagePlaceholder: "napr. python",
+    wrap: "Zalamovať riadky",
   },
   callout: {
     label: "Upozornenie",
