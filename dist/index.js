@@ -10367,6 +10367,27 @@ function useDraft(adapter, opts) {
 		pending: (on) => void (editorPending.value = on)
 	};
 }
+// src/editor/carets.ts
+function collaborationCaret(user) {
+	const caret = document.createElement("span");
+	caret.className = "collaboration-carets__caret";
+	caret.style.borderColor = user.color;
+	const label = document.createElement("div");
+	label.className = "collaboration-carets__label";
+	label.style.backgroundColor = user.color;
+	if (user.avatar) {
+		const img = document.createElement("img");
+		img.className = "collaboration-carets__avatar";
+		img.alt = "";
+		img.referrerPolicy = "no-referrer";
+		img.addEventListener("error", () => img.remove(), { once: true });
+		img.src = user.avatar;
+		label.append(img);
+	}
+	label.append(document.createTextNode(user.name));
+	caret.append(label);
+	return caret;
+}
 // src/convert.ts
 var registries = /* @__PURE__ */ new WeakMap();
 function registry(options) {
@@ -10387,4 +10408,4 @@ function convertBlocks(blocks, target, options = {}) {
 function markdownToHtml(md, extensions, base) {
 	return createMarkdown(extensions, { base }).toHtml(md);
 }
-export { AnchoredPopover_default as AnchoredPopover, BLOCK_EDIT_EVENT, BlockFrame_default as BlockFrame, BlockMenu_default as BlockMenu, CODE_LANGUAGES, HTML_CALLOUTS, MARKDOWN_CALLOUTS, MESSAGES, SaveStatus_default as SaveStatus, WysiwygEditor_default as WysiwygEditor, blockBody, blockStopEvent, cleanPastedHtml, clipboardText, contextOf, convertBlocks, convertTargets, createMarkdown, createWysiwyg, defineEditorExtension, defineFenceBlock, escapeHtml, fenceAtom, fenceClose, fenceFor, fenceOpen, formatBytes, formatInfo, highlightCode, insertFresh, isImageSrc, isInCell, joinSections, looksLikeMarkdown, markFresh, markdownToHtml, mediaKind, moveItem, newBlockId, normalizeHref, parseInfo, pasteAsMarkdown, registerCodeLanguage, renderMath, splitSections, takeFresh, useBlockNode, useDraft, useEditorContext, useEditorHandle, useFenceSync, vTooltip };
+export { AnchoredPopover_default as AnchoredPopover, BLOCK_EDIT_EVENT, BlockFrame_default as BlockFrame, BlockMenu_default as BlockMenu, CODE_LANGUAGES, HTML_CALLOUTS, MARKDOWN_CALLOUTS, MESSAGES, SaveStatus_default as SaveStatus, WysiwygEditor_default as WysiwygEditor, blockBody, blockStopEvent, cleanPastedHtml, clipboardText, collaborationCaret, contextOf, convertBlocks, convertTargets, createMarkdown, createWysiwyg, defineEditorExtension, defineFenceBlock, escapeHtml, fenceAtom, fenceClose, fenceFor, fenceOpen, formatBytes, formatInfo, highlightCode, insertFresh, isImageSrc, isInCell, joinSections, looksLikeMarkdown, markFresh, markdownToHtml, mediaKind, moveItem, newBlockId, normalizeHref, parseInfo, pasteAsMarkdown, registerCodeLanguage, renderMath, splitSections, takeFresh, useBlockNode, useDraft, useEditorContext, useEditorHandle, useFenceSync, vTooltip };

@@ -16,6 +16,7 @@ export { createWysiwyg, useEditorHandle, type WysiwygDefaults } from "./plugin";
 export { BLOCK_EDIT_EVENT, blockStopEvent, normalizeHref } from "./editor/behaviour";
 export { contextOf, useEditorContext, type EditorContext, type FileController } from "./editor/context";
 export { markFresh, takeFresh, insertFresh } from "./editor/fresh";
+export { collaborationCaret } from "./editor/carets";
 export { isInCell } from "./editor/tables";
 export { convertBlocks, convertTargets, type ConvertOptions } from "./convert";
 export { parseInfo, formatInfo, fenceFor, blockBody, newBlockId, splitSections, joinSections, fenceOpen, fenceClose, type FenceInfo, type Section } from "./core/info";

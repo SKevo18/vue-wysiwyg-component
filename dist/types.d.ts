@@ -282,10 +282,18 @@ export interface EditorExtension {
 /**
  * Live collaboration. The extensions own the document and its undo history, e.g.
  * `Collaboration.configure({ document: ydoc, field: "default" })` and
- * `CollaborationCaret.configure({ provider, user: { name, color } })`.
+ * `CollaborationCaret.configure({ provider, user: { name, color }, render: collaborationCaret })`.
  */
 export interface CollaborationOptions {
     extensions: AnyExtension[];
+}
+/** A collaborator as `collaborationCaret` draws them. */
+export interface CaretUser {
+    name: string;
+    /** `#rrggbb`: CollaborationCaret's selection highlight takes no other form */
+    color: string;
+    /** image URL shown before the name */
+    avatar?: string | null;
 }
 export type DeepPartial<T> = {
     [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K];

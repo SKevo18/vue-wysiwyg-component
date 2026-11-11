@@ -71,7 +71,7 @@ const markdown = ref("");
 - `draft` is ignored, and the markdown source mode and the compact field's expand dialog are unavailable.
 - the slash menu, toolbar, bubble tools, gutter, node views, `readonly`, services and the `EditorHandle` work as usual.
 
-`CollaborationCaret` carets and name labels are styled with the `--vc-*` tokens (`.collaboration-carets__caret`, `.collaboration-carets__label`); each user's color is set inline.
+`CollaborationCaret` carets and name labels are styled with the `--vc-*` tokens (`.collaboration-carets__caret`, `.collaboration-carets__label`); each user's color is set inline. Colors must be `#rrggbb`: CollaborationCaret draws any other color as transparent. To show an avatar before each name, pass `render: (user) => collaborationCaret({ name: user.name, color: user.color, avatar: user.avatar })`; the image (`.collaboration-carets__avatar`) is left out when it fails to load.
 
 ## Bubble tools in readonly editors
 

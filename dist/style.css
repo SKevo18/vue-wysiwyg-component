@@ -1545,7 +1545,7 @@ button.wy-grip {
   }
 }
 
-/* live collaboration: CollaborationCaret sets each user's color inline */
+/* live collaboration: CollaborationCaret (or collaborationCaret) sets each user's color inline */
 .wy-content .collaboration-carets__caret {
   position: relative;
   margin-right: -1px;
@@ -1559,6 +1559,9 @@ button.wy-grip {
   position: absolute;
   top: -1.45em;
   left: -1px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   padding: 1px 5px;
   border-radius: var(--vc-radius-sm) var(--vc-radius-sm) var(--vc-radius-sm) 0;
   background: var(--vc-accent);
@@ -1567,6 +1570,14 @@ button.wy-grip {
   font-style: normal;
   white-space: nowrap;
   user-select: none;
+}
+.wy-content .collaboration-carets__avatar {
+  width: 14px;
+  height: 14px;
+  margin-left: -3px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
 }
 .wy-block-frame {
   --wy-block-pad: 12px;
