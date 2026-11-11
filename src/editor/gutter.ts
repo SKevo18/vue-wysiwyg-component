@@ -1,7 +1,11 @@
-// hiding waits 250ms and the strip between handle and block counts as hovering.
+// The block handle (+ and grip) left of the block under the pointer. It shows for the innermost block (a list item, a
+// block in a column, callout or toggle) and, from the band left of the content, for the top-level block on that line,
+// also when the host hangs the handles in its page margin. Hiding waits 250ms and the strip between handle and block
+// counts as hovering. Grip drags are run by `BlockDrag`.
 import { Extension } from "@tiptap/core";
 import { NodeSelection, Plugin, PluginKey } from "@tiptap/pm/state";
 import type { EditorView } from "@tiptap/pm/view";
+import { BLOCK_DRAG_TYPE, BlockDrag } from "./blockDrag";
 
 interface GutterHandleOptions {
   onInsertAfter(pos: number): void;
@@ -23,7 +27,14 @@ interface Hovered {
 const GAP = 8;
 const FRAME_GAP = 12;
 const HIDE_DELAY = 250;
+/** the band left of the content that shows the handle reaches this far beyond the handle itself */
+const BAND = 24;
 const LEAF = "input, textarea, select, button, img, svg, video, audio, iframe, canvas";
+// floating editor ui over the band is not part of a block
+const OVERLAY = "[role=dialog], [role=menu], [role=listbox], [role=toolbar], .wy-floating, .wy-slash";
+
+/** the position of the dragged block, mapped through every change while a grip drag runs */
+const dragKey = new PluginKey<number | null>("gutterDrag");
 
 function firstLineRect(dom: HTMLElement): DOMRect | null {
   const walker = document.createTreeWalker(dom, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
@@ -57,34 +68,54 @@ function frameEdge(dom: HTMLElement): number | null {
   return rect.left - (parseFloat(getComputedStyle(body).outlineOffset) || 0);
 }
 
-function blockAtPos(view: EditorView, inside: number): Hovered | null {
-  if (inside < 0 || inside > view.state.doc.content.size) return null;
-  const $pos = view.state.doc.resolve(inside);
-  const pos = $pos.depth === 0 ? $pos.pos : $pos.before(1);
-  if (pos < 0 || pos >= view.state.doc.content.size || !view.state.doc.nodeAt(pos)) return null;
-  const dom = view.nodeDOM(pos);
-  return dom instanceof HTMLElement && dom.parentNode === view.dom ? { pos, dom } : null;
-}
-
 function nodeAtSafe(view: EditorView, pos: number) {
   return pos >= 0 && pos < view.state.doc.content.size ? view.state.doc.nodeAt(pos) : null;
 }
 
-function blockAt(view: EditorView, target: EventTarget | null): Hovered | null {
-  if (!(target instanceof Node)) return null;
-  let el: Node | null = target;
-  while (el && el.parentNode !== view.dom) el = el.parentNode;
-  if (!(el instanceof HTMLElement)) return null;
-  return blockAtPos(view, view.posAtDOM(el, 0));
+/**
+ * The innermost block holding `target` that gets its own handle. A list item's first paragraph is the item's text and
+ * a table's cells belong to the table, so those resolve to the item and the table.
+ */
+function blockAt(view: EditorView, target: Node): Hovered | null {
+  const doc = view.state.doc;
+  for (let el: Node | null = target; el && el !== view.dom; el = el.parentNode) {
+    const parent = el.parentNode;
+    if (!(el instanceof HTMLElement) || !parent) continue;
+    let pos: number;
+    try {
+      pos = view.posAtDOM(parent, Array.prototype.indexOf.call(parent.childNodes, el));
+    } catch {
+      continue;
+    }
+    if (pos < 0 || pos >= doc.content.size || view.nodeDOM(pos) !== el) continue;
+    const $pos = doc.resolve(pos);
+    const node = $pos.nodeAfter;
+    const holder = $pos.parent;
+    if (!node?.isBlock || holder.isTextblock) continue;
+    if ($pos.depth > 0) {
+      if (holder.type.spec.tableRole !== undefined) continue;
+      if ($pos.index() === 0 && /item$/i.test(holder.type.name)) continue;
+      // a column (an isolating part of its container) moves with the container
+      if (node.type.spec.isolating) continue;
+    }
+    return { pos, dom: el };
+  }
+  return null;
 }
 
+/** the top-level block on the line at `y`, for a pointer left of the content */
 function blockBeside(view: EditorView, y: number): Hovered | null {
-  const edge = view.dom.getBoundingClientRect().left + 1;
-  const hit = view.posAtCoords({ left: edge, top: y });
-  const found = hit && blockAtPos(view, hit.inside >= 0 ? hit.inside : hit.pos);
-  if (!found) return null;
-  const rect = found.dom.getBoundingClientRect();
-  return y >= rect.top && y <= rect.bottom ? found : null;
+  const kids = view.dom.children;
+  let lo = 0;
+  let hi = kids.length - 1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    const r = kids[mid]!.getBoundingClientRect();
+    if (y < r.top) hi = mid - 1;
+    else if (y > r.bottom) lo = mid + 1;
+    else return blockAt(view, kids[mid]!);
+  }
+  return null;
 }
 
 class GutterView {
@@ -93,11 +124,11 @@ class GutterView {
   private plus: HTMLButtonElement;
   private hovered: Hovered | null = null;
   private container: HTMLElement | null = null;
-  private zone: HTMLElement | null = null;
   private frame = 0;
   private view: EditorView;
   private options: GutterHandleOptions;
   private hideTimer = 0;
+  private drag: BlockDrag;
 
   constructor(view: EditorView, options: GutterHandleOptions) {
     this.view = view;
@@ -124,10 +155,12 @@ class GutterView {
     this.el.addEventListener("mouseenter", this.cancelHide);
     this.grip.addEventListener("dragstart", this.onDragStart);
     this.grip.addEventListener("click", this.onGripClick);
-    this.grip.addEventListener("dragend", this.onDragEnd);
     this.plus.addEventListener("mousedown", (e) => e.preventDefault());
     this.plus.addEventListener("click", this.onPlus);
+    this.drag = new BlockDrag(view, () => this.container, this.onDragStop);
     this.hide();
+    document.addEventListener("mousemove", this.onMove, { passive: true });
+    document.documentElement.addEventListener("mouseleave", this.onLeave);
     this.bindLater();
   }
 
@@ -138,26 +171,16 @@ class GutterView {
 
   private bind(): boolean {
     const container = this.view.dom.parentElement;
-    const zone = container?.parentElement;
-    if (!container || !zone || !this.view.dom.isConnected) return false;
-    if (zone === this.zone && container === this.container) return true;
-    this.unbind();
+    if (!container || !this.view.dom.isConnected) return false;
+    if (container === this.container) return true;
     this.container = container;
-    this.zone = zone;
     container.appendChild(this.el);
-    zone.addEventListener("mousemove", this.onMove);
-    zone.addEventListener("mouseleave", this.onLeave);
     return true;
-  }
-
-  private unbind() {
-    this.zone?.removeEventListener("mousemove", this.onMove);
-    this.zone?.removeEventListener("mouseleave", this.onLeave);
-    this.zone = null;
   }
 
   update() {
     this.bind();
+    if (this.drag.dragging) return;
     if (this.hovered && !this.view.editable) this.hide();
     else if (this.hovered) {
       const node = nodeAtSafe(this.view, this.hovered.pos);
@@ -168,22 +191,33 @@ class GutterView {
 
   destroy() {
     cancelAnimationFrame(this.frame);
-    this.unbind();
+    document.removeEventListener("mousemove", this.onMove);
+    document.documentElement.removeEventListener("mouseleave", this.onLeave);
+    this.drag.destroy();
     this.cancelHide();
     this.el.remove();
   }
 
   private onMove = (e: MouseEvent) => {
-    if (!this.view.editable || this.view.dragging || this.options.menuOpen()) return;
+    if (!this.view.editable || this.drag.dragging || this.options.menuOpen() || !this.container) return;
     const target = e.target as Node;
     if (this.el.contains(target) || this.inStrip(e.clientX, e.clientY)) {
       this.cancelHide();
       return;
     }
     const dom = this.view.dom;
+    const box = dom.getBoundingClientRect();
     let found: Hovered | null = null;
+    if (dom === target) {
+      // between blocks: keep the handle of the block just left
+      if (this.hovered) this.cancelHide();
+      else this.scheduleHide();
+      return;
+    }
     if (dom.contains(target)) found = blockAt(this.view, target);
-    else if (e.clientX < dom.getBoundingClientRect().left) found = blockBeside(this.view, e.clientY);
+    else if (e.clientX < box.left && e.clientX >= box.left - this.band() && e.clientY >= box.top && e.clientY <= box.bottom && !(target instanceof Element && target.closest(OVERLAY))) {
+      found = blockBeside(this.view, e.clientY);
+    }
     if (!found) {
       this.scheduleHide();
       return;
@@ -196,8 +230,14 @@ class GutterView {
 
   private onLeave = () => this.scheduleHide();
 
+  /** the handle's own width plus `BAND`, measured from the content edge */
+  private band(): number {
+    const shown = this.el.style.display !== "none";
+    return (shown ? this.el.offsetWidth : 52) + GAP + FRAME_GAP + BAND;
+  }
+
   private inStrip(x: number, y: number): boolean {
-    if (!this.hovered) return false;
+    if (!this.hovered || this.el.style.display === "none") return false;
     const h = this.el.getBoundingClientRect();
     const b = this.hovered.dom.getBoundingClientRect();
     return y >= h.top && y <= h.bottom && x >= h.left && x <= Math.max(h.right, b.left);
@@ -220,7 +260,7 @@ class GutterView {
   private place() {
     const container = this.container;
     if (!this.hovered || !container) return;
-    const { dom } = this.hovered;
+    const { pos, dom } = this.hovered;
     const rect = dom.getBoundingClientRect();
     const base = container.getBoundingClientRect();
     const style = getComputedStyle(dom);
@@ -230,9 +270,11 @@ class GutterView {
     const height = this.el.offsetHeight;
     const line = firstLineRect(dom);
     const centre = line ? line.top + Math.min(line.height, lineHeight) / 2 : rect.top + (parseFloat(style.paddingTop) || 0) + lineHeight / 2;
+    // a list item's marker sits left of the item, inside its list
+    const list = /item$/i.test(this.view.state.doc.resolve(pos).nodeAfter?.type.name ?? "") ? dom.parentElement : null;
     // a table's edge counts as a ring, keeping the grip clear of the row handles on its left border
     const ring = style.float !== "none" ? null : dom.classList.contains("tableWrapper") ? rect.left : frameEdge(dom);
-    const left = ring === null ? rect.left - GAP - width : ring - FRAME_GAP - width;
+    const left = list ? list.getBoundingClientRect().left - GAP - width : ring === null ? rect.left - GAP - width : ring - FRAME_GAP - width;
     this.el.style.top = `${centre - height / 2 - base.top + container.scrollTop}px`;
     this.el.style.left = `${left - base.left}px`;
   }
@@ -267,24 +309,24 @@ class GutterView {
     const node = nodeAtSafe(this.view, pos);
     if (!node) return;
     const selection = NodeSelection.create(this.view.state.doc, pos);
-    this.view.dispatch(this.view.state.tr.setSelection(selection));
-    const slice = selection.content();
-    const { dom: html, text } = this.view.serializeForClipboard(slice);
+    this.view.dispatch(this.view.state.tr.setSelection(selection).setMeta(dragKey, pos));
+    const { dom: html, text } = this.view.serializeForClipboard(selection.content());
     e.dataTransfer.clearData();
+    e.dataTransfer.setData(BLOCK_DRAG_TYPE, "");
     e.dataTransfer.setData("text/html", html.innerHTML);
     e.dataTransfer.setData("text/plain", text);
-    e.dataTransfer.effectAllowed = "copyMove";
+    e.dataTransfer.effectAllowed = "move";
     const rect = dom.getBoundingClientRect();
     e.dataTransfer.setDragImage(dom, Math.min(24, rect.width / 2), 12);
-    this.view.dragging = { slice, move: true };
-    this.el.style.display = "none";
+    this.drag.start({ pos: () => dragKey.getState(this.view.state) ?? null });
+    // hiding the drag source inside dragstart makes chrome end the drag at once (dragend fires, the drag goes on)
+    window.setTimeout(() => this.drag.dragging && this.el.classList.add("is-dragging"));
   };
 
-  // prosemirror clears `dragging` only on dragend of its own DOM; the grip lives outside it
-  private onDragEnd = () => {
-    window.setTimeout(() => {
-      if (this.view.dragging) this.view.dragging = null;
-    }, 50);
+  private onDragStop = () => {
+    this.el.classList.remove("is-dragging");
+    this.hide();
+    if (dragKey.getState(this.view.state) != null && !this.view.isDestroyed) this.view.dispatch(this.view.state.tr.setMeta(dragKey, null));
   };
 }
 
@@ -296,8 +338,18 @@ export const GutterHandle = Extension.create<GutterHandleOptions>({
   addProseMirrorPlugins() {
     const options = this.options;
     return [
-      new Plugin({
-        key: new PluginKey("gutterHandle"),
+      new Plugin<number | null>({
+        key: dragKey,
+        state: {
+          init: () => null,
+          apply(tr, pos) {
+            const meta = tr.getMeta(dragKey) as number | null | undefined;
+            if (meta !== undefined) return meta;
+            if (pos == null || !tr.docChanged) return pos;
+            const mapped = tr.mapping.mapResult(pos, 1);
+            return mapped.deletedAfter ? null : mapped.pos;
+          },
+        },
         view: (view) => new GutterView(view, options),
       }),
     ];

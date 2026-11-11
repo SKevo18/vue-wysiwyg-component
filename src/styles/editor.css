@@ -266,6 +266,22 @@ button.wy-grip {
     display: none !important;
   }
 }
+.wy-gutter.is-dragging {
+  opacity: 0;
+  pointer-events: none;
+}
+.wy-drop-guide {
+  position: absolute;
+  z-index: 11;
+  height: 3px;
+  margin-top: -1px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--vc-accent) 70%, transparent);
+  pointer-events: none;
+}
+html.wy-block-dragging iframe {
+  pointer-events: none;
+}
 
 .wy-slash {
   width: 19rem;

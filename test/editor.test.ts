@@ -76,7 +76,8 @@ describe("WysiwygEditor", () => {
   it("puts the dragged block on the clipboard, not the editor's ui", async () => {
     const { wrapper: w } = await mountEditor({ modelValue: "> [!TIP] Dusk\n> Bring **a torch**.\n\nOtter holt.\n" });
     await vi.waitFor(() => expect(w.find(".wy-gutter").exists()).toBe(true));
-    w.find(".wy-content .wy-callout p").element.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+    // the callout's own chrome; its paragraph has a handle of its own
+    w.find(".wy-content .wy-callout-title-input").element.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
     const data = new Map<string, string>();
     const event = new Event("dragstart", { bubbles: true });
     Object.defineProperty(event, "dataTransfer", {
