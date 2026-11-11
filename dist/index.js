@@ -495,6 +495,29 @@ function formatImageAttrs(attrs) {
 function shownAlign(align, caption) {
 	return align ?? (caption ? "center" : "left");
 }
+var DIAGRAM_ALIGNS = [
+	"left",
+	"center",
+	"right"
+];
+var LAYOUT_RE = /(?:^|\s)(width|align)=(\S+)/g;
+function diagramLayout(meta) {
+	const out = {
+		width: null,
+		align: null
+	};
+	for (const [, key, value] of meta.matchAll(LAYOUT_RE)) if (key === "width") {
+		const n = /^(\d+)%?$/.exec(value);
+		if (n) out.width = Math.min(100, Math.max(10, parseInt(n[1], 10)));
+	} else if (DIAGRAM_ALIGNS.includes(value)) out.align = value;
+	if (out.width === 100) out.width = null;
+	return out;
+}
+/** the fence info `meta` with the layout replaced; other words of the info stay as they were */
+function withDiagramLayout(meta, layout) {
+	const rest = meta.replace(LAYOUT_RE, "").trim();
+	return [...[...layout.width && layout.width !== 100 ? [`width=${layout.width}`] : [], ...layout.align ? [`align=${layout.align}`] : []], rest].filter(Boolean).join(" ");
+}
 var MEDIA_EXTS = {
 	mp4: "video",
 	webm: "video",
@@ -1623,6 +1646,44 @@ function floatNear(anchor, el, o) {
 		stop: autoUpdate(anchor, el, update)
 	};
 }
+function scrollsY(el) {
+	const s = getComputedStyle(el);
+	return /(auto|scroll|overlay)/.test(s.overflowY) && el.scrollHeight > el.clientHeight;
+}
+function scrollsX(el) {
+	const s = getComputedStyle(el);
+	return /(auto|scroll|overlay)/.test(s.overflowX) && el.scrollWidth > el.clientWidth;
+}
+/** whether `el` can still scroll by this wheel delta */
+function canScroll(el, dx, dy) {
+	if (dy && scrollsY(el)) return dy < 0 ? el.scrollTop > 0 : el.scrollTop + el.clientHeight < el.scrollHeight - 1;
+	if (dx && scrollsX(el)) return dx < 0 ? el.scrollLeft > 0 : el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+	return false;
+}
+/** the element that scrolls `el` vertically: an app's own scroll container, else the document */
+function scrollParent(el) {
+	for (let p = el?.parentElement ?? null; p && p !== document.body; p = p.parentElement) if (scrollsY(p)) return p;
+	return document.scrollingElement ?? document.documentElement;
+}
+/**
+* A popup in <body> sits outside the app's scroll container, so the wheel over it would scroll nothing. When nothing
+* inside the popup can scroll by the wheel's delta, the page around `anchor` scrolls instead. Returns the unbinding.
+*/
+function passWheel(panel, anchor) {
+	const onWheel = (e) => {
+		if (e.ctrlKey) return;
+		for (let el = e.target instanceof Element ? e.target : null; el; el = el === panel ? null : el.parentElement) if (canScroll(el, e.deltaX, e.deltaY)) return;
+		const page = scrollParent(anchor());
+		const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? page.clientHeight : 1;
+		e.preventDefault();
+		page.scrollBy({
+			left: e.deltaX * unit,
+			top: e.deltaY * unit
+		});
+	};
+	panel.addEventListener("wheel", onWheel, { passive: false });
+	return () => panel.removeEventListener("wheel", onWheel);
+}
 // src/components/tooltip.ts
 var DELAY = 450;
 var apple = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
@@ -1722,7 +1783,7 @@ var vTooltip = {
 	}
 };
 // src/nodes/ColumnView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$42 = ["aria-label"];
+var _hoisted_1$43 = ["aria-label"];
 // src/nodes/ColumnView.vue
 var ColumnView_default = /* @__PURE__ */ defineComponent({
 	__name: "ColumnView",
@@ -1820,24 +1881,23 @@ var ColumnView_default = /* @__PURE__ */ defineComponent({
 					onPointermove: onMove,
 					onPointerup: onUp,
 					onPointercancel: onUp
-				}, null, 40, _hoisted_1$42)), [[unref(vTooltip), unref(t)("columns.resize")]]) : createCommentVNode("", true)]),
+				}, null, 40, _hoisted_1$43)), [[unref(vTooltip), unref(t)("columns.resize")]]) : createCommentVNode("", true)]),
 				_: 1
 			}, 8, ["class", "style"]);
 		};
 	}
 });
 // src/blocks/BlockFrame.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$41 = {
+var _hoisted_1$42 = {
 	key: 0,
 	class: "wy-block-tools",
 	contenteditable: "false"
 };
-var _hoisted_2$33 = { class: "wy-block-label" };
-var _hoisted_3$33 = ["aria-label"];
-var _hoisted_4$30 = ["aria-label"];
-var _hoisted_5$28 = ["aria-label"];
-var _hoisted_6$23 = ["aria-label"];
-var _hoisted_7$18 = { class: "wy-block-body" };
+var _hoisted_2$35 = ["aria-label"];
+var _hoisted_3$35 = ["aria-label"];
+var _hoisted_4$32 = ["aria-label"];
+var _hoisted_5$29 = ["aria-label"];
+var _hoisted_6$24 = { class: "wy-block-body" };
 // src/blocks/BlockFrame.vue
 var BlockFrame_default = /* @__PURE__ */ defineComponent({
 	__name: "BlockFrame",
@@ -1868,7 +1928,8 @@ var BlockFrame_default = /* @__PURE__ */ defineComponent({
 	emits: [
 		"edit",
 		"delete",
-		"more"
+		"more",
+		"select"
 	],
 	setup(__props, { emit: __emit }) {
 		const props = __props;
@@ -1889,43 +1950,46 @@ var BlockFrame_default = /* @__PURE__ */ defineComponent({
 				"is-readonly": __props.readonly,
 				"is-editable": __props.editable && !__props.readonly
 			}]) }, [
-				!__props.readonly ? (openBlock(), createElementBlock("div", _hoisted_1$41, [
-					createElementVNode("span", _hoisted_2$33, toDisplayString(__props.label), 1),
+				!__props.readonly ? (openBlock(), createElementBlock("div", _hoisted_1$42, [
+					createElementVNode("span", {
+						class: "wy-block-label",
+						onMousedown: _cache[0] || (_cache[0] = withModifiers(($event) => emit("select"), ["prevent"]))
+					}, toDisplayString(__props.label), 33),
 					__props.editable && !__props.editing ? withDirectives((openBlock(), createElementBlock("button", {
 						key: 0,
 						type: "button",
 						class: "wy-icon-btn",
 						"aria-label": t("block.edit", "Edit"),
-						onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
-						onClick: _cache[1] || (_cache[1] = ($event) => emit("edit"))
-					}, [createVNode(unref(Pencil), { size: 14 })], 40, _hoisted_3$33)), [[unref(vTooltip), t("block.edit", "Edit")]]) : createCommentVNode("", true),
+						onMousedown: _cache[1] || (_cache[1] = withModifiers(() => {}, ["prevent"])),
+						onClick: _cache[2] || (_cache[2] = ($event) => emit("edit"))
+					}, [createVNode(unref(Pencil), { size: 14 })], 40, _hoisted_2$35)), [[unref(vTooltip), t("block.edit", "Edit")]]) : createCommentVNode("", true),
 					__props.copyText ? withDirectives((openBlock(), createElementBlock("button", {
 						key: 1,
 						type: "button",
 						class: "wy-icon-btn",
 						"aria-label": t("block.copy", "Copy"),
-						onMousedown: _cache[2] || (_cache[2] = withModifiers(() => {}, ["prevent"])),
+						onMousedown: _cache[3] || (_cache[3] = withModifiers(() => {}, ["prevent"])),
 						onClick: copy
-					}, [createVNode(unref(Copy), { size: 14 })], 40, _hoisted_4$30)), [[unref(vTooltip), t("block.copy", "Copy")]]) : createCommentVNode("", true),
+					}, [createVNode(unref(Copy), { size: 14 })], 40, _hoisted_3$35)), [[unref(vTooltip), t("block.copy", "Copy")]]) : createCommentVNode("", true),
 					__props.deletable ? withDirectives((openBlock(), createElementBlock("button", {
 						key: 2,
 						type: "button",
 						class: "wy-icon-btn is-danger",
 						"aria-label": t("block.delete", "Delete"),
-						onMousedown: _cache[3] || (_cache[3] = withModifiers(() => {}, ["prevent"])),
-						onClick: _cache[4] || (_cache[4] = ($event) => emit("delete"))
-					}, [createVNode(unref(Trash2), { size: 14 })], 40, _hoisted_5$28)), [[unref(vTooltip), t("block.delete", "Delete")]]) : createCommentVNode("", true),
+						onMousedown: _cache[4] || (_cache[4] = withModifiers(() => {}, ["prevent"])),
+						onClick: _cache[5] || (_cache[5] = ($event) => emit("delete"))
+					}, [createVNode(unref(Trash2), { size: 14 })], 40, _hoisted_4$32)), [[unref(vTooltip), t("block.delete", "Delete")]]) : createCommentVNode("", true),
 					_ctx.$slots.menu ? withDirectives((openBlock(), createElementBlock("button", {
 						key: 3,
 						type: "button",
 						class: "wy-icon-btn",
 						"data-block-more": "",
 						"aria-label": t("block.more", "More"),
-						onMousedown: _cache[5] || (_cache[5] = withModifiers(() => {}, ["prevent"])),
-						onClick: _cache[6] || (_cache[6] = ($event) => emit("more", $event))
-					}, [createVNode(unref(Ellipsis), { size: 14 })], 40, _hoisted_6$23)), [[unref(vTooltip), t("block.more", "More")]]) : createCommentVNode("", true)
+						onMousedown: _cache[6] || (_cache[6] = withModifiers(() => {}, ["prevent"])),
+						onClick: _cache[7] || (_cache[7] = ($event) => emit("more", $event))
+					}, [createVNode(unref(Ellipsis), { size: 14 })], 40, _hoisted_5$29)), [[unref(vTooltip), t("block.more", "More")]]) : createCommentVNode("", true)
 				])) : createCommentVNode("", true),
-				createElementVNode("div", _hoisted_7$18, [renderSlot(_ctx.$slots, "default")]),
+				createElementVNode("div", _hoisted_6$24, [renderSlot(_ctx.$slots, "default")]),
 				renderSlot(_ctx.$slots, "menu")
 			], 2);
 		};
@@ -2420,40 +2484,136 @@ function convertRun(reg, state, run, target, selectAll = false) {
 	return tr.scrollIntoView();
 }
 // src/components/ConvertItems.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$40 = ["data-convert", "onClick"];
+var _hoisted_1$41 = [
+	"aria-activedescendant",
+	"aria-label",
+	"placeholder"
+];
+var _hoisted_2$34 = [
+	"id",
+	"data-convert",
+	"data-insert",
+	"onMouseenter",
+	"onClick"
+];
+var _hoisted_3$34 = {
+	key: 0,
+	class: "wy-menu-empty"
+};
 // src/components/ConvertItems.vue
 var ConvertItems_default = /* @__PURE__ */ defineComponent({
 	__name: "ConvertItems",
-	props: { targets: {} },
-	emits: ["pick"],
-	setup(__props, { emit: __emit }) {
+	props: {
+		targets: {},
+		inserts: { default: () => [] }
+	},
+	emits: ["pick", "insert"],
+	setup(__props, { expose: __expose, emit: __emit }) {
+		const props = __props;
 		const emit = __emit;
 		const ctx = useEditorContext();
+		const t = ctx.t;
+		const query = ref("");
+		const active = ref(0);
+		const search = ref(null);
+		const listId = `wy-convert-${Math.random().toString(36).slice(2, 8)}`;
 		function label(target) {
 			return ctx.text(target.label, `convert.targets.${target.id}`) || ctx.text("", `slash.items.${target.id}.label`) || target.id;
 		}
+		const entries = computed(() => {
+			const inserted = new Set(props.inserts.map((i) => i.id));
+			return [...props.inserts.map((item) => ({
+				key: `insert:${item.id}`,
+				id: item.id,
+				insert: true,
+				label: item.label,
+				icon: item.icon,
+				words: item.keywords,
+				run: () => emit("insert", item)
+			})), ...props.targets.filter((x) => !inserted.has(x.id)).map((x) => ({
+				key: x.id,
+				id: x.id,
+				insert: false,
+				label: label(x),
+				icon: x.icon,
+				words: `${x.id} ${label(x)}`.toLowerCase(),
+				run: () => emit("pick", x.id)
+			}))];
+		});
+		const shown = computed(() => {
+			const words = query.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+			return words.length ? entries.value.filter((e) => words.every((w) => e.words.includes(w) || e.label.toLowerCase().includes(w))) : entries.value;
+		});
+		watch(shown, () => active.value = 0);
+		function onKey(e) {
+			const n = shown.value.length;
+			switch (e.key) {
+				case "ArrowDown":
+				case "ArrowUp":
+					if (n) active.value = (active.value + (e.key === "ArrowDown" ? 1 : -1) + n) % n;
+					break;
+				case "Enter":
+					shown.value[active.value]?.run();
+					break;
+				case "Home":
+				case "End": break;
+				case "ArrowLeft":
+				case "ArrowRight":
+					if (!query.value) return;
+					e.stopPropagation();
+					return;
+				default: return;
+			}
+			if (e.key !== "Home" && e.key !== "End") e.preventDefault();
+			e.stopPropagation();
+		}
+		__expose({ focus: () => search.value?.focus({ preventScroll: true }) });
 		return (_ctx, _cache) => {
-			return openBlock(true), createElementBlock(Fragment$1, null, renderList(__props.targets, (target) => {
+			return openBlock(), createElementBlock(Fragment$1, null, [withDirectives(createElementVNode("input", {
+				ref_key: "search",
+				ref: search,
+				"onUpdate:modelValue": _cache[0] || (_cache[0] = ($event) => query.value = $event),
+				class: "wy-input is-sm wy-convert-search",
+				type: "text",
+				autocomplete: "off",
+				spellcheck: "false",
+				role: "combobox",
+				"aria-autocomplete": "list",
+				"aria-expanded": "true",
+				"aria-controls": listId,
+				"aria-activedescendant": shown.value.length ? `${listId}-${active.value}` : void 0,
+				"aria-label": unref(t)("convert.search"),
+				placeholder: unref(t)("convert.search"),
+				onKeydown: onKey
+			}, null, 40, _hoisted_1$41), [[vModelText, query.value]]), createElementVNode("div", {
+				id: listId,
+				class: "wy-menu-list",
+				role: "group"
+			}, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(shown.value, (entry, i) => {
 				return openBlock(), createElementBlock("button", {
-					key: target.id,
+					id: `${listId}-${i}`,
+					key: entry.key,
 					type: "button",
 					role: "menuitem",
-					class: "wy-menu-item",
-					"data-convert": target.id,
-					onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
-					onClick: ($event) => emit("pick", target.id)
-				}, [target.icon ? (openBlock(), createBlock(resolveDynamicComponent(target.icon), {
+					tabindex: "-1",
+					class: normalizeClass(["wy-menu-item", { "is-active": i === active.value }]),
+					"data-convert": entry.id,
+					"data-insert": entry.insert || void 0,
+					onMousedown: _cache[1] || (_cache[1] = withModifiers(() => {}, ["prevent"])),
+					onMouseenter: ($event) => active.value = i,
+					onClick: ($event) => entry.run()
+				}, [entry.icon ? (openBlock(), createBlock(resolveDynamicComponent(entry.icon), {
 					key: 0,
 					class: "wy-menu-icon",
 					size: 16,
 					"aria-hidden": "true"
-				})) : createCommentVNode("", true), createElementVNode("span", null, toDisplayString(label(target)), 1)], 40, _hoisted_1$40);
-			}), 128);
+				})) : createCommentVNode("", true), createElementVNode("span", null, toDisplayString(entry.label), 1)], 42, _hoisted_2$34);
+			}), 128)), !shown.value.length ? (openBlock(), createElementBlock("p", _hoisted_3$34, toDisplayString(unref(t)("convert.empty")), 1)) : createCommentVNode("", true)])], 64);
 		};
 	}
 });
 // src/blocks/BlockMenu.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$39 = { class: "wy-menu-heading" };
+var _hoisted_1$40 = { class: "wy-menu-heading" };
 // src/blocks/BlockMenu.vue
 var BlockMenu_default = /* @__PURE__ */ defineComponent({
 	__name: "BlockMenu",
@@ -2514,7 +2674,7 @@ var BlockMenu_default = /* @__PURE__ */ defineComponent({
 				contenteditable: "false",
 				"data-block-portal": "",
 				onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["stop"]))
-			}, [renderSlot(_ctx.$slots, "default"), targets.value.length ? (openBlock(), createElementBlock(Fragment$1, { key: 0 }, [createElementVNode("div", _hoisted_1$39, toDisplayString(title.value), 1), createVNode(ConvertItems_default, {
+			}, [renderSlot(_ctx.$slots, "default"), targets.value.length ? (openBlock(), createElementBlock(Fragment$1, { key: 0 }, [createElementVNode("div", _hoisted_1$40, toDisplayString(title.value), 1), createVNode(ConvertItems_default, {
 				targets: targets.value,
 				onPick: pick
 			}, null, 8, ["targets"])], 64)) : createCommentVNode("", true)], 544)) : createCommentVNode("", true);
@@ -2522,16 +2682,16 @@ var BlockMenu_default = /* @__PURE__ */ defineComponent({
 	}
 });
 // src/components/SlashMenu.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$38 = ["aria-label"];
-var _hoisted_2$32 = {
+var _hoisted_1$39 = ["aria-label"];
+var _hoisted_2$33 = {
 	key: 0,
 	class: "wy-menu-empty"
 };
-var _hoisted_3$32 = {
+var _hoisted_3$33 = {
 	class: "wy-menu-heading",
 	role: "presentation"
 };
-var _hoisted_4$29 = [
+var _hoisted_4$31 = [
 	"aria-selected",
 	"aria-disabled",
 	"title",
@@ -2539,9 +2699,9 @@ var _hoisted_4$29 = [
 	"onMouseenter",
 	"onClick"
 ];
-var _hoisted_5$27 = { class: "wy-slash-text" };
-var _hoisted_6$22 = { class: "wy-slash-label" };
-var _hoisted_7$17 = {
+var _hoisted_5$28 = { class: "wy-slash-text" };
+var _hoisted_6$23 = { class: "wy-slash-label" };
+var _hoisted_7$19 = {
 	key: 0,
 	class: "wy-slash-desc"
 };
@@ -2615,13 +2775,13 @@ var SlashMenu_default = /* @__PURE__ */ defineComponent({
 				class: "wy-menu wy-slash",
 				role: "listbox",
 				"aria-label": __props.t("slash.title")
-			}, [__props.items.length === 0 ? (openBlock(), createElementBlock("div", _hoisted_2$32, toDisplayString(__props.t("slash.empty")), 1)) : (openBlock(), createElementBlock("div", {
+			}, [__props.items.length === 0 ? (openBlock(), createElementBlock("div", _hoisted_2$33, toDisplayString(__props.t("slash.empty")), 1)) : (openBlock(), createElementBlock("div", {
 				key: 1,
 				ref_key: "list",
 				ref: list,
 				class: "wy-slash-list"
 			}, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(groups.value, (g) => {
-				return openBlock(), createElementBlock(Fragment$1, { key: g.group }, [createElementVNode("div", _hoisted_3$32, toDisplayString(__props.groupLabel(g.group)), 1), (openBlock(true), createElementBlock(Fragment$1, null, renderList(g.items, ({ item, index }) => {
+				return openBlock(), createElementBlock(Fragment$1, { key: g.group }, [createElementVNode("div", _hoisted_3$33, toDisplayString(__props.groupLabel(g.group)), 1), (openBlock(true), createElementBlock(Fragment$1, null, renderList(g.items, ({ item, index }) => {
 					return openBlock(), createElementBlock("button", {
 						key: item.id,
 						type: "button",
@@ -2639,9 +2799,9 @@ var SlashMenu_default = /* @__PURE__ */ defineComponent({
 						class: "wy-menu-icon",
 						size: 18,
 						"aria-hidden": "true"
-					})) : createCommentVNode("", true), createElementVNode("span", _hoisted_5$27, [createElementVNode("span", _hoisted_6$22, toDisplayString(item.label), 1), item.description ? (openBlock(), createElementBlock("span", _hoisted_7$17, toDisplayString(item.description), 1)) : createCommentVNode("", true)])], 42, _hoisted_4$29);
+					})) : createCommentVNode("", true), createElementVNode("span", _hoisted_5$28, [createElementVNode("span", _hoisted_6$23, toDisplayString(item.label), 1), item.description ? (openBlock(), createElementBlock("span", _hoisted_7$19, toDisplayString(item.description), 1)) : createCommentVNode("", true)])], 42, _hoisted_4$31);
 				}), 128))], 64);
-			}), 128))], 512))], 8, _hoisted_1$38);
+			}), 128))], 512))], 8, _hoisted_1$39);
 		};
 	}
 });
@@ -2903,7 +3063,9 @@ var SlashCommand = Extension.create({
 				let el = null;
 				let floating = null;
 				let rect = null;
+				let unwheel = () => {};
 				const close = () => {
+					unwheel();
 					floating?.stop();
 					renderer?.destroy();
 					el?.remove();
@@ -2930,6 +3092,7 @@ var SlashCommand = Extension.create({
 						menu.style.position = "fixed";
 						menu.style.zIndex = "1000";
 						document.body.appendChild(menu);
+						unwheel = passWheel(menu, () => p.editor.view.dom);
 						floating = floatNear(reference, menu, {
 							placement: "bottom-start",
 							offset: 6,
@@ -2983,6 +3146,56 @@ var InlineKeys = Extension.create({
 			Enter: () => true,
 			"Shift-Enter": () => true
 		};
+	}
+});
+/** Mod-a in a code block or table cell selects that block's text first; the next Mod-a selects the document */
+var ScopedSelectAll = Extension.create({
+	name: "scopedSelectAll",
+	priority: 101,
+	addKeyboardShortcuts() {
+		return { "Mod-a": ({ editor }) => {
+			const { state } = editor;
+			const { $from, to, from } = state.selection;
+			for (let d = $from.depth; d > 0; d--) {
+				const node = $from.node(d);
+				const role = node.type.spec.tableRole;
+				if (!node.type.spec.code && role !== "cell" && role !== "header_cell") continue;
+				if (to > $from.end(d)) return false;
+				const inner = TextSelection.between(state.doc.resolve($from.start(d)), state.doc.resolve($from.end(d)));
+				if (inner.from === from && inner.to === to) return false;
+				editor.view.dispatch(state.tr.setSelection(inner));
+				return true;
+			}
+			return false;
+		} };
+	}
+});
+var SELECTION_UI = ".wy-gutter, .wy-floating, .wy-menu, .wy-toolbar, .wy-field-tools, .wy-bubble, .wy-modal-backdrop, [role=dialog], [data-block-portal]";
+/**
+* A mousedown anywhere but the selected block (outside the editor, in another block's own controls such as an embedded
+* database or a form field) drops a block selection, so no block stays highlighted once the user works elsewhere.
+*/
+var ClickAway = Extension.create({
+	name: "clickAway",
+	addProseMirrorPlugins() {
+		return [new Plugin({
+			key: new PluginKey("clickAway"),
+			view(view) {
+				const onDown = (e) => {
+					const sel = view.state.selection;
+					const target = e.target;
+					if (!(sel instanceof NodeSelection) || !(target instanceof Element)) return;
+					const own = view.nodeDOM(sel.from);
+					if (own instanceof Node && own.contains(target)) return;
+					if (!view.dom.contains(target) && target.closest(SELECTION_UI)) return;
+					const $pos = view.state.doc.resolve(sel.from);
+					const text = Selection.findFrom($pos, -1, true) ?? Selection.findFrom($pos, 1, true);
+					if (text) view.dispatch(view.state.tr.setSelection(text).setMeta("addToHistory", false));
+				};
+				document.addEventListener("mousedown", onDown, true);
+				return { destroy: () => document.removeEventListener("mousedown", onDown, true) };
+			}
+		})];
 	}
 });
 /** a click right of an inline atom that ends its line puts the caret after it (firefox puts it before) */
@@ -3087,7 +3300,9 @@ function useBlockNode(props, opts = {}) {
 	function onDocClick(e) {
 		const target = e.target;
 		const el = rootEl();
-		if (!target || !el || el.contains(target) || target.closest(PORTAL_SELECTOR)) return;
+		if (!target || !el || el.contains(target)) return;
+		const portal = target.closest(PORTAL_SELECTOR);
+		if (portal && !props.editor.view.dom.contains(portal)) return;
 		stopEdit();
 	}
 	function onKeydown(e) {
@@ -3156,7 +3371,7 @@ function useBlockNode(props, opts = {}) {
 	};
 }
 // src/nodes/ColumnsView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$37 = ["title"];
+var _hoisted_1$38 = ["title"];
 // src/nodes/ColumnsView.vue
 var ColumnsView_default = /* @__PURE__ */ defineComponent({
 	__name: "ColumnsView",
@@ -3279,7 +3494,7 @@ var ColumnsView_default = /* @__PURE__ */ defineComponent({
 							}, [createVNode(unref(Minus), {
 								class: "wy-menu-icon",
 								size: 16
-							}), createTextVNode(toDisplayString(unref(t)("columns.remove")), 1)], 8, _hoisted_1$37),
+							}), createTextVNode(toDisplayString(unref(t)("columns.remove")), 1)], 8, _hoisted_1$38),
 							sized.value ? (openBlock(), createElementBlock("button", {
 								key: 0,
 								type: "button",
@@ -3618,23 +3833,23 @@ function resolveOnce(services, href) {
 	return result;
 }
 // src/nodes/BookmarkView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$36 = [
+var _hoisted_1$37 = [
 	"placeholder",
 	"aria-label",
 	"readonly",
 	"onKeydown"
 ];
-var _hoisted_2$31 = ["disabled"];
-var _hoisted_3$31 = ["href"];
-var _hoisted_4$28 = { class: "wy-bookmark-text" };
-var _hoisted_5$26 = { class: "wy-bookmark-title" };
-var _hoisted_6$21 = {
+var _hoisted_2$32 = ["disabled"];
+var _hoisted_3$32 = ["href"];
+var _hoisted_4$30 = { class: "wy-bookmark-text" };
+var _hoisted_5$27 = { class: "wy-bookmark-title" };
+var _hoisted_6$22 = {
 	key: 0,
 	class: "wy-bookmark-desc"
 };
-var _hoisted_7$16 = { class: "wy-bookmark-url" };
-var _hoisted_8$15 = ["src"];
-var _hoisted_9$14 = ["src"];
+var _hoisted_7$18 = { class: "wy-bookmark-url" };
+var _hoisted_8$16 = ["src"];
+var _hoisted_9$13 = ["src"];
 var _hoisted_10$12 = ["disabled"];
 var _hoisted_11$8 = ["href"];
 // src/nodes/BookmarkView.vue
@@ -3795,11 +4010,11 @@ var BookmarkView_default = /* @__PURE__ */ defineComponent({
 						"aria-label": unref(t)("bookmark.url"),
 						readonly: unref(readonly),
 						onKeydown: withKeys(withModifiers(cancel, ["prevent", "stop"]), ["esc"])
-					}, null, 40, _hoisted_1$36), [[vModelText, draft.value]]), createElementVNode("button", {
+					}, null, 40, _hoisted_1$37), [[vModelText, draft.value]]), createElementVNode("button", {
 						type: "submit",
 						class: "wy-btn is-primary",
 						disabled: !unref(loneUrl)(unref(normalizeHref)(draft.value))
-					}, toDisplayString(unref(t)("bookmark.create")), 9, _hoisted_2$31)], 32)) : (openBlock(), createElementBlock("a", {
+					}, toDisplayString(unref(t)("bookmark.create")), 9, _hoisted_2$32)], 32)) : (openBlock(), createElementBlock("a", {
 						key: 1,
 						class: normalizeClass(["wy-bookmark-card", { "is-loading": loading.value }]),
 						href: a.value.url,
@@ -3808,16 +4023,16 @@ var BookmarkView_default = /* @__PURE__ */ defineComponent({
 						contenteditable: "false",
 						draggable: "false",
 						onClick: open
-					}, [createElementVNode("span", _hoisted_4$28, [
-						createElementVNode("span", _hoisted_5$26, toDisplayString(loading.value && !a.value.title ? unref(t)("bookmark.loading") : title.value), 1),
-						a.value.description ? (openBlock(), createElementBlock("span", _hoisted_6$21, toDisplayString(a.value.description), 1)) : createCommentVNode("", true),
-						createElementVNode("span", _hoisted_7$16, [a.value.icon && !failedIcon.value ? (openBlock(), createElementBlock("img", {
+					}, [createElementVNode("span", _hoisted_4$30, [
+						createElementVNode("span", _hoisted_5$27, toDisplayString(loading.value && !a.value.title ? unref(t)("bookmark.loading") : title.value), 1),
+						a.value.description ? (openBlock(), createElementBlock("span", _hoisted_6$22, toDisplayString(a.value.description), 1)) : createCommentVNode("", true),
+						createElementVNode("span", _hoisted_7$18, [a.value.icon && !failedIcon.value ? (openBlock(), createElementBlock("img", {
 							key: 0,
 							class: "wy-bookmark-favicon",
 							src: a.value.icon,
 							alt: "",
 							onError: _cache[2] || (_cache[2] = ($event) => failedIcon.value = true)
-						}, null, 40, _hoisted_8$15)) : (openBlock(), createBlock(unref(Globe), {
+						}, null, 40, _hoisted_8$16)) : (openBlock(), createBlock(unref(Globe), {
 							key: 1,
 							size: 14,
 							"aria-hidden": "true"
@@ -3829,7 +4044,7 @@ var BookmarkView_default = /* @__PURE__ */ defineComponent({
 						alt: "",
 						loading: "lazy",
 						onError: _cache[3] || (_cache[3] = ($event) => failedImage.value = true)
-					}, null, 40, _hoisted_9$14)) : createCommentVNode("", true)], 10, _hoisted_3$31))]),
+					}, null, 40, _hoisted_9$13)) : createCommentVNode("", true)], 10, _hoisted_3$32))]),
 					_: 1
 				}, 8, [
 					"label",
@@ -3975,28 +4190,27 @@ var bookmarkExtension = {
 	}]
 };
 // src/nodes/EmbedView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$35 = [
+var _hoisted_1$36 = [
 	"placeholder",
 	"aria-label",
 	"readonly",
 	"onKeydown"
 ];
-var _hoisted_2$30 = ["disabled"];
-var _hoisted_3$30 = ["data-provider"];
-var _hoisted_4$27 = [
+var _hoisted_2$31 = ["disabled"];
+var _hoisted_3$31 = ["data-provider"];
+var _hoisted_4$29 = [
 	"src",
 	"sandbox",
 	"title"
 ];
-var _hoisted_5$25 = ["aria-label"];
-var _hoisted_6$20 = ["aria-label"];
-var _hoisted_7$15 = {
-	key: 2,
+var _hoisted_5$26 = ["aria-label"];
+var _hoisted_6$21 = {
+	key: 1,
 	class: "wy-embed-shield",
 	"aria-hidden": "true"
 };
-var _hoisted_8$14 = ["href"];
-var _hoisted_9$13 = ["href"];
+var _hoisted_7$17 = ["href"];
+var _hoisted_8$15 = ["href"];
 // src/nodes/EmbedView.vue
 var EmbedView_default = /* @__PURE__ */ defineComponent({
 	__name: "EmbedView",
@@ -4014,7 +4228,6 @@ var EmbedView_default = /* @__PURE__ */ defineComponent({
 		const height = computed(() => props.node.attrs.height ?? EMBED_HEIGHTS[provider.value]);
 		const live = ref(null);
 		const shown = computed(() => live.value ?? height.value);
-		const interactive = computed(() => readonly.value || selected.value);
 		watch(editing, async (on) => {
 			if (!on) return;
 			draft.value = url.value;
@@ -4070,11 +4283,12 @@ var EmbedView_default = /* @__PURE__ */ defineComponent({
 					"copy-text": unref(copyText),
 					editable: false,
 					onDelete: unref(remove),
-					onMore: _cache[7] || (_cache[7] = ($event) => menu.value = !menu.value)
+					onMore: _cache[6] || (_cache[6] = ($event) => menu.value = !menu.value),
+					onSelect: select
 				}, {
 					menu: withCtx(() => [createVNode(BlockMenu_default, {
 						open: menu.value,
-						onClose: _cache[6] || (_cache[6] = ($event) => menu.value = false)
+						onClose: _cache[5] || (_cache[5] = ($event) => menu.value = false)
 					}, {
 						default: withCtx(() => [
 							url.value && !unref(readonly) ? (openBlock(), createElementBlock("button", {
@@ -4082,7 +4296,7 @@ var EmbedView_default = /* @__PURE__ */ defineComponent({
 								type: "button",
 								class: "wy-menu-item",
 								role: "menuitem",
-								onClick: _cache[3] || (_cache[3] = ($event) => (menu.value = false, unref(startEdit)()))
+								onClick: _cache[2] || (_cache[2] = ($event) => (menu.value = false, unref(startEdit)()))
 							}, [createVNode(unref(Pencil), {
 								class: "wy-menu-icon",
 								size: 16
@@ -4094,17 +4308,17 @@ var EmbedView_default = /* @__PURE__ */ defineComponent({
 								href: url.value,
 								target: "_blank",
 								rel: "noopener noreferrer",
-								onClick: _cache[4] || (_cache[4] = ($event) => menu.value = false)
+								onClick: _cache[3] || (_cache[3] = ($event) => menu.value = false)
 							}, [createVNode(unref(ExternalLink), {
 								class: "wy-menu-icon",
 								size: 16
-							}), createTextVNode(toDisplayString(unref(t)("embed.open")), 1)], 8, _hoisted_9$13)) : createCommentVNode("", true),
+							}), createTextVNode(toDisplayString(unref(t)("embed.open")), 1)], 8, _hoisted_8$15)) : createCommentVNode("", true),
 							_ctx.node.attrs.height && !unref(readonly) ? (openBlock(), createElementBlock("button", {
 								key: 2,
 								type: "button",
 								class: "wy-menu-item",
 								role: "menuitem",
-								onClick: _cache[5] || (_cache[5] = ($event) => (unref(update)({ height: null }), menu.value = false))
+								onClick: _cache[4] || (_cache[4] = ($event) => (unref(update)({ height: null }), menu.value = false))
 							}, toDisplayString(unref(t)("embed.defaultHeight")), 1)) : createCommentVNode("", true)
 						]),
 						_: 1
@@ -4129,11 +4343,11 @@ var EmbedView_default = /* @__PURE__ */ defineComponent({
 						"aria-label": unref(t)("embed.url"),
 						readonly: unref(readonly),
 						onKeydown: withKeys(withModifiers(cancel, ["prevent", "stop"]), ["esc"])
-					}, null, 40, _hoisted_1$35), [[vModelText, draft.value]]), createElementVNode("button", {
+					}, null, 40, _hoisted_1$36), [[vModelText, draft.value]]), createElementVNode("button", {
 						type: "submit",
 						class: "wy-btn is-primary",
 						disabled: !unref(embedFor)(unref(normalizeHref)(draft.value))
-					}, toDisplayString(unref(t)("embed.create")), 9, _hoisted_2$30)], 32)) : target.value ? (openBlock(), createElementBlock("div", {
+					}, toDisplayString(unref(t)("embed.create")), 9, _hoisted_2$31)], 32)) : target.value ? (openBlock(), createElementBlock("div", {
 						key: 1,
 						class: "wy-embed",
 						"data-provider": provider.value,
@@ -4148,17 +4362,9 @@ var EmbedView_default = /* @__PURE__ */ defineComponent({
 							referrerpolicy: "strict-origin-when-cross-origin",
 							loading: "lazy",
 							title: unref(t)(`embed.providers.${provider.value}`)
-						}, null, 14, _hoisted_4$27),
-						!interactive.value ? (openBlock(), createElementBlock("button", {
-							key: 0,
-							type: "button",
-							class: "wy-embed-overlay",
-							"aria-label": unref(t)("embed.interact"),
-							onMousedown: _cache[2] || (_cache[2] = withModifiers(() => {}, ["prevent"])),
-							onClick: select
-						}, null, 40, _hoisted_5$25)) : createCommentVNode("", true),
+						}, null, 14, _hoisted_4$29),
 						!unref(readonly) ? withDirectives((openBlock(), createElementBlock("div", {
-							key: 1,
+							key: 0,
 							class: "wy-embed-resize",
 							role: "separator",
 							"aria-orientation": "horizontal",
@@ -4167,16 +4373,16 @@ var EmbedView_default = /* @__PURE__ */ defineComponent({
 							onPointermove: onResizeMove,
 							onPointerup: onResizeUp,
 							onPointercancel: onResizeUp
-						}, null, 40, _hoisted_6$20)), [[unref(vTooltip), unref(t)("embed.resize")]]) : createCommentVNode("", true),
-						live.value !== null ? (openBlock(), createElementBlock("div", _hoisted_7$15)) : createCommentVNode("", true)
-					], 8, _hoisted_3$30)) : (openBlock(), createElementBlock("a", {
+						}, null, 40, _hoisted_5$26)), [[unref(vTooltip), unref(t)("embed.resize")]]) : createCommentVNode("", true),
+						live.value !== null ? (openBlock(), createElementBlock("div", _hoisted_6$21)) : createCommentVNode("", true)
+					], 8, _hoisted_3$31)) : (openBlock(), createElementBlock("a", {
 						key: 2,
 						class: "wy-embed-fallback",
 						href: url.value,
 						target: "_blank",
 						rel: "noopener noreferrer",
 						contenteditable: "false"
-					}, toDisplayString(url.value), 9, _hoisted_8$14))]),
+					}, toDisplayString(url.value), 9, _hoisted_7$17))]),
 					_: 1
 				}, 8, [
 					"label",
@@ -4316,15 +4522,15 @@ var embedExtension = {
 	}]
 };
 // src/components/PalettePicker.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$34 = { class: "wy-palette" };
-var _hoisted_2$29 = { class: "wy-menu-heading" };
-var _hoisted_3$29 = ["aria-label"];
-var _hoisted_4$26 = [
+var _hoisted_1$35 = { class: "wy-palette" };
+var _hoisted_2$30 = { class: "wy-menu-heading" };
+var _hoisted_3$30 = ["aria-label"];
+var _hoisted_4$28 = [
 	"aria-label",
 	"aria-pressed",
 	"onClick"
 ];
-var _hoisted_5$24 = {
+var _hoisted_5$25 = {
 	key: 1,
 	"aria-hidden": "true"
 };
@@ -4352,8 +4558,8 @@ var PalettePicker_default = /* @__PURE__ */ defineComponent({
 		}] : []];
 		const name = (token) => props.t(`palette.${token.replace(/_bg$/, "")}`);
 		return (_ctx, _cache) => {
-			return openBlock(), createElementBlock("div", _hoisted_1$34, [(openBlock(), createElementBlock(Fragment$1, null, renderList(rows, (row) => {
-				return openBlock(), createElementBlock(Fragment$1, { key: row.heading }, [createElementVNode("div", _hoisted_2$29, toDisplayString(__props.t(row.heading)), 1), createElementVNode("div", {
+			return openBlock(), createElementBlock("div", _hoisted_1$35, [(openBlock(), createElementBlock(Fragment$1, null, renderList(rows, (row) => {
+				return openBlock(), createElementBlock(Fragment$1, { key: row.heading }, [createElementVNode("div", _hoisted_2$30, toDisplayString(__props.t(row.heading)), 1), createElementVNode("div", {
 					class: "wy-palette-row",
 					role: "group",
 					"aria-label": __props.t(row.heading)
@@ -4370,8 +4576,8 @@ var PalettePicker_default = /* @__PURE__ */ defineComponent({
 					}, [token === __props.value ? (openBlock(), createBlock(unref(Check), {
 						key: 0,
 						size: 14
-					})) : !token.endsWith("_bg") ? (openBlock(), createElementBlock("span", _hoisted_5$24, "A")) : createCommentVNode("", true)], 46, _hoisted_4$26)), [[unref(vTooltip), name(token)]]);
-				}), 128))], 8, _hoisted_3$29)], 64);
+					})) : !token.endsWith("_bg") ? (openBlock(), createElementBlock("span", _hoisted_5$25, "A")) : createCommentVNode("", true)], 46, _hoisted_4$28)), [[unref(vTooltip), name(token)]]);
+				}), 128))], 8, _hoisted_3$30)], 64);
 			}), 64)), __props.value ? (openBlock(), createElementBlock("button", {
 				key: 0,
 				type: "button",
@@ -4383,12 +4589,12 @@ var PalettePicker_default = /* @__PURE__ */ defineComponent({
 	}
 });
 // src/nodes/TocView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$33 = ["aria-label"];
-var _hoisted_2$28 = {
+var _hoisted_1$34 = ["aria-label"];
+var _hoisted_2$29 = {
 	key: 0,
 	class: "wy-toc-empty"
 };
-var _hoisted_3$28 = ["href", "onClick"];
+var _hoisted_3$29 = ["href", "onClick"];
 // src/nodes/TocView.vue
 var TocView_default = /* @__PURE__ */ defineComponent({
 	__name: "TocView",
@@ -4449,7 +4655,7 @@ var TocView_default = /* @__PURE__ */ defineComponent({
 						style: normalizeStyle(style.value),
 						"aria-label": unref(t)("toc.label"),
 						contenteditable: "false"
-					}, [!entries.value.length ? (openBlock(), createElementBlock("p", _hoisted_2$28, toDisplayString(unref(t)("toc.empty")), 1)) : createCommentVNode("", true), (openBlock(true), createElementBlock(Fragment$1, null, renderList(entries.value, (e) => {
+					}, [!entries.value.length ? (openBlock(), createElementBlock("p", _hoisted_2$29, toDisplayString(unref(t)("toc.empty")), 1)) : createCommentVNode("", true), (openBlock(true), createElementBlock(Fragment$1, null, renderList(entries.value, (e) => {
 						return openBlock(), createElementBlock("a", {
 							key: e.pos,
 							class: "wy-toc-item",
@@ -4457,8 +4663,8 @@ var TocView_default = /* @__PURE__ */ defineComponent({
 							style: normalizeStyle({ "--wy-toc-depth": e.level - top.value }),
 							onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
 							onClick: ($event) => go(e, $event)
-						}, toDisplayString(e.text), 45, _hoisted_3$28);
-					}), 128))], 14, _hoisted_1$33)]),
+						}, toDisplayString(e.text), 45, _hoisted_3$29);
+					}), 128))], 14, _hoisted_1$34)]),
 					_: 1
 				}, 8, [
 					"label",
@@ -4577,13 +4783,13 @@ var InlineChip_default = /* @__PURE__ */ defineComponent({
 	}
 });
 // src/nodes/PageLinkView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$32 = ["href"];
-var _hoisted_2$27 = {
+var _hoisted_1$33 = ["href"];
+var _hoisted_2$28 = {
 	class: "wy-page-link-icon",
 	"aria-hidden": "true"
 };
-var _hoisted_3$27 = ["src"];
-var _hoisted_4$25 = { class: "wy-page-link-title" };
+var _hoisted_3$28 = ["src"];
+var _hoisted_4$27 = { class: "wy-page-link-title" };
 // src/nodes/PageLinkView.vue
 var PageLinkView_default = /* @__PURE__ */ defineComponent({
 	__name: "PageLinkView",
@@ -4615,14 +4821,14 @@ var PageLinkView_default = /* @__PURE__ */ defineComponent({
 					href: href.value || void 0,
 					draggable: "false",
 					onClick: open
-				}, [createElementVNode("span", _hoisted_2$27, [icon.value && isImage.value ? (openBlock(), createElementBlock("img", {
+				}, [createElementVNode("span", _hoisted_2$28, [icon.value && isImage.value ? (openBlock(), createElementBlock("img", {
 					key: 0,
 					src: icon.value,
 					alt: ""
-				}, null, 8, _hoisted_3$27)) : icon.value ? (openBlock(), createElementBlock(Fragment$1, { key: 1 }, [createTextVNode(toDisplayString(icon.value), 1)], 64)) : (openBlock(), createBlock(unref(FileText), {
+				}, null, 8, _hoisted_3$28)) : icon.value ? (openBlock(), createElementBlock(Fragment$1, { key: 1 }, [createTextVNode(toDisplayString(icon.value), 1)], 64)) : (openBlock(), createBlock(unref(FileText), {
 					key: 2,
 					size: 15
-				}))]), createElementVNode("span", _hoisted_4$25, toDisplayString(title.value), 1)], 8, _hoisted_1$32)]),
+				}))]), createElementVNode("span", _hoisted_4$27, toDisplayString(title.value), 1)], 8, _hoisted_1$33)]),
 				_: 1
 			}, 8, ["selected"]);
 		};
@@ -5108,26 +5314,26 @@ async function searchMentions(services, query, kind, signal, ctx) {
 	}
 }
 // src/components/SuggestionList.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$31 = ["aria-label", "aria-busy"];
-var _hoisted_2$26 = {
+var _hoisted_1$32 = ["aria-label", "aria-busy"];
+var _hoisted_2$27 = {
 	key: 0,
 	class: "wy-menu-heading",
 	role: "presentation"
 };
-var _hoisted_3$26 = [
+var _hoisted_3$27 = [
 	"aria-selected",
 	"data-index",
 	"onMouseenter",
 	"onClick"
 ];
-var _hoisted_4$24 = {
+var _hoisted_4$26 = {
 	class: "wy-suggest-icon",
 	"aria-hidden": "true"
 };
-var _hoisted_5$23 = ["src"];
-var _hoisted_6$19 = { key: 2 };
-var _hoisted_7$14 = { class: "wy-suggest-text" };
-var _hoisted_8$13 = { class: "wy-suggest-title" };
+var _hoisted_5$24 = ["src"];
+var _hoisted_6$20 = { key: 2 };
+var _hoisted_7$16 = { class: "wy-suggest-text" };
+var _hoisted_8$14 = { class: "wy-suggest-title" };
 var _hoisted_9$12 = {
 	key: 0,
 	class: "wy-suggest-detail"
@@ -5190,7 +5396,7 @@ var SuggestionList_default = /* @__PURE__ */ defineComponent({
 				"aria-label": __props.label || void 0,
 				"aria-busy": __props.loading || void 0
 			}, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(rows.value, ({ item, index, heading }) => {
-				return openBlock(), createElementBlock(Fragment$1, { key: item.key }, [heading ? (openBlock(), createElementBlock("div", _hoisted_2$26, toDisplayString(heading), 1)) : createCommentVNode("", true), createElementVNode("button", {
+				return openBlock(), createElementBlock(Fragment$1, { key: item.key }, [heading ? (openBlock(), createElementBlock("div", _hoisted_2$27, toDisplayString(heading), 1)) : createCommentVNode("", true), createElementVNode("button", {
 					type: "button",
 					role: "option",
 					class: normalizeClass(["wy-menu-item wy-suggest-item", { "is-active": index === active.value }]),
@@ -5199,20 +5405,20 @@ var SuggestionList_default = /* @__PURE__ */ defineComponent({
 					onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
 					onMouseenter: ($event) => active.value = index,
 					onClick: ($event) => emit("pick", item)
-				}, [createElementVNode("span", _hoisted_4$24, [item.icon && typeof item.icon !== "string" ? (openBlock(), createBlock(resolveDynamicComponent(item.icon), {
+				}, [createElementVNode("span", _hoisted_4$26, [item.icon && typeof item.icon !== "string" ? (openBlock(), createBlock(resolveDynamicComponent(item.icon), {
 					key: 0,
 					size: 18
 				})) : item.icon && isImage(item.icon) ? (openBlock(), createElementBlock("img", {
 					key: 1,
 					src: item.icon,
 					alt: ""
-				}, null, 8, _hoisted_5$23)) : item.icon ? (openBlock(), createElementBlock("span", _hoisted_6$19, toDisplayString(item.icon), 1)) : createCommentVNode("", true)]), createElementVNode("span", _hoisted_7$14, [createElementVNode("span", _hoisted_8$13, toDisplayString(item.title), 1), item.detail ? (openBlock(), createElementBlock("span", _hoisted_9$12, toDisplayString(item.detail), 1)) : createCommentVNode("", true)])], 42, _hoisted_3$26)], 64);
-			}), 128)), !__props.items.length && __props.empty ? (openBlock(), createElementBlock("p", _hoisted_10$11, toDisplayString(__props.empty), 1)) : createCommentVNode("", true)], 8, _hoisted_1$31);
+				}, null, 8, _hoisted_5$24)) : item.icon ? (openBlock(), createElementBlock("span", _hoisted_6$20, toDisplayString(item.icon), 1)) : createCommentVNode("", true)]), createElementVNode("span", _hoisted_7$16, [createElementVNode("span", _hoisted_8$14, toDisplayString(item.title), 1), item.detail ? (openBlock(), createElementBlock("span", _hoisted_9$12, toDisplayString(item.detail), 1)) : createCommentVNode("", true)])], 42, _hoisted_3$27)], 64);
+			}), 128)), !__props.items.length && __props.empty ? (openBlock(), createElementBlock("p", _hoisted_10$11, toDisplayString(__props.empty), 1)) : createCommentVNode("", true)], 8, _hoisted_1$32);
 		};
 	}
 });
 // src/components/PageSearch.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$30 = ["placeholder", "aria-label"];
+var _hoisted_1$31 = ["placeholder", "aria-label"];
 // src/components/PageSearch.vue
 var PageSearch_default = /* @__PURE__ */ defineComponent({
 	__name: "PageSearch",
@@ -5292,7 +5498,7 @@ var PageSearch_default = /* @__PURE__ */ defineComponent({
 				"aria-label": __props.label,
 				onInput: run,
 				onKeydown: onKey
-			}, null, 40, _hoisted_1$30), [[vModelText, query.value]]), createVNode(SuggestionList_default, {
+			}, null, 40, _hoisted_1$31), [[vModelText, query.value]]), createVNode(SuggestionList_default, {
 				ref_key: "list",
 				ref: list,
 				items: items.value,
@@ -5322,6 +5528,7 @@ function openPopup(editor, component, props, rect, placement = "bottom-start") {
 	el.setAttribute("data-block-portal", "");
 	el.classList.add("wy-menu");
 	document.body.appendChild(el);
+	const unwheel = passWheel(el, () => editor.isDestroyed ? null : editor.view.dom);
 	const floating = floatNear({ getBoundingClientRect: () => rect() ?? new DOMRect() }, el, {
 		placement,
 		offset: 6,
@@ -5347,6 +5554,7 @@ function openPopup(editor, component, props, rect, placement = "bottom-start") {
 		close() {
 			if (!open) return;
 			open = false;
+			unwheel();
 			floating.stop();
 			renderer.destroy();
 			el.remove();
@@ -5511,9 +5719,13 @@ var AnchoredPopover_default = /* @__PURE__ */ defineComponent({
 	props: {
 		anchor: {},
 		side: { default: "bottom" },
-		align: { default: "start" }
+		align: { default: "start" },
+		anchorCloses: {
+			type: Boolean,
+			default: true
+		}
 	},
-	emits: ["escape"],
+	emits: ["escape", "close"],
 	setup(__props, { expose: __expose, emit: __emit }) {
 		const props = __props;
 		const emit = __emit;
@@ -5524,6 +5736,7 @@ var AnchoredPopover_default = /* @__PURE__ */ defineComponent({
 		});
 		const room = ref(9999);
 		let floating = null;
+		let unwheel = () => {};
 		function place() {
 			floating?.update();
 		}
@@ -5542,9 +5755,23 @@ var AnchoredPopover_default = /* @__PURE__ */ defineComponent({
 				room: (h) => room.value = h
 			});
 		}
+		function onAnchorClick(e) {
+			if (!props.anchorCloses || !props.anchor?.contains(e.target)) return;
+			e.preventDefault();
+			e.stopImmediatePropagation();
+			emit("close");
+		}
 		watch(() => props.anchor, bind);
-		onMounted(bind);
-		onBeforeUnmount(() => floating?.stop());
+		onMounted(() => {
+			bind();
+			if (root.value) unwheel = passWheel(root.value, () => props.anchor);
+			document.addEventListener("click", onAnchorClick, true);
+		});
+		onBeforeUnmount(() => {
+			floating?.stop();
+			unwheel();
+			document.removeEventListener("click", onAnchorClick, true);
+		});
 		__expose({
 			place,
 			el: root
@@ -5569,14 +5796,14 @@ var AnchoredPopover_default = /* @__PURE__ */ defineComponent({
 	}
 });
 // src/nodes/MentionView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$29 = ["title"];
-var _hoisted_2$25 = { class: "wy-field" };
-var _hoisted_3$25 = { class: "wy-label" };
-var _hoisted_4$23 = ["value"];
-var _hoisted_5$22 = { class: "wy-check" };
-var _hoisted_6$18 = ["checked"];
-var _hoisted_7$13 = ["value", "aria-label"];
-var _hoisted_8$12 = { class: "wy-check" };
+var _hoisted_1$30 = ["title"];
+var _hoisted_2$26 = { class: "wy-field" };
+var _hoisted_3$26 = { class: "wy-label" };
+var _hoisted_4$25 = ["value"];
+var _hoisted_5$23 = { class: "wy-check" };
+var _hoisted_6$19 = ["checked"];
+var _hoisted_7$15 = ["value", "aria-label"];
+var _hoisted_8$13 = { class: "wy-check" };
 var _hoisted_9$11 = ["checked"];
 var _hoisted_10$10 = [
 	"value",
@@ -5656,25 +5883,26 @@ var MentionView_default = /* @__PURE__ */ defineComponent({
 					class: "wy-mention-icon",
 					size: 14,
 					"aria-hidden": "true"
-				})) : createCommentVNode("", true), createTextVNode(toDisplayString(text.value), 1)], 10, _hoisted_1$29), unref(editing) && a.value.kind === "date" ? (openBlock(), createBlock(AnchoredPopover_default, {
+				})) : createCommentVNode("", true), createTextVNode(toDisplayString(text.value), 1)], 10, _hoisted_1$30), unref(editing) && a.value.kind === "date" ? (openBlock(), createBlock(AnchoredPopover_default, {
 					key: 0,
 					anchor: anchor.value,
 					class: "wy-popover wy-date-picker",
-					onEscape: unref(onKeydown)
+					onEscape: unref(onKeydown),
+					onClose: unref(finishEdit)
 				}, {
 					default: withCtx(() => [
-						createElementVNode("label", _hoisted_2$25, [createElementVNode("span", _hoisted_3$25, toDisplayString(unref(t)("mention.date")), 1), createElementVNode("input", {
+						createElementVNode("label", _hoisted_2$26, [createElementVNode("span", _hoisted_3$26, toDisplayString(unref(t)("mention.date")), 1), createElementVNode("input", {
 							class: "wy-input is-sm",
 							type: "date",
 							value: startDate.value,
 							onChange: _cache[0] || (_cache[0] = ($event) => setDate({ date: $event.target.value })),
 							onKeydown: onKey
-						}, null, 40, _hoisted_4$23)]),
-						createElementVNode("label", _hoisted_5$22, [createElementVNode("input", {
+						}, null, 40, _hoisted_4$25)]),
+						createElementVNode("label", _hoisted_5$23, [createElementVNode("input", {
 							type: "checkbox",
 							checked: withTime.value,
 							onChange: _cache[1] || (_cache[1] = ($event) => setDate({ time: $event.target.checked ? "09:00" : null }))
-						}, null, 40, _hoisted_6$18), createTextVNode(" " + toDisplayString(unref(t)("mention.includeTime")), 1)]),
+						}, null, 40, _hoisted_6$19), createTextVNode(" " + toDisplayString(unref(t)("mention.includeTime")), 1)]),
 						withTime.value ? (openBlock(), createElementBlock("input", {
 							key: 0,
 							class: "wy-input is-sm",
@@ -5683,8 +5911,8 @@ var MentionView_default = /* @__PURE__ */ defineComponent({
 							"aria-label": unref(t)("mention.time"),
 							onChange: _cache[2] || (_cache[2] = ($event) => setDate({ time: $event.target.value || null })),
 							onKeydown: onKey
-						}, null, 40, _hoisted_7$13)) : createCommentVNode("", true),
-						createElementVNode("label", _hoisted_8$12, [createElementVNode("input", {
+						}, null, 40, _hoisted_7$15)) : createCommentVNode("", true),
+						createElementVNode("label", _hoisted_8$13, [createElementVNode("input", {
 							type: "checkbox",
 							checked: !!endDate.value,
 							onChange: _cache[3] || (_cache[3] = ($event) => setDate({ end: $event.target.checked ? startDate.value : null }))
@@ -5706,7 +5934,11 @@ var MentionView_default = /* @__PURE__ */ defineComponent({
 						}, null, 40, _hoisted_12$7), createTextVNode(" " + toDisplayString(unref(t)("mention.remind")), 1)])
 					]),
 					_: 1
-				}, 8, ["anchor", "onEscape"])) : createCommentVNode("", true)]),
+				}, 8, [
+					"anchor",
+					"onEscape",
+					"onClose"
+				])) : createCommentVNode("", true)]),
 				_: 1
 			}, 8, ["selected", "editing"]);
 		};
@@ -6033,7 +6265,7 @@ var MESSAGES = {
 			strike: "Strikethrough",
 			code: "Inline code",
 			highlight: "Highlight",
-			color: "Colour",
+			color: "Color",
 			link: "Link",
 			bulletList: "Bulleted list",
 			orderedList: "Numbered list",
@@ -6075,8 +6307,8 @@ var MESSAGES = {
 			}
 		},
 		colors: {
-			text: "Text colour",
-			background: "Background colour",
+			text: "Text color",
+			background: "Background color",
 			default: "Default",
 			none: "No highlight",
 			gray: "Gray",
@@ -6088,7 +6320,7 @@ var MESSAGES = {
 			purple: "Purple",
 			pink: "Pink",
 			brown: "Brown",
-			reset: "Remove colour"
+			reset: "Remove color"
 		},
 		bubble: {
 			label: "Selection",
@@ -6256,6 +6488,8 @@ var MESSAGES = {
 		},
 		convert: {
 			title: "Turn into",
+			search: "Search",
+			empty: "No matches",
 			targets: {
 				paragraph: "Text",
 				unwrap: "Unwrap",
@@ -6267,7 +6501,7 @@ var MESSAGES = {
 			duplicate: "Duplicate",
 			copy: "Copy as markdown",
 			delete: "Delete",
-			color: "Colour"
+			color: "Color"
 		},
 		gutter: {
 			drag: "Drag to move, click for options",
@@ -6390,9 +6624,9 @@ var MESSAGES = {
 			line: "Line",
 			width: "Width",
 			widthPx: "{n} px",
-			color: "Colour",
+			color: "Color",
 			defaultColor: "Default",
-			customColor: "Own colour",
+			customColor: "Own color",
 			design: "Ornament",
 			customChar: "Own ornament",
 			charInvalid: "One or two characters, no spaces or quotes.",
@@ -6465,7 +6699,6 @@ var MESSAGES = {
 			placeholder: "Paste a link to embed",
 			create: "Embed",
 			open: "Open original",
-			interact: "Click to interact",
 			resize: "Drag to resize",
 			defaultHeight: "Default height",
 			providers: {
@@ -6879,6 +7112,8 @@ var MESSAGES = {
 		},
 		convert: {
 			title: "Previesť na",
+			search: "Hľadať",
+			empty: "Nič sa nenašlo",
 			targets: {
 				paragraph: "Text",
 				unwrap: "Zrušiť obal",
@@ -7088,7 +7323,6 @@ var MESSAGES = {
 			placeholder: "Vložte odkaz na obsah",
 			create: "Vložiť",
 			open: "Otvoriť originál",
-			interact: "Kliknutím ovládate obsah",
 			resize: "Potiahnutím zmeníte výšku",
 			defaultHeight: "Predvolená výška",
 			providers: {
@@ -7281,22 +7515,22 @@ function createTranslator(trees) {
 	};
 }
 // src/components/EmojiPicker.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$28 = { class: "wy-emoji-picker" };
-var _hoisted_2$24 = { class: "wy-emoji-top" };
-var _hoisted_3$24 = ["placeholder", "aria-label"];
-var _hoisted_4$22 = { class: "wy-emoji-tone" };
-var _hoisted_5$21 = [
+var _hoisted_1$29 = { class: "wy-emoji-picker" };
+var _hoisted_2$25 = { class: "wy-emoji-top" };
+var _hoisted_3$25 = ["placeholder", "aria-label"];
+var _hoisted_4$24 = { class: "wy-emoji-tone" };
+var _hoisted_5$22 = [
 	"title",
 	"aria-label",
 	"aria-expanded"
 ];
-var _hoisted_6$17 = ["aria-label"];
-var _hoisted_7$12 = [
+var _hoisted_6$18 = ["aria-label"];
+var _hoisted_7$14 = [
 	"aria-checked",
 	"aria-label",
 	"onClick"
 ];
-var _hoisted_8$11 = ["aria-label"];
+var _hoisted_8$12 = ["aria-label"];
 var _hoisted_9$10 = [
 	"title",
 	"aria-label",
@@ -7315,29 +7549,29 @@ var _hoisted_12$6 = {
 	class: "wy-menu-hint"
 };
 var _hoisted_13$6 = ["aria-label"];
-var _hoisted_14$5 = [
+var _hoisted_14$4 = [
 	"aria-selected",
 	"aria-label",
 	"onMouseenter",
 	"onFocus",
 	"onClick"
 ];
-var _hoisted_15$5 = ["data-section"];
-var _hoisted_16$4 = { class: "wy-menu-heading" };
-var _hoisted_17$4 = ["aria-label"];
-var _hoisted_18$4 = [
+var _hoisted_15$4 = ["data-section"];
+var _hoisted_16$3 = { class: "wy-menu-heading" };
+var _hoisted_17$3 = ["aria-label"];
+var _hoisted_18$3 = [
 	"aria-selected",
 	"aria-label",
 	"onMouseenter",
 	"onFocus",
 	"onClick"
 ];
-var _hoisted_19$3 = { class: "wy-emoji-foot" };
-var _hoisted_20$3 = {
+var _hoisted_19$2 = { class: "wy-emoji-foot" };
+var _hoisted_20$2 = {
 	key: 0,
 	class: "wy-emoji-preview"
 };
-var _hoisted_21$2 = {
+var _hoisted_21$1 = {
 	class: "wy-emoji-big",
 	"aria-hidden": "true"
 };
@@ -7464,8 +7698,8 @@ var EmojiPicker_default = /* @__PURE__ */ defineComponent({
 			else all[Math.min(all.length - 1, i + step)]?.focus();
 		}
 		return (_ctx, _cache) => {
-			return openBlock(), createElementBlock("div", _hoisted_1$28, [
-				createElementVNode("div", _hoisted_2$24, [withDirectives(createElementVNode("input", {
+			return openBlock(), createElementBlock("div", _hoisted_1$29, [
+				createElementVNode("div", _hoisted_2$25, [withDirectives(createElementVNode("input", {
 					ref_key: "input",
 					ref: input,
 					"onUpdate:modelValue": _cache[0] || (_cache[0] = ($event) => query.value = $event),
@@ -7476,14 +7710,14 @@ var EmojiPicker_default = /* @__PURE__ */ defineComponent({
 					placeholder: t.value("emoji.search"),
 					"aria-label": t.value("emoji.search"),
 					onKeydown: onKey
-				}, null, 40, _hoisted_3$24), [[vModelText, query.value]]), createElementVNode("div", _hoisted_4$22, [createElementVNode("button", {
+				}, null, 40, _hoisted_3$25), [[vModelText, query.value]]), createElementVNode("div", _hoisted_4$24, [createElementVNode("button", {
 					type: "button",
 					class: "wy-icon-btn",
 					title: t.value("emoji.tone"),
 					"aria-label": t.value("emoji.tone"),
 					"aria-expanded": toneOpen.value,
 					onClick: _cache[1] || (_cache[1] = ($event) => toneOpen.value = !toneOpen.value)
-				}, toDisplayString(TONE_SAMPLES[tone.value]), 9, _hoisted_5$21), toneOpen.value ? (openBlock(), createElementBlock("div", {
+				}, toDisplayString(TONE_SAMPLES[tone.value]), 9, _hoisted_5$22), toneOpen.value ? (openBlock(), createElementBlock("div", {
 					key: 0,
 					class: "wy-emoji-tones",
 					role: "radiogroup",
@@ -7497,8 +7731,8 @@ var EmojiPicker_default = /* @__PURE__ */ defineComponent({
 						"aria-checked": i === tone.value,
 						"aria-label": t.value(`emoji.tones.${i}`),
 						onClick: ($event) => setTone(i)
-					}, toDisplayString(s), 9, _hoisted_7$12);
-				}), 64))], 8, _hoisted_6$17)) : createCommentVNode("", true)])]),
+					}, toDisplayString(s), 9, _hoisted_7$14);
+				}), 64))], 8, _hoisted_6$18)) : createCommentVNode("", true)])]),
 				!results.value ? (openBlock(), createElementBlock("nav", {
 					key: 0,
 					class: "wy-emoji-tabs",
@@ -7512,7 +7746,7 @@ var EmojiPicker_default = /* @__PURE__ */ defineComponent({
 						"aria-label": s.label,
 						onClick: ($event) => jump(s.id)
 					}, [(openBlock(), createBlock(resolveDynamicComponent(s.icon), { size: 16 }))], 8, _hoisted_9$10);
-				}), 128))], 8, _hoisted_8$11)) : createCommentVNode("", true),
+				}), 128))], 8, _hoisted_8$12)) : createCommentVNode("", true),
 				createElementVNode("div", {
 					ref_key: "body",
 					ref: body,
@@ -7533,13 +7767,13 @@ var EmojiPicker_default = /* @__PURE__ */ defineComponent({
 						onMouseenter: ($event) => hovered.value = e,
 						onFocus: ($event) => hovered.value = e,
 						onClick: ($event) => pick(e)
-					}, toDisplayString(unref(withTone)(e, tone.value)), 41, _hoisted_14$5);
+					}, toDisplayString(unref(withTone)(e, tone.value)), 41, _hoisted_14$4);
 				}), 128))], 8, _hoisted_13$6)], 64)) : (openBlock(true), createElementBlock(Fragment$1, { key: 3 }, renderList(sections.value, (s) => {
 					return openBlock(), createElementBlock("section", {
 						key: s.id,
 						class: "wy-emoji-section",
 						"data-section": s.id
-					}, [createElementVNode("div", _hoisted_16$4, toDisplayString(s.label), 1), createElementVNode("div", {
+					}, [createElementVNode("div", _hoisted_16$3, toDisplayString(s.label), 1), createElementVNode("div", {
 						class: "wy-emoji-grid",
 						role: "listbox",
 						"aria-label": s.label
@@ -7554,11 +7788,11 @@ var EmojiPicker_default = /* @__PURE__ */ defineComponent({
 							onMouseenter: ($event) => hovered.value = e,
 							onFocus: ($event) => hovered.value = e,
 							onClick: ($event) => pick(e)
-						}, toDisplayString(unref(withTone)(e, tone.value)), 41, _hoisted_18$4);
-					}), 128))], 8, _hoisted_17$4)], 8, _hoisted_15$5);
+						}, toDisplayString(unref(withTone)(e, tone.value)), 41, _hoisted_18$3);
+					}), 128))], 8, _hoisted_17$3)], 8, _hoisted_15$4);
 				}), 128))], 544),
-				createElementVNode("div", _hoisted_19$3, [hovered.value ? (openBlock(), createElementBlock("span", _hoisted_20$3, [
-					createElementVNode("span", _hoisted_21$2, toDisplayString(unref(withTone)(hovered.value, tone.value)), 1),
+				createElementVNode("div", _hoisted_19$2, [hovered.value ? (openBlock(), createElementBlock("span", _hoisted_20$2, [
+					createElementVNode("span", _hoisted_21$1, toDisplayString(unref(withTone)(hovered.value, tone.value)), 1),
 					createElementVNode("span", _hoisted_22$1, toDisplayString(hovered.value.label), 1),
 					hovered.value.shortcodes[0] ? (openBlock(), createElementBlock("code", _hoisted_23$1, ":" + toDisplayString(hovered.value.shortcodes[0]) + ":", 1)) : createCommentVNode("", true)
 				])) : createCommentVNode("", true), renderSlot(_ctx.$slots, "footer")])
@@ -7841,27 +8075,27 @@ function moveSection(editor, pos, index, dir) {
 	editor.view.dispatch(caretInto(tr, pos, index + dir));
 }
 // src/nodes/TabsView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$27 = { class: "wy-tabs" };
-var _hoisted_2$23 = {
+var _hoisted_1$28 = { class: "wy-tabs" };
+var _hoisted_2$24 = {
 	class: "wy-tabs-strip",
 	role: "tablist",
 	contenteditable: "false"
 };
-var _hoisted_3$23 = [
+var _hoisted_3$24 = [
 	"value",
 	"size",
 	"placeholder",
 	"aria-label",
 	"onInput"
 ];
-var _hoisted_4$21 = ["aria-selected", "onClick"];
-var _hoisted_5$20 = {
+var _hoisted_4$23 = ["aria-selected", "onClick"];
+var _hoisted_5$21 = {
 	key: 0,
 	class: "wy-tabs-tools"
 };
-var _hoisted_6$16 = ["aria-label", "disabled"];
-var _hoisted_7$11 = ["aria-label", "disabled"];
-var _hoisted_8$10 = ["aria-label", "disabled"];
+var _hoisted_6$17 = ["aria-label", "disabled"];
+var _hoisted_7$13 = ["aria-label", "disabled"];
+var _hoisted_8$11 = ["aria-label", "disabled"];
 var _hoisted_9$9 = ["aria-label"];
 // src/nodes/TabsView.vue
 var TabsView_default = /* @__PURE__ */ defineComponent({
@@ -7920,7 +8154,7 @@ var TabsView_default = /* @__PURE__ */ defineComponent({
 					editable: false,
 					onDelete: unref(remove)
 				}, {
-					default: withCtx(() => [createElementVNode("div", _hoisted_1$27, [createElementVNode("div", _hoisted_2$23, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(labels.value, (label, i) => {
+					default: withCtx(() => [createElementVNode("div", _hoisted_1$28, [createElementVNode("div", _hoisted_2$24, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(labels.value, (label, i) => {
 						return openBlock(), createElementBlock(Fragment$1, { key: i }, [i === active.value && !unref(readonly) ? (openBlock(), createElementBlock("input", {
 							key: 0,
 							ref_for: true,
@@ -7935,7 +8169,7 @@ var TabsView_default = /* @__PURE__ */ defineComponent({
 							"aria-label": unref(t)("tabs.labelField"),
 							onInput: ($event) => withPos((pos) => unref(setSectionLabel)(_ctx.editor, pos, i, $event.target.value)),
 							onKeydown: intoContent
-						}, null, 40, _hoisted_3$23)) : (openBlock(), createElementBlock("button", {
+						}, null, 40, _hoisted_3$24)) : (openBlock(), createElementBlock("button", {
 							key: 1,
 							type: "button",
 							class: normalizeClass(["wy-tab", { "is-active": i === active.value }]),
@@ -7943,8 +8177,8 @@ var TabsView_default = /* @__PURE__ */ defineComponent({
 							"aria-selected": i === active.value,
 							onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
 							onClick: ($event) => withPos((pos) => unref(selectSection)(_ctx.editor, pos, i))
-						}, toDisplayString(label || untitled(i)), 43, _hoisted_4$21))], 64);
-					}), 128)), !unref(readonly) ? (openBlock(), createElementBlock("span", _hoisted_5$20, [
+						}, toDisplayString(label || untitled(i)), 43, _hoisted_4$23))], 64);
+					}), 128)), !unref(readonly) ? (openBlock(), createElementBlock("span", _hoisted_5$21, [
 						withDirectives((openBlock(), createElementBlock("button", {
 							type: "button",
 							class: "wy-icon-btn",
@@ -7952,7 +8186,7 @@ var TabsView_default = /* @__PURE__ */ defineComponent({
 							disabled: active.value === 0,
 							onMousedown: _cache[1] || (_cache[1] = withModifiers(() => {}, ["prevent"])),
 							onClick: _cache[2] || (_cache[2] = ($event) => withPos((pos) => unref(moveSection)(_ctx.editor, pos, active.value, -1)))
-						}, [createVNode(unref(ChevronLeft), { size: 14 })], 40, _hoisted_6$16)), [[unref(vTooltip), unref(t)("tabs.moveLeft")]]),
+						}, [createVNode(unref(ChevronLeft), { size: 14 })], 40, _hoisted_6$17)), [[unref(vTooltip), unref(t)("tabs.moveLeft")]]),
 						withDirectives((openBlock(), createElementBlock("button", {
 							type: "button",
 							class: "wy-icon-btn",
@@ -7960,7 +8194,7 @@ var TabsView_default = /* @__PURE__ */ defineComponent({
 							disabled: active.value === labels.value.length - 1,
 							onMousedown: _cache[3] || (_cache[3] = withModifiers(() => {}, ["prevent"])),
 							onClick: _cache[4] || (_cache[4] = ($event) => withPos((pos) => unref(moveSection)(_ctx.editor, pos, active.value, 1)))
-						}, [createVNode(unref(ChevronRight), { size: 14 })], 40, _hoisted_7$11)), [[unref(vTooltip), unref(t)("tabs.moveRight")]]),
+						}, [createVNode(unref(ChevronRight), { size: 14 })], 40, _hoisted_7$13)), [[unref(vTooltip), unref(t)("tabs.moveRight")]]),
 						withDirectives((openBlock(), createElementBlock("button", {
 							type: "button",
 							class: "wy-icon-btn is-danger",
@@ -7968,7 +8202,7 @@ var TabsView_default = /* @__PURE__ */ defineComponent({
 							disabled: labels.value.length < 2,
 							onMousedown: _cache[5] || (_cache[5] = withModifiers(() => {}, ["prevent"])),
 							onClick: _cache[6] || (_cache[6] = ($event) => withPos((pos) => unref(removeSection)(_ctx.editor, pos, active.value)))
-						}, [createVNode(unref(Trash2), { size: 14 })], 40, _hoisted_8$10)), [[unref(vTooltip), unref(t)("tabs.remove")]]),
+						}, [createVNode(unref(Trash2), { size: 14 })], 40, _hoisted_8$11)), [[unref(vTooltip), unref(t)("tabs.remove")]]),
 						withDirectives((openBlock(), createElementBlock("button", {
 							type: "button",
 							class: "wy-icon-btn",
@@ -8087,20 +8321,20 @@ var tabsExtension = {
 	}
 };
 // src/nodes/ButtonView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$26 = {
+var _hoisted_1$27 = {
 	class: "wy-button-block",
 	contenteditable: "false"
 };
-var _hoisted_2$22 = ["disabled"];
-var _hoisted_3$22 = { class: "wy-field" };
-var _hoisted_4$20 = { class: "wy-label" };
-var _hoisted_5$19 = ["value", "placeholder"];
-var _hoisted_6$15 = { class: "wy-label" };
-var _hoisted_7$10 = {
+var _hoisted_2$23 = ["disabled"];
+var _hoisted_3$23 = { class: "wy-field" };
+var _hoisted_4$22 = { class: "wy-label" };
+var _hoisted_5$20 = ["value", "placeholder"];
+var _hoisted_6$16 = { class: "wy-label" };
+var _hoisted_7$12 = {
 	key: 0,
 	class: "wy-menu-hint"
 };
-var _hoisted_8$9 = { class: "wy-button-action-head" };
+var _hoisted_8$10 = { class: "wy-button-action-head" };
 var _hoisted_9$8 = [
 	"value",
 	"aria-label",
@@ -8118,19 +8352,19 @@ var _hoisted_13$5 = [
 	"disabled",
 	"onClick"
 ];
-var _hoisted_14$4 = ["aria-label", "onClick"];
-var _hoisted_15$4 = { class: "wy-label" };
-var _hoisted_16$3 = [
+var _hoisted_14$3 = ["aria-label", "onClick"];
+var _hoisted_15$3 = { class: "wy-label" };
+var _hoisted_16$2 = [
 	"value",
 	"placeholder",
 	"onInput"
 ];
-var _hoisted_17$3 = [
+var _hoisted_17$2 = [
 	"value",
 	"placeholder",
 	"onInput"
 ];
-var _hoisted_18$3 = { class: "wy-button-editor-foot" };
+var _hoisted_18$2 = { class: "wy-button-editor-foot" };
 // src/nodes/ButtonView.vue
 var ButtonView_default = /* @__PURE__ */ defineComponent({
 	__name: "ButtonView",
@@ -8207,7 +8441,7 @@ var ButtonView_default = /* @__PURE__ */ defineComponent({
 					onEdit: unref(startEdit),
 					onDelete: unref(remove)
 				}, {
-					default: withCtx(() => [createElementVNode("div", _hoisted_1$26, [createElementVNode("button", {
+					default: withCtx(() => [createElementVNode("div", _hoisted_1$27, [createElementVNode("button", {
 						type: "button",
 						class: "wy-button",
 						disabled: running.value || !actions.value.some(runs),
@@ -8216,13 +8450,13 @@ var ButtonView_default = /* @__PURE__ */ defineComponent({
 					}, [createVNode(unref(Zap), {
 						size: 14,
 						"aria-hidden": "true"
-					}), createTextVNode(toDisplayString(label.value || unref(t)("button.untitled")), 1)], 40, _hoisted_2$22)]), unref(editing) ? (openBlock(), createElementBlock("div", {
+					}), createTextVNode(toDisplayString(label.value || unref(t)("button.untitled")), 1)], 40, _hoisted_2$23)]), unref(editing) ? (openBlock(), createElementBlock("div", {
 						key: 0,
 						class: "wy-button-editor",
 						contenteditable: "false",
 						onKeydown: _cache[5] || (_cache[5] = (...args) => unref(onKeydown) && unref(onKeydown)(...args))
 					}, [
-						createElementVNode("label", _hoisted_3$22, [createElementVNode("span", _hoisted_4$20, toDisplayString(unref(t)("button.labelField")), 1), createElementVNode("input", {
+						createElementVNode("label", _hoisted_3$23, [createElementVNode("span", _hoisted_4$22, toDisplayString(unref(t)("button.labelField")), 1), createElementVNode("input", {
 							ref_key: "labelInput",
 							ref: labelInput,
 							class: "wy-input is-sm",
@@ -8230,14 +8464,14 @@ var ButtonView_default = /* @__PURE__ */ defineComponent({
 							placeholder: unref(t)("button.untitled"),
 							onInput: _cache[1] || (_cache[1] = ($event) => unref(update)({ label: $event.target.value })),
 							onKeydown: _cache[2] || (_cache[2] = withKeys(withModifiers((...args) => unref(finishEdit) && unref(finishEdit)(...args), ["prevent"]), ["enter"]))
-						}, null, 40, _hoisted_5$19)]),
-						createElementVNode("span", _hoisted_6$15, toDisplayString(unref(t)("button.actions")), 1),
-						!actions.value.length ? (openBlock(), createElementBlock("p", _hoisted_7$10, toDisplayString(unref(t)("button.noActions")), 1)) : createCommentVNode("", true),
+						}, null, 40, _hoisted_5$20)]),
+						createElementVNode("span", _hoisted_6$16, toDisplayString(unref(t)("button.actions")), 1),
+						!actions.value.length ? (openBlock(), createElementBlock("p", _hoisted_7$12, toDisplayString(unref(t)("button.noActions")), 1)) : createCommentVNode("", true),
 						(openBlock(true), createElementBlock(Fragment$1, null, renderList(actions.value, (a, i) => {
 							return openBlock(), createElementBlock("div", {
 								key: i,
 								class: "wy-button-action"
-							}, [createElementVNode("div", _hoisted_8$9, [
+							}, [createElementVNode("div", _hoisted_8$10, [
 								unref(defs)[a.kind]?.icon ? (openBlock(), createBlock(resolveDynamicComponent(unref(defs)[a.kind]?.icon), {
 									key: 0,
 									size: 15,
@@ -8276,12 +8510,12 @@ var ButtonView_default = /* @__PURE__ */ defineComponent({
 									class: "wy-icon-btn is-danger",
 									"aria-label": unref(t)("button.removeAction"),
 									onClick: ($event) => setActions(actions.value.filter((_, k) => k !== i))
-								}, [createVNode(unref(Trash2), { size: 14 })], 8, _hoisted_14$4)), [[unref(vTooltip), unref(t)("button.removeAction")]])
+								}, [createVNode(unref(Trash2), { size: 14 })], 8, _hoisted_14$3)), [[unref(vTooltip), unref(t)("button.removeAction")]])
 							]), (openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(defs)[a.kind]?.fields ?? [], (f) => {
 								return openBlock(), createElementBlock("label", {
 									key: f.key,
 									class: "wy-field"
-								}, [createElementVNode("span", _hoisted_15$4, toDisplayString(fieldLabel(f)), 1), f.multiline ? (openBlock(), createElementBlock("textarea", {
+								}, [createElementVNode("span", _hoisted_15$3, toDisplayString(fieldLabel(f)), 1), f.multiline ? (openBlock(), createElementBlock("textarea", {
 									key: 0,
 									class: "wy-input is-sm is-mono",
 									rows: "3",
@@ -8289,16 +8523,16 @@ var ButtonView_default = /* @__PURE__ */ defineComponent({
 									placeholder: fieldPlaceholder(f),
 									spellcheck: "false",
 									onInput: ($event) => setField(i, f.key, $event.target.value)
-								}, null, 40, _hoisted_16$3)) : (openBlock(), createElementBlock("input", {
+								}, null, 40, _hoisted_16$2)) : (openBlock(), createElementBlock("input", {
 									key: 1,
 									class: "wy-input is-sm",
 									value: fieldValue(a, f.key),
 									placeholder: fieldPlaceholder(f),
 									onInput: ($event) => setField(i, f.key, $event.target.value)
-								}, null, 40, _hoisted_17$3))]);
+								}, null, 40, _hoisted_17$2))]);
 							}), 128))]);
 						}), 128)),
-						createElementVNode("div", _hoisted_18$3, [createElementVNode("button", {
+						createElementVNode("div", _hoisted_18$2, [createElementVNode("button", {
 							type: "button",
 							class: "wy-btn is-sm",
 							onClick: _cache[3] || (_cache[3] = ($event) => setActions([...actions.value, {
@@ -8461,15 +8695,15 @@ var buttonExtension = {
 	}]
 };
 // src/nodes/BreadcrumbsView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$25 = ["aria-label"];
-var _hoisted_2$21 = ["href", "onClick"];
-var _hoisted_3$21 = {
+var _hoisted_1$26 = ["aria-label"];
+var _hoisted_2$22 = ["href", "onClick"];
+var _hoisted_3$22 = {
 	class: "wy-breadcrumb-icon",
 	"aria-hidden": "true"
 };
-var _hoisted_4$19 = ["src"];
-var _hoisted_5$18 = { class: "wy-breadcrumb-title" };
-var _hoisted_6$14 = {
+var _hoisted_4$21 = ["src"];
+var _hoisted_5$19 = { class: "wy-breadcrumb-title" };
+var _hoisted_6$15 = {
 	key: 0,
 	class: "wy-breadcrumbs-empty"
 };
@@ -8522,15 +8756,15 @@ var BreadcrumbsView_default = /* @__PURE__ */ defineComponent({
 							href: c.href,
 							draggable: "false",
 							onClick: ($event) => open(c, $event)
-						}, [createElementVNode("span", _hoisted_3$21, [c.icon && isImage(c.icon) ? (openBlock(), createElementBlock("img", {
+						}, [createElementVNode("span", _hoisted_3$22, [c.icon && isImage(c.icon) ? (openBlock(), createElementBlock("img", {
 							key: 0,
 							src: c.icon,
 							alt: ""
-						}, null, 8, _hoisted_4$19)) : c.icon ? (openBlock(), createElementBlock(Fragment$1, { key: 1 }, [createTextVNode(toDisplayString(c.icon), 1)], 64)) : (openBlock(), createBlock(unref(FileText), {
+						}, null, 8, _hoisted_4$21)) : c.icon ? (openBlock(), createElementBlock(Fragment$1, { key: 1 }, [createTextVNode(toDisplayString(c.icon), 1)], 64)) : (openBlock(), createBlock(unref(FileText), {
 							key: 2,
 							size: 14
-						}))]), createElementVNode("span", _hoisted_5$18, toDisplayString(c.title || unref(t)("pageLink.untitled")), 1)], 8, _hoisted_2$21)], 64);
-					}), 128)), crumbs.value && !crumbs.value.length && !unref(readonly) ? (openBlock(), createElementBlock("span", _hoisted_6$14, toDisplayString(unref(t)("breadcrumbs.empty")), 1)) : createCommentVNode("", true)], 8, _hoisted_1$25)]),
+						}))]), createElementVNode("span", _hoisted_5$19, toDisplayString(c.title || unref(t)("pageLink.untitled")), 1)], 8, _hoisted_2$22)], 64);
+					}), 128)), crumbs.value && !crumbs.value.length && !unref(readonly) ? (openBlock(), createElementBlock("span", _hoisted_6$15, toDisplayString(unref(t)("breadcrumbs.empty")), 1)) : createCommentVNode("", true)], 8, _hoisted_1$26)]),
 					_: 1
 				}, 8, [
 					"label",
@@ -8585,30 +8819,30 @@ var breadcrumbsExtension = {
 	}]
 };
 // src/nodes/AiBlockView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$24 = {
+var _hoisted_1$25 = {
 	key: 0,
 	class: "wy-ai-panel",
 	contenteditable: "false"
 };
-var _hoisted_2$20 = { class: "wy-ai-prompt" };
-var _hoisted_3$20 = [
+var _hoisted_2$21 = { class: "wy-ai-prompt" };
+var _hoisted_3$21 = [
 	"value",
 	"placeholder",
 	"aria-label",
 	"disabled"
 ];
-var _hoisted_4$18 = { class: "wy-ai-bar" };
-var _hoisted_5$17 = [
+var _hoisted_4$20 = { class: "wy-ai-bar" };
+var _hoisted_5$18 = [
 	"value",
 	"aria-label",
 	"disabled"
 ];
-var _hoisted_6$13 = ["value"];
-var _hoisted_7$9 = {
+var _hoisted_6$14 = ["value"];
+var _hoisted_7$11 = {
 	key: 1,
 	class: "wy-ai-status"
 };
-var _hoisted_8$8 = {
+var _hoisted_8$9 = {
 	key: 2,
 	class: "wy-ai-error",
 	role: "alert"
@@ -8731,7 +8965,7 @@ var AiBlockView_default = /* @__PURE__ */ defineComponent({
 					onEdit: unref(startEdit),
 					onDelete: unref(remove)
 				}, {
-					default: withCtx(() => [createElementVNode("div", { class: normalizeClass(["wy-ai-block", { "is-busy": busy.value }]) }, [panel.value ? (openBlock(), createElementBlock("div", _hoisted_1$24, [createElementVNode("div", _hoisted_2$20, [createVNode(unref(Sparkles), {
+					default: withCtx(() => [createElementVNode("div", { class: normalizeClass(["wy-ai-block", { "is-busy": busy.value }]) }, [panel.value ? (openBlock(), createElementBlock("div", _hoisted_1$25, [createElementVNode("div", _hoisted_2$21, [createVNode(unref(Sparkles), {
 						class: "wy-ai-icon",
 						size: 16,
 						"aria-hidden": "true"
@@ -8746,7 +8980,7 @@ var AiBlockView_default = /* @__PURE__ */ defineComponent({
 						disabled: busy.value,
 						onInput: _cache[0] || (_cache[0] = ($event) => unref(update)({ prompt: $event.target.value })),
 						onKeydown: onPromptKey
-					}, null, 40, _hoisted_3$20)]), createElementVNode("div", _hoisted_4$18, [
+					}, null, 40, _hoisted_3$21)]), createElementVNode("div", _hoisted_4$20, [
 						scopes.value.length ? (openBlock(), createElementBlock("select", {
 							key: 0,
 							class: "wy-input is-sm wy-ai-scope",
@@ -8758,9 +8992,9 @@ var AiBlockView_default = /* @__PURE__ */ defineComponent({
 							return openBlock(), createElementBlock("option", {
 								key: s.id,
 								value: s.id
-							}, toDisplayString(s.label), 9, _hoisted_6$13);
-						}), 128))], 40, _hoisted_5$17)) : createCommentVNode("", true),
-						busy.value ? (openBlock(), createElementBlock("span", _hoisted_7$9, toDisplayString(unref(t)("ai.writing")), 1)) : error.value ? (openBlock(), createElementBlock("span", _hoisted_8$8, toDisplayString(error.value), 1)) : updatedLabel.value ? (openBlock(), createElementBlock("span", _hoisted_9$7, toDisplayString(unref(t)("ai.updated", { date: updatedLabel.value })), 1)) : createCommentVNode("", true),
+							}, toDisplayString(s.label), 9, _hoisted_6$14);
+						}), 128))], 40, _hoisted_5$18)) : createCommentVNode("", true),
+						busy.value ? (openBlock(), createElementBlock("span", _hoisted_7$11, toDisplayString(unref(t)("ai.writing")), 1)) : error.value ? (openBlock(), createElementBlock("span", _hoisted_8$9, toDisplayString(error.value), 1)) : updatedLabel.value ? (openBlock(), createElementBlock("span", _hoisted_9$7, toDisplayString(unref(t)("ai.updated", { date: updatedLabel.value })), 1)) : createCommentVNode("", true),
 						_cache[3] || (_cache[3] = createElementVNode("span", { class: "wy-ai-spacer" }, null, -1)),
 						busy.value ? (openBlock(), createElementBlock("button", {
 							key: 4,
@@ -10721,7 +10955,7 @@ var ServerHistory = Extension.create({
 	}
 });
 // src/nodes/CalloutIcon.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$23 = ["width", "height"];
+var _hoisted_1$24 = ["width", "height"];
 // src/nodes/CalloutIcon.vue
 var CalloutIcon_default = /* @__PURE__ */ defineComponent({
 	__name: "CalloutIcon",
@@ -10743,35 +10977,35 @@ var CalloutIcon_default = /* @__PURE__ */ defineComponent({
 				"aria-hidden": "true"
 			}, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(CALLOUT_ICONS)[__props.type] ?? unref(CALLOUT_ICONS).note, ([tag, attrs], i) => {
 				return openBlock(), createBlock(resolveDynamicComponent(tag), mergeProps({ key: i }, { ref_for: true }, attrs), null, 16);
-			}), 128))], 8, _hoisted_1$23);
+			}), 128))], 8, _hoisted_1$24);
 		};
 	}
 });
 // src/nodes/CalloutView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$22 = ["data-variant", "data-color"];
-var _hoisted_2$19 = {
+var _hoisted_1$23 = ["data-variant", "data-color"];
+var _hoisted_2$20 = {
 	class: "wy-callout-title",
 	contenteditable: "false"
 };
-var _hoisted_3$19 = [
+var _hoisted_3$20 = [
 	"aria-label",
 	"aria-expanded",
 	"disabled"
 ];
-var _hoisted_4$17 = {
+var _hoisted_4$19 = {
 	key: 0,
 	class: "wy-callout-emoji"
 };
-var _hoisted_5$16 = [
+var _hoisted_5$17 = [
 	"value",
 	"placeholder",
 	"size",
 	"aria-label",
 	"readonly"
 ];
-var _hoisted_6$12 = ["placeholder", "aria-label"];
-var _hoisted_7$8 = ["disabled"];
-var _hoisted_8$7 = { class: "wy-menu-heading" };
+var _hoisted_6$13 = ["placeholder", "aria-label"];
+var _hoisted_7$10 = ["disabled"];
+var _hoisted_8$8 = { class: "wy-menu-heading" };
 var _hoisted_9$6 = [
 	"data-variant",
 	"aria-pressed",
@@ -10840,12 +11074,12 @@ var CalloutView_default = /* @__PURE__ */ defineComponent({
 					"copy-text": unref(copyText),
 					editable: false,
 					onDelete: unref(remove),
-					onMore: _cache[10] || (_cache[10] = ($event) => menu.value = !menu.value)
+					onMore: _cache[11] || (_cache[11] = ($event) => menu.value = !menu.value)
 				}, {
 					menu: withCtx(() => [createVNode(BlockMenu_default, {
 						open: menu.value,
 						convert: props,
-						onClose: _cache[9] || (_cache[9] = ($event) => menu.value = false)
+						onClose: _cache[10] || (_cache[10] = ($event) => menu.value = false)
 					}, {
 						default: withCtx(() => [
 							!titled.value && !unref(readonly) ? (openBlock(), createElementBlock("button", {
@@ -10862,7 +11096,7 @@ var CalloutView_default = /* @__PURE__ */ defineComponent({
 								t: unref(t),
 								onPick: setColor
 							}, null, 8, ["value", "t"]),
-							createElementVNode("div", _hoisted_8$7, toDisplayString(unref(t)("callout.kinds")), 1),
+							createElementVNode("div", _hoisted_8$8, toDisplayString(unref(t)("callout.kinds")), 1),
 							(openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(kinds), (k) => {
 								return openBlock(), createElementBlock("button", {
 									key: k,
@@ -10888,7 +11122,7 @@ var CalloutView_default = /* @__PURE__ */ defineComponent({
 						"data-variant": type.value,
 						"data-color": color.value || void 0,
 						style: normalizeStyle(unref(calloutStyle)(color.value))
-					}, [createElementVNode("div", _hoisted_2$19, [withDirectives((openBlock(), createElementBlock("button", {
+					}, [createElementVNode("div", _hoisted_2$20, [withDirectives((openBlock(), createElementBlock("button", {
 						ref_key: "iconButton",
 						ref: iconButton,
 						type: "button",
@@ -10898,10 +11132,10 @@ var CalloutView_default = /* @__PURE__ */ defineComponent({
 						disabled: unref(readonly),
 						onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
 						onClick: _cache[1] || (_cache[1] = ($event) => picker.value = !picker.value)
-					}, [icon.value ? (openBlock(), createElementBlock("span", _hoisted_4$17, toDisplayString(icon.value), 1)) : (openBlock(), createBlock(CalloutIcon_default, {
+					}, [icon.value ? (openBlock(), createElementBlock("span", _hoisted_4$19, toDisplayString(icon.value), 1)) : (openBlock(), createBlock(CalloutIcon_default, {
 						key: 1,
 						type: type.value
-					}, null, 8, ["type"]))], 40, _hoisted_3$19)), [[unref(vTooltip), unref(t)("callout.changeIcon")]]), withDirectives(createElementVNode("input", {
+					}, null, 8, ["type"]))], 40, _hoisted_3$20)), [[unref(vTooltip), unref(t)("callout.changeIcon")]]), withDirectives(createElementVNode("input", {
 						ref_key: "titleInput",
 						ref: titleInput,
 						class: "wy-callout-title-input",
@@ -10914,11 +11148,12 @@ var CalloutView_default = /* @__PURE__ */ defineComponent({
 						onFocus: _cache[3] || (_cache[3] = ($event) => titleFocused.value = true),
 						onBlur: _cache[4] || (_cache[4] = ($event) => titleFocused.value = false),
 						onKeydown: _cache[5] || (_cache[5] = (...args) => unref(onHeaderKey) && unref(onHeaderKey)(...args))
-					}, null, 40, _hoisted_5$16), [[vShow, titled.value]])]), createVNode(unref(NodeViewContent), { class: "wy-callout-body" })], 14, _hoisted_1$22), picker.value ? (openBlock(), createBlock(AnchoredPopover_default, {
+					}, null, 40, _hoisted_5$17), [[vShow, titled.value]])]), createVNode(unref(NodeViewContent), { class: "wy-callout-body" })], 14, _hoisted_1$23), picker.value ? (openBlock(), createBlock(AnchoredPopover_default, {
 						key: 0,
 						anchor: iconButton.value,
 						class: "wy-menu wy-callout-picker",
-						onEscape: _cache[8] || (_cache[8] = ($event) => picker.value = false)
+						onEscape: _cache[8] || (_cache[8] = ($event) => picker.value = false),
+						onClose: _cache[9] || (_cache[9] = ($event) => picker.value = false)
 					}, {
 						default: withCtx(() => [createVNode(EmojiPicker_default, {
 							value: icon.value,
@@ -10934,11 +11169,11 @@ var CalloutView_default = /* @__PURE__ */ defineComponent({
 								maxlength: "32",
 								placeholder: unref(t)("callout.ownIcon"),
 								"aria-label": unref(t)("callout.ownIcon")
-							}, null, 8, _hoisted_6$12), [[vModelText, own.value]]), createElementVNode("button", {
+							}, null, 8, _hoisted_6$13), [[vModelText, own.value]]), createElementVNode("button", {
 								type: "submit",
 								class: "wy-btn is-sm",
 								disabled: !validIcon(own.value.trim())
-							}, toDisplayString(unref(t)("callout.useIcon")), 9, _hoisted_7$8)], 32), icon.value ? (openBlock(), createElementBlock("button", {
+							}, toDisplayString(unref(t)("callout.useIcon")), 9, _hoisted_7$10)], 32), icon.value ? (openBlock(), createElementBlock("button", {
 								key: 0,
 								type: "button",
 								class: "wy-btn is-sm",
@@ -11056,19 +11291,19 @@ function renderMermaid(source, dark) {
 	return job;
 }
 // src/nodes/DiagramView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$21 = ["data-language"];
-var _hoisted_2$18 = {
+var _hoisted_1$22 = ["data-language"];
+var _hoisted_2$19 = {
 	key: 0,
 	class: "wy-diagram-error",
 	role: "alert"
 };
-var _hoisted_3$18 = ["innerHTML"];
-var _hoisted_4$16 = ["src", "alt"];
-var _hoisted_5$15 = {
+var _hoisted_3$19 = ["innerHTML"];
+var _hoisted_4$18 = ["src", "alt"];
+var _hoisted_5$16 = {
 	key: 3,
 	class: "wy-diagram-hint"
 };
-var _hoisted_6$11 = {
+var _hoisted_6$12 = {
 	key: 4,
 	class: "wy-diagram-hint"
 };
@@ -11082,7 +11317,7 @@ var DiagramView_default = /* @__PURE__ */ defineComponent({
 		services: {},
 		t: { type: Function }
 	},
-	setup(__props) {
+	setup(__props, { expose: __expose }) {
 		const props = __props;
 		const root = ref(null);
 		const svg = ref("");
@@ -11154,37 +11389,221 @@ var DiagramView_default = /* @__PURE__ */ defineComponent({
 			stopTheme();
 			setImage("");
 		});
+		/** what is shown, for the lightbox */
+		__expose({
+			svg,
+			img
+		});
 		return (_ctx, _cache) => {
 			return openBlock(), createElementBlock("div", {
 				ref_key: "root",
 				ref: root,
 				class: normalizeClass(["wy-diagram", { "is-loading": loading.value && !svg.value && !img.value }]),
 				"data-language": __props.language
-			}, [error.value ? (openBlock(), createElementBlock("div", _hoisted_2$18, toDisplayString(error.value), 1)) : svg.value ? (openBlock(), createElementBlock("div", {
+			}, [error.value ? (openBlock(), createElementBlock("div", _hoisted_2$19, toDisplayString(error.value), 1)) : svg.value ? (openBlock(), createElementBlock("div", {
 				key: 1,
 				class: "wy-diagram-svg",
 				innerHTML: svg.value
-			}, null, 8, _hoisted_3$18)) : img.value ? (openBlock(), createElementBlock("img", {
+			}, null, 8, _hoisted_3$19)) : img.value ? (openBlock(), createElementBlock("img", {
 				key: 2,
 				class: "wy-diagram-img",
 				src: img.value,
 				alt: __props.t("diagram.alt"),
 				onError: _cache[0] || (_cache[0] = ($event) => error.value = __props.t("diagram.failed"))
-			}, null, 40, _hoisted_4$16)) : loading.value ? (openBlock(), createElementBlock("p", _hoisted_5$15, toDisplayString(__props.t("diagram.loading")), 1)) : (openBlock(), createElementBlock("p", _hoisted_6$11, toDisplayString(__props.t("diagram.empty")), 1))], 10, _hoisted_1$21);
+			}, null, 40, _hoisted_4$18)) : loading.value ? (openBlock(), createElementBlock("p", _hoisted_5$16, toDisplayString(__props.t("diagram.loading")), 1)) : (openBlock(), createElementBlock("p", _hoisted_6$12, toDisplayString(__props.t("diagram.empty")), 1))], 10, _hoisted_1$22);
+		};
+	}
+});
+// src/nodes/media.ts
+/** the content box of the column the media box sits in */
+function mediaColumn(node) {
+	const parent = node.parentElement;
+	const cs = getComputedStyle(parent);
+	return {
+		left: parent.getBoundingClientRect().left + parseFloat(cs.paddingLeft),
+		width: parent.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+	};
+}
+/** 10..100, rounded; NaN gives null */
+function clampWidth(n) {
+	return Number.isFinite(n) ? Math.min(100, Math.max(10, Math.round(n))) : null;
+}
+/** a right-aligned box grows to the left, a centred one to both sides */
+function rightAnchored(align) {
+	return align === "right" || align === "float-right";
+}
+/** follows a pointer drag on the resize handle and reports the box width in percent of its column */
+function startMediaResize(e, box, align, onWidth) {
+	const handle = e.currentTarget;
+	if (!box.parentElement) return;
+	e.preventDefault();
+	e.stopPropagation();
+	const col = mediaColumn(box).width;
+	const startX = e.clientX;
+	const startW = box.getBoundingClientRect().width;
+	const factor = align === "center" ? 2 : rightAnchored(align) ? -1 : 1;
+	const move = (ev) => {
+		const w = clampWidth((startW + (ev.clientX - startX) * factor) / col * 100);
+		if (w !== null) onWidth(w);
+	};
+	const stop = () => {
+		handle.removeEventListener("pointermove", move);
+		handle.removeEventListener("pointerup", stop);
+		handle.removeEventListener("pointercancel", stop);
+	};
+	handle.setPointerCapture(e.pointerId);
+	handle.addEventListener("pointermove", move);
+	handle.addEventListener("pointerup", stop);
+	handle.addEventListener("pointercancel", stop);
+}
+// src/nodes/MediaTools.vue?vue&type=script&setup=true&lang.ts
+var _hoisted_1$21 = { class: "wy-figure-bar" };
+var _hoisted_2$18 = {
+	class: "wy-seg",
+	role: "group"
+};
+var _hoisted_3$18 = [
+	"aria-pressed",
+	"aria-label",
+	"onClick"
+];
+var _hoisted_4$17 = { class: "wy-inline-field" };
+var _hoisted_5$15 = { class: "wy-label" };
+var _hoisted_6$11 = ["value", "aria-label"];
+var _hoisted_7$9 = ["aria-label", "disabled"];
+var _hoisted_8$7 = ["aria-label"];
+// src/nodes/MediaTools.vue
+var MediaTools_default = /* @__PURE__ */ defineComponent({
+	__name: "MediaTools",
+	props: {
+		box: {},
+		aligns: {},
+		align: {},
+		width: {},
+		resettable: { type: Boolean },
+		zoomable: { type: Boolean }
+	},
+	emits: [
+		"align",
+		"width",
+		"reset",
+		"zoom"
+	],
+	setup(__props, { expose: __expose, emit: __emit }) {
+		const ICONS = {
+			left: AlignHorizontalJustifyStart,
+			center: AlignHorizontalJustifyCenter,
+			right: AlignHorizontalJustifyEnd,
+			"float-left": PanelLeft,
+			"float-right": PanelRight
+		};
+		const props = __props;
+		const emit = __emit;
+		const t = useEditorContext().t;
+		const root = ref(null);
+		const style = ref("");
+		let observer = null;
+		function place() {
+			const node = props.box;
+			const parent = root.value?.offsetParent;
+			if (!node?.parentElement || !parent) return;
+			const col = mediaColumn(node);
+			style.value = `left: ${col.left - parent.getBoundingClientRect().left}px; max-width: ${col.width}px`;
+		}
+		function observe() {
+			observer?.disconnect();
+			const node = props.box;
+			if (!node?.parentElement) return;
+			observer = new ResizeObserver(place);
+			observer.observe(node);
+			observer.observe(node.parentElement);
+			place();
+		}
+		function set(n) {
+			const w = clampWidth(n);
+			if (w !== null) emit("width", w);
+		}
+		function onWidthKey(e) {
+			const step = e.key === "ArrowUp" ? 1 : e.key === "ArrowDown" ? -1 : 0;
+			if (step) {
+				e.preventDefault();
+				set(props.width + step * (e.shiftKey ? 10 : 1));
+			} else if (e.key === "Enter") {
+				e.preventDefault();
+				set(Number(e.target.value));
+			}
+		}
+		onMounted(observe);
+		watch(() => props.box, observe);
+		watch(() => [props.align, props.width], place, { flush: "post" });
+		onBeforeUnmount(() => observer?.disconnect());
+		__expose({ place });
+		return (_ctx, _cache) => {
+			return openBlock(), createElementBlock("div", {
+				ref_key: "root",
+				ref: root,
+				class: "wy-figure-tools wy-media-tools",
+				style: normalizeStyle(style.value),
+				contenteditable: "false",
+				"data-block-portal": "",
+				onMousedown: _cache[3] || (_cache[3] = withModifiers(() => {}, ["stop"]))
+			}, [createElementVNode("div", _hoisted_1$21, [
+				createElementVNode("div", _hoisted_2$18, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(__props.aligns, (a) => {
+					return withDirectives((openBlock(), createElementBlock("button", {
+						key: a,
+						type: "button",
+						"aria-pressed": __props.align === a,
+						"aria-label": unref(t)(`image.align.${a}`),
+						onClick: ($event) => emit("align", a)
+					}, [(openBlock(), createBlock(resolveDynamicComponent(ICONS[a]), { size: 16 }))], 8, _hoisted_3$18)), [[unref(vTooltip), unref(t)(`image.align.${a}`)]]);
+				}), 128))]),
+				createElementVNode("label", _hoisted_4$17, [
+					createElementVNode("span", _hoisted_5$15, toDisplayString(unref(t)("image.width")), 1),
+					createElementVNode("input", {
+						class: "wy-input is-sm is-num",
+						type: "number",
+						min: "10",
+						max: "100",
+						step: "1",
+						value: __props.width,
+						"aria-label": unref(t)("image.width"),
+						onChange: _cache[0] || (_cache[0] = ($event) => set(Number($event.target.value))),
+						onKeydown: onWidthKey
+					}, null, 40, _hoisted_6$11),
+					_cache[4] || (_cache[4] = createElementVNode("span", { class: "wy-muted" }, "%", -1))
+				]),
+				withDirectives((openBlock(), createElementBlock("button", {
+					type: "button",
+					class: "wy-tool",
+					"aria-label": unref(t)("image.originalSize"),
+					disabled: !__props.resettable,
+					onClick: _cache[1] || (_cache[1] = ($event) => emit("reset"))
+				}, [createVNode(unref(Scaling), { size: 16 })], 8, _hoisted_7$9)), [[unref(vTooltip), unref(t)("image.originalSize")]]),
+				__props.zoomable ? withDirectives((openBlock(), createElementBlock("button", {
+					key: 0,
+					type: "button",
+					class: "wy-tool",
+					"aria-label": unref(t)("image.zoom"),
+					onClick: _cache[2] || (_cache[2] = ($event) => emit("zoom"))
+				}, [createVNode(unref(ZoomIn), { size: 16 })], 8, _hoisted_8$7)), [[unref(vTooltip), unref(t)("image.zoom")]]) : createCommentVNode("", true),
+				renderSlot(_ctx.$slots, "default")
+			]), renderSlot(_ctx.$slots, "form")], 36);
 		};
 	}
 });
 // src/nodes/CodeBlockView.vue?vue&type=script&setup=true&lang.ts
 var _hoisted_1$20 = { class: "wy-code" };
 var _hoisted_2$17 = ["innerHTML"];
-var _hoisted_3$17 = { class: "wy-field" };
-var _hoisted_4$15 = { class: "wy-label" };
-var _hoisted_5$14 = [
+var _hoisted_3$17 = ["aria-label", "title"];
+var _hoisted_4$16 = { class: "wy-field" };
+var _hoisted_5$14 = { class: "wy-label" };
+var _hoisted_6$10 = [
 	"value",
 	"placeholder",
 	"onKeydown"
 ];
-var _hoisted_6$10 = ["value"];
+var _hoisted_7$8 = ["value"];
+var DOUBLE_CLICK_WAIT = 250;
 // src/nodes/CodeBlockView.vue
 var CodeBlockView_default = /* @__PURE__ */ defineComponent({
 	__name: "CodeBlockView",
@@ -11200,6 +11619,13 @@ var CodeBlockView_default = /* @__PURE__ */ defineComponent({
 		const highlighted = computed(() => editing.value ? "" : highlightCode(props.node.textContent, language.value));
 		const diagram = computed(() => ctx.config.base.diagrams.includes(language.value) ? language.value : null);
 		const sourceShown = computed(() => !diagram.value || editing.value || selected.value || !props.node.textContent.trim());
+		const layout = computed(() => diagramLayout(String(props.node.attrs.meta ?? "")));
+		const shownAlign = computed(() => layout.value.align ?? "center");
+		const toolsFocused = ref(false);
+		const mediaTools = computed(() => !!diagram.value && !readonly.value && (selected.value || editing.value || toolsFocused.value));
+		const diagramBox = ref(null);
+		const diagramView = ref(null);
+		let clickTimer = 0;
 		const languages = ctx.config.base.codeBlocks || [];
 		const listId = `wy-code-languages-${Math.random().toString(36).slice(2, 8)}`;
 		const label = computed(() => {
@@ -11222,6 +11648,7 @@ var CodeBlockView_default = /* @__PURE__ */ defineComponent({
 			props.editor.off("selectionUpdate", syncEditing);
 			props.editor.off("blur", syncEditing);
 			props.editor.off("focus", syncEditing);
+			window.clearTimeout(clickTimer);
 		});
 		function editSource() {
 			const pos = props.getPos();
@@ -11229,6 +11656,35 @@ var CodeBlockView_default = /* @__PURE__ */ defineComponent({
 			const view = props.editor.view;
 			view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, pos + props.node.nodeSize - 1)));
 			view.focus();
+		}
+		function onDiagramClick(e) {
+			window.clearTimeout(clickTimer);
+			if (e.detail === 1) clickTimer = window.setTimeout(editSource, DOUBLE_CLICK_WAIT);
+		}
+		function zoomDiagram() {
+			window.clearTimeout(clickTimer);
+			const shown = diagramView.value;
+			if (shown?.svg) ctx.zoom({
+				src: "",
+				svg: shown.svg,
+				alt: t("diagram.alt")
+			});
+			else if (shown?.img) ctx.zoom({
+				src: shown.img,
+				alt: t("diagram.alt")
+			});
+		}
+		function setLayout(next) {
+			const pos = props.getPos();
+			if (typeof pos !== "number") return;
+			const meta = withDiagramLayout(String(props.node.attrs.meta ?? ""), {
+				...layout.value,
+				...next
+			});
+			props.editor.view.dispatch(props.editor.state.tr.setNodeAttribute(pos, "meta", meta));
+		}
+		function startResize(e) {
+			if (diagramBox.value) startMediaResize(e, diagramBox.value, shownAlign.value, (width) => setLayout({ width }));
 		}
 		function setLanguage(e) {
 			update({ language: e.target.value.trim().toLowerCase() || null });
@@ -11254,15 +11710,15 @@ var CodeBlockView_default = /* @__PURE__ */ defineComponent({
 					"copy-text": unref(copyText),
 					editable: false,
 					onDelete: unref(remove),
-					onMore: _cache[2] || (_cache[2] = ($event) => menu.value = !menu.value)
+					onMore: _cache[7] || (_cache[7] = ($event) => menu.value = !menu.value)
 				}, {
 					menu: withCtx(() => [createVNode(BlockMenu_default, {
 						open: menu.value,
 						convert: props,
-						onClose: _cache[1] || (_cache[1] = ($event) => menu.value = false)
+						onClose: _cache[6] || (_cache[6] = ($event) => menu.value = false)
 					}, {
 						default: withCtx(() => [
-							createElementVNode("label", _hoisted_3$17, [createElementVNode("span", _hoisted_4$15, toDisplayString(unref(t)("code.language")), 1), createElementVNode("input", {
+							createElementVNode("label", _hoisted_4$16, [createElementVNode("span", _hoisted_5$14, toDisplayString(unref(t)("code.language")), 1), createElementVNode("input", {
 								class: "wy-input is-sm",
 								value: language.value,
 								placeholder: unref(t)("code.languagePlaceholder"),
@@ -11270,12 +11726,12 @@ var CodeBlockView_default = /* @__PURE__ */ defineComponent({
 								list: listId,
 								onChange: setLanguage,
 								onKeydown: withKeys(withModifiers(commit, ["prevent"]), ["enter"])
-							}, null, 40, _hoisted_5$14)]),
+							}, null, 40, _hoisted_6$10)]),
 							createElementVNode("datalist", { id: listId }, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(languages), (l) => {
 								return openBlock(), createElementBlock("option", {
 									key: l,
 									value: l
-								}, null, 8, _hoisted_6$10);
+								}, null, 8, _hoisted_7$8);
 							}), 128))]),
 							(openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(ctx).codeBlock.filter((x) => x.menu), (h, i) => {
 								return openBlock(), createBlock(resolveDynamicComponent(h.menu), mergeProps({ key: i }, { ref_for: true }, props), null, 16);
@@ -11297,10 +11753,16 @@ var CodeBlockView_default = /* @__PURE__ */ defineComponent({
 						}, null, 8, ["class"])]),
 						diagram.value ? (openBlock(), createElementBlock("div", {
 							key: 0,
-							class: "wy-code-diagram",
+							ref_key: "diagramBox",
+							ref: diagramBox,
+							class: normalizeClass(["wy-code-diagram", [`wy-align-${shownAlign.value}`, { "has-width": layout.value.width }]]),
+							style: normalizeStyle(layout.value.width ? { "--wy-figure-width": `${layout.value.width}%` } : void 0),
 							contenteditable: "false",
-							onClick: editSource
+							onClick: onDiagramClick,
+							onDblclick: zoomDiagram
 						}, [createVNode(DiagramView_default, {
+							ref_key: "diagramView",
+							ref: diagramView,
 							language: diagram.value,
 							source: _ctx.node.textContent,
 							server: unref(ctx).config.base.plantumlServer,
@@ -11312,16 +11774,39 @@ var CodeBlockView_default = /* @__PURE__ */ defineComponent({
 							"server",
 							"services",
 							"t"
-						])])) : createCommentVNode("", true),
-						(openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(ctx).codeBlock.filter((x) => x.below), (h, i) => {
-							return openBlock(), createElementBlock("div", {
-								key: i,
-								class: "wy-code-below",
-								contenteditable: "false",
-								"data-block-portal": "",
-								onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["stop"]))
-							}, [(openBlock(), createBlock(resolveDynamicComponent(h.below), mergeProps({ ref_for: true }, props), null, 16))], 32);
-						}), 128))
+						]), mediaTools.value ? (openBlock(), createElementBlock("span", {
+							key: 0,
+							class: normalizeClass(["wy-figure-resize", { "is-left": unref(rightAnchored)(shownAlign.value) }]),
+							role: "separator",
+							"aria-label": unref(t)("image.resize"),
+							title: unref(t)("image.resize"),
+							onPointerdown: startResize,
+							onClick: _cache[0] || (_cache[0] = withModifiers(() => {}, ["stop"]))
+						}, null, 42, _hoisted_3$17)) : createCommentVNode("", true)], 38)) : createCommentVNode("", true),
+						mediaTools.value ? (openBlock(), createBlock(MediaTools_default, {
+							key: 1,
+							box: diagramBox.value,
+							aligns: unref(DIAGRAM_ALIGNS),
+							align: shownAlign.value,
+							width: layout.value.width ?? 100,
+							resettable: !!layout.value.width || !!layout.value.align,
+							zoomable: "",
+							onAlign: _cache[1] || (_cache[1] = (a) => setLayout({ align: a })),
+							onWidth: _cache[2] || (_cache[2] = (w) => setLayout({ width: w })),
+							onReset: _cache[3] || (_cache[3] = ($event) => setLayout({
+								width: null,
+								align: null
+							})),
+							onZoom: zoomDiagram,
+							onFocusin: _cache[4] || (_cache[4] = ($event) => toolsFocused.value = true),
+							onFocusout: _cache[5] || (_cache[5] = ($event) => toolsFocused.value = $event.currentTarget.contains($event.relatedTarget))
+						}, null, 8, [
+							"box",
+							"aligns",
+							"align",
+							"width",
+							"resettable"
+						])) : createCommentVNode("", true)
 					]),
 					_: 1
 				}, 8, [
@@ -11347,7 +11832,7 @@ var _hoisted_2$16 = {
 	contenteditable: "false"
 };
 var _hoisted_3$16 = ["aria-label", "aria-expanded"];
-var _hoisted_4$14 = [
+var _hoisted_4$15 = [
 	"value",
 	"placeholder",
 	"aria-label",
@@ -11407,7 +11892,7 @@ var DetailsView_default = /* @__PURE__ */ defineComponent({
 						readonly: unref(readonly),
 						onInput: _cache[1] || (_cache[1] = ($event) => unref(update)({ title: $event.target.value })),
 						onKeydown: _cache[2] || (_cache[2] = (...args) => unref(onHeaderKey) && unref(onHeaderKey)(...args))
-					}, null, 40, _hoisted_4$14)]), withDirectives(createVNode(unref(NodeViewContent), { class: "wy-details-body" }, null, 512), [[vShow, open.value]])], 12, _hoisted_1$19)]),
+					}, null, 40, _hoisted_4$15)]), withDirectives(createVNode(unref(NodeViewContent), { class: "wy-details-body" }, null, 512), [[vShow, open.value]])], 12, _hoisted_1$19)]),
 					_: 1
 				}, 8, [
 					"label",
@@ -11428,7 +11913,7 @@ var _hoisted_2$15 = {
 	"aria-hidden": "true"
 };
 var _hoisted_3$15 = { class: "wy-menu-heading" };
-var _hoisted_4$13 = { class: "wy-menu-split" };
+var _hoisted_4$14 = { class: "wy-menu-split" };
 var _hoisted_5$13 = ["aria-label"];
 var _hoisted_6$9 = [
 	"aria-label",
@@ -11446,20 +11931,20 @@ var _hoisted_12$4 = [
 	"onClick"
 ];
 var _hoisted_13$4 = ["value", "aria-label"];
-var _hoisted_14$3 = { class: "wy-menu-heading" };
-var _hoisted_15$3 = ["aria-pressed", "onClick"];
-var _hoisted_16$2 = {
+var _hoisted_14$2 = { class: "wy-menu-heading" };
+var _hoisted_15$2 = ["aria-pressed", "onClick"];
+var _hoisted_16$1 = {
 	class: "wy-menu-sample",
 	"aria-hidden": "true"
 };
-var _hoisted_17$2 = { class: "wy-field" };
-var _hoisted_18$2 = { class: "wy-label" };
-var _hoisted_19$2 = [
+var _hoisted_17$1 = { class: "wy-field" };
+var _hoisted_18$1 = { class: "wy-label" };
+var _hoisted_19$1 = [
 	"value",
 	"aria-invalid",
 	"onKeydown"
 ];
-var _hoisted_20$2 = {
+var _hoisted_20$1 = {
 	key: 0,
 	class: "wy-menu-hint is-danger"
 };
@@ -11503,7 +11988,7 @@ var DividerView_default = /* @__PURE__ */ defineComponent({
 					}, {
 						default: withCtx(() => [
 							createElementVNode("div", _hoisted_3$15, toDisplayString(unref(t)("divider.line")), 1),
-							createElementVNode("div", _hoisted_4$13, [createElementVNode("div", {
+							createElementVNode("div", _hoisted_4$14, [createElementVNode("div", {
 								class: "wy-seg",
 								role: "group",
 								"aria-label": unref(t)("divider.line")
@@ -11580,7 +12065,7 @@ var DividerView_default = /* @__PURE__ */ defineComponent({
 									onChange: _cache[1] || (_cache[1] = ($event) => unref(update)({ color: $event.target.value }))
 								}, null, 40, _hoisted_13$4)], 4)), [[unref(vTooltip), unref(t)("divider.customColor")]])
 							], 8, _hoisted_10$5),
-							createElementVNode("div", _hoisted_14$3, toDisplayString(unref(t)("divider.design")), 1),
+							createElementVNode("div", _hoisted_14$2, toDisplayString(unref(t)("divider.design")), 1),
 							(openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(DIVIDER_DESIGNS), (d) => {
 								return openBlock(), createElementBlock("button", {
 									key: d,
@@ -11592,10 +12077,10 @@ var DividerView_default = /* @__PURE__ */ defineComponent({
 										design: d,
 										char: null
 									})
-								}, [createElementVNode("span", _hoisted_16$2, toDisplayString(d === "none" ? "-" : unref(DIVIDER_GLYPHS)[d]), 1), createElementVNode("span", null, toDisplayString(unref(t)(`divider.designs.${d}`)), 1)], 8, _hoisted_15$3);
+								}, [createElementVNode("span", _hoisted_16$1, toDisplayString(d === "none" ? "-" : unref(DIVIDER_GLYPHS)[d]), 1), createElementVNode("span", null, toDisplayString(unref(t)(`divider.designs.${d}`)), 1)], 8, _hoisted_15$2);
 							}), 128)),
-							createElementVNode("label", _hoisted_17$2, [
-								createElementVNode("span", _hoisted_18$2, toDisplayString(unref(t)("divider.customChar")), 1),
+							createElementVNode("label", _hoisted_17$1, [
+								createElementVNode("span", _hoisted_18$1, toDisplayString(unref(t)("divider.customChar")), 1),
 								createElementVNode("input", {
 									class: "wy-input is-sm",
 									value: attrs.value.char ?? "",
@@ -11604,8 +12089,8 @@ var DividerView_default = /* @__PURE__ */ defineComponent({
 									"aria-invalid": charInvalid.value || void 0,
 									onChange: setChar,
 									onKeydown: withKeys(withModifiers(setChar, ["prevent"]), ["enter"])
-								}, null, 40, _hoisted_19$2),
-								charInvalid.value ? (openBlock(), createElementBlock("span", _hoisted_20$2, toDisplayString(unref(t)("divider.charInvalid")), 1)) : createCommentVNode("", true)
+								}, null, 40, _hoisted_19$1),
+								charInvalid.value ? (openBlock(), createElementBlock("span", _hoisted_20$1, toDisplayString(unref(t)("divider.charInvalid")), 1)) : createCommentVNode("", true)
 							])
 						]),
 						_: 1
@@ -11637,46 +12122,24 @@ var DividerView_default = /* @__PURE__ */ defineComponent({
 var _hoisted_1$17 = { class: "wy-figure-inner" };
 var _hoisted_2$14 = { class: "wy-figure-media" };
 var _hoisted_3$14 = ["src", "aria-label"];
-var _hoisted_4$12 = ["src", "aria-label"];
+var _hoisted_4$13 = ["src", "aria-label"];
 var _hoisted_5$12 = ["src", "alt"];
 var _hoisted_6$8 = ["aria-label", "title"];
 var _hoisted_7$6 = ["value", "placeholder"];
-var _hoisted_8$5 = { class: "wy-figure-bar" };
+var _hoisted_8$5 = ["aria-expanded"];
 var _hoisted_9$4 = {
-	class: "wy-seg",
-	role: "group"
-};
-var _hoisted_10$4 = [
-	"aria-pressed",
-	"aria-label",
-	"onClick"
-];
-var _hoisted_11$3 = { class: "wy-inline-field" };
-var _hoisted_12$3 = { class: "wy-label" };
-var _hoisted_13$3 = ["value", "aria-label"];
-var _hoisted_14$2 = ["aria-label", "disabled"];
-var _hoisted_15$2 = ["aria-label"];
-var _hoisted_16$1 = ["aria-expanded"];
-var _hoisted_17$1 = {
 	key: 0,
 	class: "wy-figure-form"
 };
-var _hoisted_18$1 = { class: "wy-field" };
-var _hoisted_19$1 = { class: "wy-label" };
-var _hoisted_20$1 = ["value", "placeholder"];
-var _hoisted_21$1 = { class: "wy-menu-hint" };
+var _hoisted_10$4 = { class: "wy-field" };
+var _hoisted_11$3 = { class: "wy-label" };
+var _hoisted_12$3 = ["value", "placeholder"];
+var _hoisted_13$3 = { class: "wy-menu-hint" };
 // src/nodes/FigureView.vue
 var FigureView_default = /* @__PURE__ */ defineComponent({
 	__name: "FigureView",
 	props: nodeViewProps,
 	setup(__props) {
-		const ICONS = {
-			left: AlignHorizontalJustifyStart,
-			center: AlignHorizontalJustifyCenter,
-			right: AlignHorizontalJustifyEnd,
-			"float-left": PanelLeft,
-			"float-right": PanelRight
-		};
 		const props = __props;
 		const ctx = contextOf(props.editor);
 		const t = ctx.t;
@@ -11690,89 +12153,25 @@ var FigureView_default = /* @__PURE__ */ defineComponent({
 		const { selected, editing, startEdit, update, remove, copyText, readonly } = useBlockNode(props, { editOnInsert: true });
 		const form = ref(false);
 		const box = ref(null);
-		const tools = ref(null);
+		const boxEl = computed(() => box.value?.$el ?? null);
 		const caption = computed(() => String(props.node.attrs.caption ?? ""));
 		const width = computed(() => Number(props.node.attrs.width) || 100);
 		const media = computed(() => mediaKind(String(props.node.attrs.src ?? "")));
 		const align = computed(() => props.node.attrs.align ?? null);
 		const shown = computed(() => shownAlign(align.value, caption.value));
-		const rightAnchored = computed(() => shown.value === "right" || shown.value === "float-right");
 		const boxStyle = computed(() => {
 			if (props.node.attrs.width) return { "--wy-figure-width": `${width.value}%` };
 			if (props.node.attrs.pixels) return { "--wy-figure-width": `${props.node.attrs.pixels}px` };
 		});
-		function el() {
-			return box.value?.$el ?? null;
-		}
-		function column(node) {
-			const parent = node.parentElement;
-			const cs = getComputedStyle(parent);
-			return {
-				left: parent.getBoundingClientRect().left + parseFloat(cs.paddingLeft),
-				width: parent.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
-			};
-		}
-		const toolsStyle = ref("");
-		let observer = null;
-		function place() {
-			const node = el();
-			const parent = tools.value?.offsetParent;
-			if (!node?.parentElement || !parent) return;
-			const col = column(node);
-			toolsStyle.value = `left: ${col.left - parent.getBoundingClientRect().left}px; max-width: ${col.width}px`;
-		}
-		watch(editing, async (on) => {
-			observer?.disconnect();
-			observer = null;
-			form.value = false;
-			if (!on) return;
-			await nextTick();
-			const node = el();
-			if (!node?.parentElement) return;
-			observer = new ResizeObserver(place);
-			observer.observe(node);
-			observer.observe(node.parentElement);
-			place();
-		});
-		watch([shown, width], place, { flush: "post" });
-		onBeforeUnmount(() => observer?.disconnect());
-		function setWidth(n) {
-			if (!Number.isFinite(n)) return;
-			const w = Math.min(100, Math.max(10, Math.round(n)));
+		watch(editing, () => form.value = false);
+		function setWidth(w) {
 			update({
 				width: w === 100 ? null : w,
 				pixels: null
 			});
 		}
-		function onWidthKey(e) {
-			const step = e.key === "ArrowUp" ? 1 : e.key === "ArrowDown" ? -1 : 0;
-			if (step) {
-				e.preventDefault();
-				setWidth(width.value + step * (e.shiftKey ? 10 : 1));
-			} else if (e.key === "Enter") {
-				e.preventDefault();
-				setWidth(Number(e.target.value));
-			}
-		}
 		function startResize(e) {
-			const node = el();
-			const handle = e.currentTarget;
-			if (!node?.parentElement || readonly.value) return;
-			e.preventDefault();
-			const col = column(node).width;
-			const startX = e.clientX;
-			const startW = node.getBoundingClientRect().width;
-			const factor = shown.value === "center" ? 2 : rightAnchored.value ? -1 : 1;
-			const move = (ev) => setWidth((startW + (ev.clientX - startX) * factor) / col * 100);
-			const stop = () => {
-				handle.removeEventListener("pointermove", move);
-				handle.removeEventListener("pointerup", stop);
-				handle.removeEventListener("pointercancel", stop);
-			};
-			handle.setPointerCapture(e.pointerId);
-			handle.addEventListener("pointermove", move);
-			handle.addEventListener("pointerup", stop);
-			handle.addEventListener("pointercancel", stop);
+			if (boxEl.value && !readonly.value) startMediaResize(e, boxEl.value, shown.value, setWidth);
 		}
 		async function replace() {
 			const first = (await ctx.files.choose("image", false))[0];
@@ -11823,17 +12222,18 @@ var FigureView_default = /* @__PURE__ */ defineComponent({
 						preload: "metadata",
 						"aria-label": _ctx.node.attrs.alt || "",
 						onClick: _cache[1] || (_cache[1] = ($event) => unref(editing) || unref(startEdit)())
-					}, null, 8, _hoisted_4$12)) : (openBlock(), createElementBlock("img", {
+					}, null, 8, _hoisted_4$13)) : (openBlock(), createElementBlock("img", {
 						key: 2,
 						src: _ctx.node.attrs.src,
 						alt: _ctx.node.attrs.alt || "",
 						class: normalizeClass({ "is-zoomable": unref(readonly) }),
 						loading: "lazy",
 						draggable: "false",
-						onClick: _cache[2] || (_cache[2] = ($event) => _ctx.editor.isEditable ? unref(editing) || unref(startEdit)() : zoom())
-					}, null, 10, _hoisted_5$12)), unref(editing) ? (openBlock(), createElementBlock("span", {
+						onClick: _cache[2] || (_cache[2] = ($event) => _ctx.editor.isEditable ? unref(editing) || unref(startEdit)() : zoom()),
+						onDblclick: zoom
+					}, null, 42, _hoisted_5$12)), unref(editing) ? (openBlock(), createElementBlock("span", {
 						key: 3,
-						class: normalizeClass(["wy-figure-resize", { "is-left": rightAnchored.value }]),
+						class: normalizeClass(["wy-figure-resize", { "is-left": unref(rightAnchored)(shown.value) }]),
 						role: "separator",
 						"aria-label": unref(t)("image.resize"),
 						title: unref(t)("image.resize"),
@@ -11862,82 +12262,55 @@ var FigureView_default = /* @__PURE__ */ defineComponent({
 					}, null, 40, _hoisted_7$6))], 32)) : caption.value ? (openBlock(), createElementBlock("figcaption", {
 						key: 1,
 						onClick: _cache[6] || (_cache[6] = ($event) => unref(startEdit)())
-					}, toDisplayString(caption.value), 1)) : createCommentVNode("", true)]), unref(editing) ? (openBlock(), createElementBlock("div", {
+					}, toDisplayString(caption.value), 1)) : createCommentVNode("", true)]), unref(editing) ? (openBlock(), createBlock(MediaTools_default, {
 						key: 0,
-						ref_key: "tools",
-						ref: tools,
-						class: "wy-figure-tools",
-						style: normalizeStyle(toolsStyle.value),
-						contenteditable: "false",
-						"data-block-portal": "",
-						onMousedown: _cache[11] || (_cache[11] = withModifiers(() => {}, ["stop"]))
-					}, [createElementVNode("div", _hoisted_8$5, [
-						createElementVNode("div", _hoisted_9$4, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(aligns), (a) => {
-							return withDirectives((openBlock(), createElementBlock("button", {
-								key: a,
+						box: boxEl.value,
+						aligns: unref(aligns),
+						align: shown.value,
+						width: width.value,
+						resettable: !!_ctx.node.attrs.width || !!_ctx.node.attrs.pixels,
+						zoomable: !media.value,
+						onAlign: _cache[9] || (_cache[9] = (a) => unref(update)({ align: a })),
+						onWidth: setWidth,
+						onReset: _cache[10] || (_cache[10] = ($event) => unref(update)({
+							width: null,
+							pixels: null
+						})),
+						onZoom: zoom
+					}, {
+						form: withCtx(() => [form.value ? (openBlock(), createElementBlock("div", _hoisted_9$4, [
+							createElementVNode("label", _hoisted_10$4, [createElementVNode("span", _hoisted_11$3, toDisplayString(unref(t)("image.alt")), 1), createElementVNode("input", {
+								class: "wy-input is-sm",
+								type: "text",
+								value: _ctx.node.attrs.alt || "",
+								placeholder: unref(t)("image.altPlaceholder"),
+								onInput: _cache[8] || (_cache[8] = ($event) => unref(update)({ alt: $event.target.value || null }))
+							}, null, 40, _hoisted_12$3)]),
+							createElementVNode("span", _hoisted_13$3, toDisplayString(unref(t)("image.altHelp")), 1),
+							unref(ctx).services.upload || unref(ctx).services.pickFile ? (openBlock(), createElementBlock("button", {
+								key: 0,
 								type: "button",
-								"aria-pressed": shown.value === a,
-								"aria-label": unref(t)(`image.align.${a}`),
-								onClick: ($event) => unref(update)({ align: a })
-							}, [(openBlock(), createBlock(resolveDynamicComponent(ICONS[a]), { size: 16 }))], 8, _hoisted_10$4)), [[unref(vTooltip), unref(t)(`image.align.${a}`)]]);
-						}), 128))]),
-						createElementVNode("label", _hoisted_11$3, [
-							createElementVNode("span", _hoisted_12$3, toDisplayString(unref(t)("image.width")), 1),
-							createElementVNode("input", {
-								class: "wy-input is-sm is-num",
-								type: "number",
-								min: "10",
-								max: "100",
-								step: "1",
-								value: width.value,
-								"aria-label": unref(t)("image.width"),
-								onChange: _cache[7] || (_cache[7] = ($event) => setWidth(Number($event.target.value))),
-								onKeydown: onWidthKey
-							}, null, 40, _hoisted_13$3),
-							_cache[12] || (_cache[12] = createElementVNode("span", { class: "wy-muted" }, "%", -1))
-						]),
-						withDirectives((openBlock(), createElementBlock("button", {
-							type: "button",
-							class: "wy-tool",
-							"aria-label": unref(t)("image.originalSize"),
-							disabled: !_ctx.node.attrs.width && !_ctx.node.attrs.pixels,
-							onClick: _cache[8] || (_cache[8] = ($event) => unref(update)({
-								width: null,
-								pixels: null
-							}))
-						}, [createVNode(unref(Scaling), { size: 16 })], 8, _hoisted_14$2)), [[unref(vTooltip), unref(t)("image.originalSize")]]),
-						!media.value ? withDirectives((openBlock(), createElementBlock("button", {
-							key: 0,
-							type: "button",
-							class: "wy-tool",
-							"aria-label": unref(t)("image.zoom"),
-							onClick: zoom
-						}, [createVNode(unref(ZoomIn), { size: 16 })], 8, _hoisted_15$2)), [[unref(vTooltip), unref(t)("image.zoom")]]) : createCommentVNode("", true),
-						createElementVNode("button", {
+								class: "wy-btn is-sm",
+								onClick: replace
+							}, toDisplayString(unref(t)("image.replaceFile")), 1)) : createCommentVNode("", true)
+						])) : createCommentVNode("", true)]),
+						default: withCtx(() => [createElementVNode("button", {
 							type: "button",
 							class: "wy-btn is-sm",
 							"aria-expanded": form.value,
-							onClick: _cache[9] || (_cache[9] = ($event) => form.value = !form.value)
-						}, [createVNode(unref(ImagePlus), { size: 16 }), createTextVNode(toDisplayString(unref(t)("image.replace")), 1)], 8, _hoisted_16$1),
-						(openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(ctx).figure.filter((x) => x.tools), (h, i) => {
+							onClick: _cache[7] || (_cache[7] = ($event) => form.value = !form.value)
+						}, [createVNode(unref(ImagePlus), { size: 16 }), createTextVNode(toDisplayString(unref(t)("image.replace")), 1)], 8, _hoisted_8$5), (openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(ctx).figure.filter((x) => x.tools), (h, i) => {
 							return openBlock(), createBlock(resolveDynamicComponent(h.tools), mergeProps({ key: i }, { ref_for: true }, props), null, 16);
-						}), 128))
-					]), form.value ? (openBlock(), createElementBlock("div", _hoisted_17$1, [
-						createElementVNode("label", _hoisted_18$1, [createElementVNode("span", _hoisted_19$1, toDisplayString(unref(t)("image.alt")), 1), createElementVNode("input", {
-							class: "wy-input is-sm",
-							type: "text",
-							value: _ctx.node.attrs.alt || "",
-							placeholder: unref(t)("image.altPlaceholder"),
-							onInput: _cache[10] || (_cache[10] = ($event) => unref(update)({ alt: $event.target.value || null }))
-						}, null, 40, _hoisted_20$1)]),
-						createElementVNode("span", _hoisted_21$1, toDisplayString(unref(t)("image.altHelp")), 1),
-						unref(ctx).services.upload || unref(ctx).services.pickFile ? (openBlock(), createElementBlock("button", {
-							key: 0,
-							type: "button",
-							class: "wy-btn is-sm",
-							onClick: replace
-						}, toDisplayString(unref(t)("image.replaceFile")), 1)) : createCommentVNode("", true)
-					])) : createCommentVNode("", true)], 36)) : createCommentVNode("", true)]),
+						}), 128))]),
+						_: 1
+					}, 8, [
+						"box",
+						"aligns",
+						"align",
+						"width",
+						"resettable",
+						"zoomable"
+					])) : createCommentVNode("", true)]),
 					_: 1
 				}, 8, [
 					"label",
@@ -11960,7 +12333,7 @@ var _hoisted_1$16 = [
 ];
 var _hoisted_2$13 = { class: "wy-field" };
 var _hoisted_3$13 = { class: "wy-label" };
-var _hoisted_4$11 = ["value", "placeholder"];
+var _hoisted_4$12 = ["value", "placeholder"];
 var _hoisted_5$11 = { class: "wy-field" };
 var _hoisted_6$7 = { class: "wy-label" };
 var _hoisted_7$5 = ["value"];
@@ -11983,6 +12356,13 @@ var InlineImageView_default = /* @__PURE__ */ defineComponent({
 			await nextTick();
 			altInput.value?.focus();
 		});
+		function zoom() {
+			stopEdit();
+			ctx.zoom({
+				src: props.node.attrs.src,
+				alt: props.node.attrs.alt || ""
+			});
+		}
 		function toFigure() {
 			const pos = props.getPos();
 			if (typeof pos !== "number") return;
@@ -12021,15 +12401,14 @@ var InlineImageView_default = /* @__PURE__ */ defineComponent({
 					style: normalizeStyle(_ctx.node.attrs.width ? `width:${_ctx.node.attrs.width}%` : void 0),
 					loading: "lazy",
 					draggable: "false",
-					onClick: _cache[0] || (_cache[0] = ($event) => _ctx.editor.isEditable ? unref(startEdit)() : unref(ctx).zoom({
-						src: _ctx.node.attrs.src,
-						alt: _ctx.node.attrs.alt || ""
-					}))
-				}, null, 14, _hoisted_1$16), unref(editing) ? (openBlock(), createBlock(AnchoredPopover_default, {
+					onClick: _cache[0] || (_cache[0] = ($event) => _ctx.editor.isEditable ? unref(startEdit)() : zoom()),
+					onDblclick: zoom
+				}, null, 46, _hoisted_1$16), unref(editing) ? (openBlock(), createBlock(AnchoredPopover_default, {
 					key: 0,
 					anchor: image.value,
 					class: "wy-popover",
-					onEscape: unref(onKeydown)
+					onEscape: unref(onKeydown),
+					onClose: unref(finishEdit)
 				}, {
 					default: withCtx(() => [
 						createElementVNode("label", _hoisted_2$13, [createElementVNode("span", _hoisted_3$13, toDisplayString(unref(t)("image.alt")), 1), createElementVNode("input", {
@@ -12041,7 +12420,7 @@ var InlineImageView_default = /* @__PURE__ */ defineComponent({
 							placeholder: unref(t)("image.altPlaceholder"),
 							onInput: _cache[1] || (_cache[1] = ($event) => unref(update)({ alt: $event.target.value || null })),
 							onKeydown: _cache[2] || (_cache[2] = withKeys(withModifiers((...args) => unref(finishEdit) && unref(finishEdit)(...args), ["prevent"]), ["enter"]))
-						}, null, 40, _hoisted_4$11)]),
+						}, null, 40, _hoisted_4$12)]),
 						createElementVNode("label", _hoisted_5$11, [createElementVNode("span", _hoisted_6$7, toDisplayString(unref(t)("image.title")), 1), createElementVNode("input", {
 							class: "wy-input",
 							type: "text",
@@ -12057,7 +12436,11 @@ var InlineImageView_default = /* @__PURE__ */ defineComponent({
 						}, toDisplayString(unref(t)("image.toFigure")), 1)) : createCommentVNode("", true)
 					]),
 					_: 1
-				}, 8, ["anchor", "onEscape"])) : createCommentVNode("", true)]),
+				}, 8, [
+					"anchor",
+					"onEscape",
+					"onClose"
+				])) : createCommentVNode("", true)]),
 				_: 1
 			}, 8, ["class"]);
 		};
@@ -12084,7 +12467,7 @@ var _hoisted_3$12 = [
 	"placeholder",
 	"aria-label"
 ];
-var _hoisted_4$10 = ["innerHTML"];
+var _hoisted_4$11 = ["innerHTML"];
 var _hoisted_5$10 = {
 	key: 0,
 	class: "wy-math-palette"
@@ -12159,7 +12542,7 @@ var MathBlockView_default = /* @__PURE__ */ defineComponent({
 						createElementVNode("div", {
 							class: "wy-math-block",
 							innerHTML: html.value
-						}, null, 8, _hoisted_4$10),
+						}, null, 8, _hoisted_4$11),
 						unref(palettes).length ? (openBlock(), createElementBlock("div", _hoisted_5$10, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(palettes), (p, i) => {
 							return openBlock(), createBlock(resolveDynamicComponent(p.palette), {
 								key: i,
@@ -12189,7 +12572,7 @@ var _hoisted_3$11 = {
 	key: 1,
 	class: "wy-muted"
 };
-var _hoisted_4$9 = [
+var _hoisted_4$10 = [
 	"value",
 	"placeholder",
 	"aria-label"
@@ -12244,7 +12627,8 @@ var MathInlineView_default = /* @__PURE__ */ defineComponent({
 					key: 0,
 					anchor: anchor.value,
 					class: normalizeClass(["wy-popover", { "is-wide": unref(palettes).length }]),
-					onEscape: unref(onKeydown)
+					onEscape: unref(onKeydown),
+					onClose: unref(finishEdit)
 				}, {
 					default: withCtx(() => [
 						createElementVNode("textarea", {
@@ -12258,7 +12642,7 @@ var MathInlineView_default = /* @__PURE__ */ defineComponent({
 							spellcheck: "false",
 							onInput: _cache[1] || (_cache[1] = ($event) => unref(update)({ tex: $event.target.value })),
 							onKeydown: onKey
-						}, null, 40, _hoisted_4$9),
+						}, null, 40, _hoisted_4$10),
 						createElementVNode("span", {
 							class: "wy-math-preview",
 							innerHTML: html.value
@@ -12274,7 +12658,8 @@ var MathInlineView_default = /* @__PURE__ */ defineComponent({
 				}, 8, [
 					"anchor",
 					"class",
-					"onEscape"
+					"onEscape",
+					"onClose"
 				])) : createCommentVNode("", true)]),
 				_: 1
 			}, 8, ["class"]);
@@ -12566,13 +12951,220 @@ function clipboardExtension(markdown, copyMarkdown) {
 		}
 	});
 }
+// src/editor/blockDrag.ts
+/** marks a block drag in `dataTransfer.types` */
+var BLOCK_DRAG_TYPE = "application/x-wysiwyg-block";
+var REGION_SLACK = 48;
+function children(view, parent, start) {
+	const out = [];
+	parent.forEach((node, offset, index) => {
+		const dom = view.nodeDOM(start + offset);
+		if (!(dom instanceof HTMLElement)) return;
+		const rect = dom.getBoundingClientRect();
+		if (rect.width || rect.height) out.push({
+			pos: start + offset,
+			index,
+			node,
+			rect
+		});
+	});
+	return out;
+}
+/**
+* The boundary a block dropped at `x`/`y` lands on: the deepest container under the pointer that accepts the node, so
+* a block can go into a column, a callout, a toggle or a list item. Left of the content only the top level counts,
+* unless the node does not fit there (a list item stays in a list).
+*/
+function dropSpot(view, x, y, node, from) {
+	const box = view.dom.getBoundingClientRect();
+	const over = x >= box.left && x <= box.right;
+	const end = from + node.nodeSize;
+	let parent = view.state.doc;
+	let start = 0;
+	let best = null;
+	for (;;) {
+		const kids = children(view, parent, start);
+		if (!kids.length) break;
+		let i = kids.findIndex((k) => y < k.rect.top + k.rect.height / 2);
+		if (i < 0) i = kids.length;
+		const last = kids[kids.length - 1];
+		if (parent !== view.state.doc && (y < kids[0].rect.top || y > last.rect.bottom)) break;
+		let pos = i < kids.length ? kids[i].pos : last.pos + last.node.nodeSize;
+		const index = i < kids.length ? kids[i].index : last.index + 1;
+		const ownText = index === 0 && /item$/i.test(parent.type.name);
+		let valid = parent.canReplaceWith(index, index, node.type, node.marks) && !ownText;
+		const prev = i > 0 ? kids[i - 1].node : null;
+		if (!valid && prev && !prev.isTextblock && !prev.isAtom && prev.canReplaceWith(prev.childCount, prev.childCount, node.type, node.marks)) {
+			pos = kids[i - 1].pos + prev.nodeSize - 1;
+			valid = true;
+		}
+		if (valid && !(pos > from && pos < end)) {
+			const top = parent === view.state.doc;
+			best = {
+				pos,
+				left: top ? box.left : Math.min(...kids.map((k) => k.rect.left)),
+				right: top ? box.right : Math.max(...kids.map((k) => k.rect.right)),
+				y: i === 0 ? kids[0].rect.top - 2 : i === kids.length ? last.rect.bottom + 2 : (kids[i - 1].rect.bottom + kids[i].rect.top) / 2
+			};
+		}
+		const row = kids.filter((k) => y >= k.rect.top && y <= k.rect.bottom);
+		let hit = row.find((k) => x >= k.rect.left && x <= k.rect.right) ?? null;
+		if (hit && !over && best) hit = null;
+		if (!hit && !best && row.length) hit = row.reduce((a, b) => Math.abs(x - (a.rect.left + a.rect.right) / 2) <= Math.abs(x - (b.rect.left + b.rect.right) / 2) ? a : b);
+		if (!hit || hit.pos === from) break;
+		const inner = hit.node;
+		if (inner.isAtom || inner.isTextblock || inner.type.spec.code || inner.type.spec.tableRole !== void 0) break;
+		parent = hit.node;
+		start = hit.pos + 1;
+	}
+	return best;
+}
+/** moves the block at `from` to the boundary `to` in one transaction; null when that would change nothing */
+function moveBlock(state, from, to) {
+	const node = state.doc.nodeAt(from);
+	if (!node) return null;
+	const end = from + node.nodeSize;
+	if (to >= from && to <= end) return null;
+	const tr = state.tr.insert(to, node);
+	const a = tr.mapping.map(from);
+	const b = tr.mapping.map(end);
+	const $a = tr.doc.resolve(a);
+	const index = $a.index();
+	const paragraph = state.schema.nodes.paragraph;
+	if ($a.parent.canReplace(index, index + 1)) tr.delete(a, b);
+	else if (paragraph && $a.parent.canReplaceWith(index, index + 1, paragraph)) tr.replaceWith(a, b, paragraph.create());
+	else tr.deleteRange(a, b);
+	const at = tr.mapping.slice(1).map(to);
+	const moved = tr.doc.nodeAt(at);
+	if (moved?.isTextblock) tr.setSelection(TextSelection.create(tr.doc, at + moved.nodeSize - 1));
+	else if (moved && NodeSelection.isSelectable(moved)) tr.setSelection(NodeSelection.create(tr.doc, at));
+	else tr.setSelection(TextSelection.near(tr.doc.resolve(Math.min(at + 1, tr.doc.content.size))));
+	return tr.setMeta("uiEvent", "drop");
+}
+function scrollBox(el) {
+	for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+		const s = getComputedStyle(p);
+		if (/(auto|scroll|overlay)/.test(`${s.overflowY} ${s.overflowX}`)) return p.getBoundingClientRect();
+	}
+	return {
+		left: 0,
+		right: window.innerWidth,
+		top: 0,
+		bottom: window.innerHeight
+	};
+}
+var active = null;
+var guards = 0;
+function staleDrop(e) {
+	if (active || !e.dataTransfer?.types.includes("application/x-wysiwyg-block")) return;
+	e.preventDefault();
+	e.stopPropagation();
+}
+var BlockDrag = class {
+	guide;
+	source = null;
+	view;
+	container;
+	onStop;
+	constructor(view, container, onStop) {
+		this.view = view;
+		this.container = container;
+		this.onStop = onStop;
+		this.guide = document.createElement("div");
+		this.guide.className = "wy-drop-guide";
+		this.guide.setAttribute("aria-hidden", "true");
+		if (!guards++) document.addEventListener("drop", staleDrop, true);
+	}
+	get dragging() {
+		return this.source !== null;
+	}
+	start(source) {
+		active?.stop();
+		active = this;
+		this.source = source;
+		document.addEventListener("dragenter", this.onOver, true);
+		document.addEventListener("dragover", this.onOver, true);
+		document.addEventListener("dragleave", this.onLeave, true);
+		document.addEventListener("drop", this.onDrop, true);
+		document.addEventListener("dragend", this.onEnd, true);
+		document.documentElement.classList.add("wy-block-dragging");
+	}
+	stop() {
+		if (!this.source) return;
+		this.source = null;
+		if (active === this) active = null;
+		document.removeEventListener("dragenter", this.onOver, true);
+		document.removeEventListener("dragover", this.onOver, true);
+		document.removeEventListener("dragleave", this.onLeave, true);
+		document.removeEventListener("drop", this.onDrop, true);
+		document.removeEventListener("dragend", this.onEnd, true);
+		document.documentElement.classList.remove("wy-block-dragging");
+		this.guide.remove();
+		this.onStop();
+	}
+	destroy() {
+		this.stop();
+		if (!--guards) document.removeEventListener("drop", staleDrop, true);
+	}
+	/** the boundary under the pointer, null outside the editor column */
+	spotAt(x, y) {
+		const pos = this.source?.pos();
+		const node = pos == null ? null : this.view.state.doc.nodeAt(pos);
+		if (pos == null || !node) return null;
+		const content = this.view.dom.getBoundingClientRect();
+		const area = scrollBox(this.view.dom);
+		if (x < area.left || x > area.right || y < Math.max(area.top, content.top - REGION_SLACK) || y > Math.min(area.bottom, content.bottom + REGION_SLACK)) return null;
+		return dropSpot(this.view, x, y, node, pos);
+	}
+	show(spot) {
+		const container = this.container();
+		if (!spot || !container) {
+			this.guide.remove();
+			return;
+		}
+		const base = container.getBoundingClientRect();
+		if (this.guide.parentElement !== container) container.appendChild(this.guide);
+		this.guide.style.left = `${spot.left - base.left}px`;
+		this.guide.style.width = `${Math.max(0, spot.right - spot.left)}px`;
+		this.guide.style.top = `${spot.y - base.top + container.scrollTop}px`;
+	}
+	onOver = (e) => {
+		e.preventDefault();
+		e.stopPropagation();
+		const spot = this.spotAt(e.clientX, e.clientY);
+		if (e.dataTransfer) e.dataTransfer.dropEffect = spot ? "move" : "none";
+		this.show(spot);
+	};
+	onLeave = (e) => {
+		e.stopPropagation();
+		if (!e.relatedTarget) this.show(null);
+	};
+	onDrop = (e) => {
+		e.preventDefault();
+		e.stopPropagation();
+		const spot = this.spotAt(e.clientX, e.clientY);
+		const pos = this.source?.pos();
+		this.stop();
+		if (!spot || pos == null) return;
+		const tr = moveBlock(this.view.state, pos, spot.pos);
+		if (!tr) return;
+		this.view.dispatch(tr);
+		this.view.focus();
+	};
+	onEnd = () => this.stop();
+};
 // src/editor/gutter.ts
 var GRIP_ICON = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"9\" cy=\"12\" r=\"1\"/><circle cx=\"9\" cy=\"5\" r=\"1\"/><circle cx=\"9\" cy=\"19\" r=\"1\"/><circle cx=\"15\" cy=\"12\" r=\"1\"/><circle cx=\"15\" cy=\"5\" r=\"1\"/><circle cx=\"15\" cy=\"19\" r=\"1\"/></svg>";
 var PLUS_ICON = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg>";
 var GAP = 8;
 var FRAME_GAP = 12;
 var HIDE_DELAY$2 = 250;
+/** the band left of the content that shows the handle reaches this far beyond the handle itself */
+var BAND = 24;
 var LEAF = "input, textarea, select, button, img, svg, video, audio, iframe, canvas";
+var OVERLAY = "[role=dialog], [role=menu], [role=listbox], [role=toolbar], .wy-floating, .wy-slash";
+/** the position of the dragged block, mapped through every change while a grip drag runs */
+var dragKey = new PluginKey("gutterDrag");
 function firstLineRect(dom) {
 	const walker = document.createTreeWalker(dom, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, { acceptNode: (n) => {
 		if (n instanceof Element) {
@@ -12601,37 +13193,54 @@ function frameEdge(dom) {
 	if (!body || !rect || rect.width === 0) return dom.getBoundingClientRect().left - 6;
 	return rect.left - (parseFloat(getComputedStyle(body).outlineOffset) || 0);
 }
-function blockAtPos(view, inside) {
-	if (inside < 0 || inside > view.state.doc.content.size) return null;
-	const $pos = view.state.doc.resolve(inside);
-	const pos = $pos.depth === 0 ? $pos.pos : $pos.before(1);
-	if (pos < 0 || pos >= view.state.doc.content.size || !view.state.doc.nodeAt(pos)) return null;
-	const dom = view.nodeDOM(pos);
-	return dom instanceof HTMLElement && dom.parentNode === view.dom ? {
-		pos,
-		dom
-	} : null;
-}
 function nodeAtSafe(view, pos) {
 	return pos >= 0 && pos < view.state.doc.content.size ? view.state.doc.nodeAt(pos) : null;
 }
+/**
+* The innermost block holding `target` that gets its own handle. A list item's first paragraph is the item's text and
+* a table's cells belong to the table, so those resolve to the item and the table.
+*/
 function blockAt(view, target) {
-	if (!(target instanceof Node)) return null;
-	let el = target;
-	while (el && el.parentNode !== view.dom) el = el.parentNode;
-	if (!(el instanceof HTMLElement)) return null;
-	return blockAtPos(view, view.posAtDOM(el, 0));
+	const doc = view.state.doc;
+	for (let el = target; el && el !== view.dom; el = el.parentNode) {
+		const parent = el.parentNode;
+		if (!(el instanceof HTMLElement) || !parent) continue;
+		let pos;
+		try {
+			pos = view.posAtDOM(parent, Array.prototype.indexOf.call(parent.childNodes, el));
+		} catch {
+			continue;
+		}
+		if (pos < 0 || pos >= doc.content.size || view.nodeDOM(pos) !== el) continue;
+		const $pos = doc.resolve(pos);
+		const node = $pos.nodeAfter;
+		const holder = $pos.parent;
+		if (!node?.isBlock || holder.isTextblock) continue;
+		if ($pos.depth > 0) {
+			if (holder.type.spec.tableRole !== void 0) continue;
+			if ($pos.index() === 0 && /item$/i.test(holder.type.name)) continue;
+			if (node.type.spec.isolating) continue;
+		}
+		return {
+			pos,
+			dom: el
+		};
+	}
+	return null;
 }
+/** the top-level block on the line at `y`, for a pointer left of the content */
 function blockBeside(view, y) {
-	const edge = view.dom.getBoundingClientRect().left + 1;
-	const hit = view.posAtCoords({
-		left: edge,
-		top: y
-	});
-	const found = hit && blockAtPos(view, hit.inside >= 0 ? hit.inside : hit.pos);
-	if (!found) return null;
-	const rect = found.dom.getBoundingClientRect();
-	return y >= rect.top && y <= rect.bottom ? found : null;
+	const kids = view.dom.children;
+	let lo = 0;
+	let hi = kids.length - 1;
+	while (lo <= hi) {
+		const mid = lo + hi >> 1;
+		const r = kids[mid].getBoundingClientRect();
+		if (y < r.top) hi = mid - 1;
+		else if (y > r.bottom) lo = mid + 1;
+		else return blockAt(view, kids[mid]);
+	}
+	return null;
 }
 var GutterView = class {
 	el;
@@ -12639,11 +13248,11 @@ var GutterView = class {
 	plus;
 	hovered = null;
 	container = null;
-	zone = null;
 	frame = 0;
 	view;
 	options;
 	hideTimer = 0;
+	drag;
 	constructor(view, options) {
 		this.view = view;
 		this.options = options;
@@ -12669,10 +13278,12 @@ var GutterView = class {
 		this.el.addEventListener("mouseenter", this.cancelHide);
 		this.grip.addEventListener("dragstart", this.onDragStart);
 		this.grip.addEventListener("click", this.onGripClick);
-		this.grip.addEventListener("dragend", this.onDragEnd);
 		this.plus.addEventListener("mousedown", (e) => e.preventDefault());
 		this.plus.addEventListener("click", this.onPlus);
+		this.drag = new BlockDrag(view, () => this.container, this.onDragStop);
 		this.hide();
+		document.addEventListener("mousemove", this.onMove, { passive: true });
+		document.documentElement.addEventListener("mouseleave", this.onLeave);
 		this.bindLater();
 	}
 	bindLater = () => {
@@ -12681,24 +13292,15 @@ var GutterView = class {
 	};
 	bind() {
 		const container = this.view.dom.parentElement;
-		const zone = container?.parentElement;
-		if (!container || !zone || !this.view.dom.isConnected) return false;
-		if (zone === this.zone && container === this.container) return true;
-		this.unbind();
+		if (!container || !this.view.dom.isConnected) return false;
+		if (container === this.container) return true;
 		this.container = container;
-		this.zone = zone;
 		container.appendChild(this.el);
-		zone.addEventListener("mousemove", this.onMove);
-		zone.addEventListener("mouseleave", this.onLeave);
 		return true;
-	}
-	unbind() {
-		this.zone?.removeEventListener("mousemove", this.onMove);
-		this.zone?.removeEventListener("mouseleave", this.onLeave);
-		this.zone = null;
 	}
 	update() {
 		this.bind();
+		if (this.drag.dragging) return;
 		if (this.hovered && !this.view.editable) this.hide();
 		else if (this.hovered) {
 			if (!nodeAtSafe(this.view, this.hovered.pos) || this.view.nodeDOM(this.hovered.pos) !== this.hovered.dom) this.hide();
@@ -12707,21 +13309,29 @@ var GutterView = class {
 	}
 	destroy() {
 		cancelAnimationFrame(this.frame);
-		this.unbind();
+		document.removeEventListener("mousemove", this.onMove);
+		document.documentElement.removeEventListener("mouseleave", this.onLeave);
+		this.drag.destroy();
 		this.cancelHide();
 		this.el.remove();
 	}
 	onMove = (e) => {
-		if (!this.view.editable || this.view.dragging || this.options.menuOpen()) return;
+		if (!this.view.editable || this.drag.dragging || this.options.menuOpen() || !this.container) return;
 		const target = e.target;
 		if (this.el.contains(target) || this.inStrip(e.clientX, e.clientY)) {
 			this.cancelHide();
 			return;
 		}
 		const dom = this.view.dom;
+		const box = dom.getBoundingClientRect();
 		let found = null;
+		if (dom === target) {
+			if (this.hovered) this.cancelHide();
+			else this.scheduleHide();
+			return;
+		}
 		if (dom.contains(target)) found = blockAt(this.view, target);
-		else if (e.clientX < dom.getBoundingClientRect().left) found = blockBeside(this.view, e.clientY);
+		else if (e.clientX < box.left && e.clientX >= box.left - this.band() && e.clientY >= box.top && e.clientY <= box.bottom && !(target instanceof Element && target.closest(OVERLAY))) found = blockBeside(this.view, e.clientY);
 		if (!found) {
 			this.scheduleHide();
 			return;
@@ -12732,8 +13342,12 @@ var GutterView = class {
 		this.place();
 	};
 	onLeave = () => this.scheduleHide();
+	/** the handle's own width plus `BAND`, measured from the content edge */
+	band() {
+		return (this.el.style.display !== "none" ? this.el.offsetWidth : 52) + GAP + FRAME_GAP + BAND;
+	}
 	inStrip(x, y) {
-		if (!this.hovered) return false;
+		if (!this.hovered || this.el.style.display === "none") return false;
 		const h = this.el.getBoundingClientRect();
 		const b = this.hovered.dom.getBoundingClientRect();
 		return y >= h.top && y <= h.bottom && x >= h.left && x <= Math.max(h.right, b.left);
@@ -12753,7 +13367,7 @@ var GutterView = class {
 	place() {
 		const container = this.container;
 		if (!this.hovered || !container) return;
-		const { dom } = this.hovered;
+		const { pos, dom } = this.hovered;
 		const rect = dom.getBoundingClientRect();
 		const base = container.getBoundingClientRect();
 		const style = getComputedStyle(dom);
@@ -12763,8 +13377,9 @@ var GutterView = class {
 		const height = this.el.offsetHeight;
 		const line = firstLineRect(dom);
 		const centre = line ? line.top + Math.min(line.height, lineHeight) / 2 : rect.top + (parseFloat(style.paddingTop) || 0) + lineHeight / 2;
+		const list = /item$/i.test(this.view.state.doc.resolve(pos).nodeAfter?.type.name ?? "") ? dom.parentElement : null;
 		const ring = style.float !== "none" ? null : dom.classList.contains("tableWrapper") ? rect.left : frameEdge(dom);
-		const left = ring === null ? rect.left - GAP - width : ring - FRAME_GAP - width;
+		const left = list ? list.getBoundingClientRect().left - GAP - width : ring === null ? rect.left - GAP - width : ring - FRAME_GAP - width;
 		this.el.style.top = `${centre - height / 2 - base.top + container.scrollTop}px`;
 		this.el.style.left = `${left - base.left}px`;
 	}
@@ -12794,25 +13409,22 @@ var GutterView = class {
 		const { pos, dom } = this.hovered;
 		if (!nodeAtSafe(this.view, pos)) return;
 		const selection = NodeSelection.create(this.view.state.doc, pos);
-		this.view.dispatch(this.view.state.tr.setSelection(selection));
-		const slice = selection.content();
-		const { dom: html, text } = this.view.serializeForClipboard(slice);
+		this.view.dispatch(this.view.state.tr.setSelection(selection).setMeta(dragKey, pos));
+		const { dom: html, text } = this.view.serializeForClipboard(selection.content());
 		e.dataTransfer.clearData();
+		e.dataTransfer.setData(BLOCK_DRAG_TYPE, "");
 		e.dataTransfer.setData("text/html", html.innerHTML);
 		e.dataTransfer.setData("text/plain", text);
-		e.dataTransfer.effectAllowed = "copyMove";
+		e.dataTransfer.effectAllowed = "move";
 		const rect = dom.getBoundingClientRect();
 		e.dataTransfer.setDragImage(dom, Math.min(24, rect.width / 2), 12);
-		this.view.dragging = {
-			slice,
-			move: true
-		};
-		this.el.style.display = "none";
+		this.drag.start({ pos: () => dragKey.getState(this.view.state) ?? null });
+		window.setTimeout(() => this.drag.dragging && this.el.classList.add("is-dragging"));
 	};
-	onDragEnd = () => {
-		window.setTimeout(() => {
-			if (this.view.dragging) this.view.dragging = null;
-		}, 50);
+	onDragStop = () => {
+		this.el.classList.remove("is-dragging");
+		this.hide();
+		if (dragKey.getState(this.view.state) != null && !this.view.isDestroyed) this.view.dispatch(this.view.state.tr.setMeta(dragKey, null));
 	};
 };
 var GutterHandle = Extension.create({
@@ -12831,7 +13443,17 @@ var GutterHandle = Extension.create({
 	addProseMirrorPlugins() {
 		const options = this.options;
 		return [new Plugin({
-			key: new PluginKey("gutterHandle"),
+			key: dragKey,
+			state: {
+				init: () => null,
+				apply(tr, pos) {
+					const meta = tr.getMeta(dragKey);
+					if (meta !== void 0) return meta;
+					if (pos == null || !tr.docChanged) return pos;
+					const mapped = tr.mapping.mapResult(pos, 1);
+					return mapped.deletedAfter ? null : mapped.pos;
+				}
+			},
 			view: (view) => new GutterView(view, options)
 		})];
 	}
@@ -12863,6 +13485,8 @@ function editorExtensions(ctx, opts) {
 			collaborative: !!opts.collaboration
 		}),
 		InlineAtomClick,
+		ClickAway,
+		ScopedSelectAll,
 		clipboardExtension(ctx.markdown, ctx.config.format === "markdown")
 	];
 	if (ctx.config.base.links) out.push(LinkClicks.configure({ open: (href, event) => openHref(ctx.services, href, event) }));
@@ -12981,7 +13605,7 @@ function setBlockColor(editor, run, token) {
 var _hoisted_1$13 = ["aria-label"];
 var _hoisted_2$10 = { class: "wy-menu-heading" };
 var _hoisted_3$10 = ["aria-label"];
-var _hoisted_4$8 = [
+var _hoisted_4$9 = [
 	"title",
 	"aria-label",
 	"aria-checked",
@@ -13171,7 +13795,7 @@ var ColorMenu_default = /* @__PURE__ */ defineComponent({
 						key: 0,
 						class: "wy-swatch-check",
 						size: 12
-					})) : createCommentVNode("", true)], 44, _hoisted_4$8);
+					})) : createCommentVNode("", true)], 44, _hoisted_4$9);
 				}), 128))], 8, _hoisted_3$10)], 64)) : createCommentVNode("", true),
 				unref(showMarks) ? (openBlock(), createElementBlock(Fragment$1, { key: 1 }, [createElementVNode("div", _hoisted_5$8, toDisplayString(unref(t)("colors.background")), 1), createElementVNode("div", {
 					class: "wy-swatches",
@@ -13215,7 +13839,7 @@ var ColorMenu_default = /* @__PURE__ */ defineComponent({
 var _hoisted_1$12 = ["aria-label"];
 var _hoisted_2$9 = ["aria-expanded"];
 var _hoisted_3$9 = { class: "wy-grow" };
-var _hoisted_4$7 = ["aria-expanded"];
+var _hoisted_4$8 = ["aria-expanded"];
 var _hoisted_5$7 = { class: "wy-grow" };
 var _hoisted_6$5 = ["aria-label"];
 // src/components/BlockActionsMenu.vue
@@ -13237,6 +13861,13 @@ var BlockActionsMenu_default = /* @__PURE__ */ defineComponent({
 		const targets = computed(() => runTargets(ctx.convert, props.editor.state, props.run));
 		const colorable = computed(() => colorTargets(props.editor.state, props.run).length > 0);
 		const blockColor = computed(() => blockColorOf(props.editor.state, props.run));
+		const inserts = computed(() => {
+			const only = props.run.nodes.length === 1 ? props.run.nodes[0] : null;
+			if (only?.type.name !== "paragraph" || only.content.size) return [];
+			const inCell = isInCell(props.editor.state.doc.resolve(props.run.from + 1));
+			return ctx.slashItems.filter((item) => item.enabled(props.editor) && (item.inline || !inCell));
+		});
+		const convertList = ref(null);
 		const sub = ref(null);
 		const menuEl = ref(null);
 		const subEl = ref(null);
@@ -13255,7 +13886,8 @@ var BlockActionsMenu_default = /* @__PURE__ */ defineComponent({
 			sub.value = which;
 			if (!focus) return;
 			await nextTick();
-			focusItem(subEl.value, "first");
+			if (which === "convert") convertList.value?.focus();
+			else focusItem(subEl.value, "first");
 		}
 		function closeSub() {
 			trigger.value?.focus({ preventScroll: true });
@@ -13269,6 +13901,16 @@ var BlockActionsMenu_default = /* @__PURE__ */ defineComponent({
 			const tr = convertRun(ctx.convert, props.editor.state, props.run, target, props.selectAll);
 			if (tr) props.editor.view.dispatch(tr);
 			finish();
+		}
+		function insert(item) {
+			const at = props.run.from + 1;
+			emit("close");
+			props.editor.view.dispatch(props.editor.state.tr.setSelection(TextSelection.create(props.editor.state.doc, at)));
+			props.editor.view.focus();
+			item.run(props.editor, {
+				from: at,
+				to: at
+			});
 		}
 		function color(token) {
 			setBlockColor(props.editor, props.run, token);
@@ -13326,7 +13968,9 @@ var BlockActionsMenu_default = /* @__PURE__ */ defineComponent({
 				case "Tab":
 					finish();
 					break;
-				default: return;
+				default:
+					if (!inSub && sub.value === "convert" && e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey) convertList.value?.focus();
+					return;
 			}
 			e.preventDefault();
 			e.stopPropagation();
@@ -13339,13 +13983,15 @@ var BlockActionsMenu_default = /* @__PURE__ */ defineComponent({
 		onMounted(async () => {
 			document.addEventListener("mousedown", onDocDown, true);
 			await nextTick();
-			focusItem(menuEl.value, "first");
+			if (props.convertOnly) convertList.value?.focus();
+			else focusItem(menuEl.value, "first");
 		});
 		onBeforeUnmount(() => document.removeEventListener("mousedown", onDocDown, true));
 		return (_ctx, _cache) => {
 			return openBlock(), createElementBlock(Fragment$1, null, [createVNode(AnchoredPopover_default, {
 				anchor: __props.anchor,
-				class: "wy-menu wy-block-actions"
+				class: "wy-menu wy-block-actions",
+				onClose: _cache[13] || (_cache[13] = ($event) => emit("close"))
 			}, {
 				default: withCtx(() => [createElementVNode("div", {
 					ref_key: "menuEl",
@@ -13356,10 +14002,14 @@ var BlockActionsMenu_default = /* @__PURE__ */ defineComponent({
 					onKeydown: _cache[12] || (_cache[12] = ($event) => onKeydown($event, false))
 				}, [__props.convertOnly ? (openBlock(), createBlock(ConvertItems_default, {
 					key: 0,
+					ref_key: "convertList",
+					ref: convertList,
 					targets: targets.value,
-					onPick: convert
-				}, null, 8, ["targets"])) : (openBlock(), createElementBlock(Fragment$1, { key: 1 }, [
-					targets.value.length ? (openBlock(), createElementBlock("button", {
+					inserts: inserts.value,
+					onPick: convert,
+					onInsert: insert
+				}, null, 8, ["targets", "inserts"])) : (openBlock(), createElementBlock(Fragment$1, { key: 1 }, [
+					targets.value.length || inserts.value.length ? (openBlock(), createElementBlock("button", {
 						key: 0,
 						ref: (el) => triggers.convert = el,
 						type: "button",
@@ -13400,7 +14050,7 @@ var BlockActionsMenu_default = /* @__PURE__ */ defineComponent({
 							size: 16,
 							"aria-hidden": "true"
 						})
-					], 40, _hoisted_4$7)) : createCommentVNode("", true),
+					], 40, _hoisted_4$8)) : createCommentVNode("", true),
 					createElementVNode("button", {
 						type: "button",
 						class: "wy-menu-item",
@@ -13443,7 +14093,8 @@ var BlockActionsMenu_default = /* @__PURE__ */ defineComponent({
 				key: 0,
 				anchor: trigger.value,
 				side: "right",
-				class: normalizeClass(["wy-menu wy-block-actions", { "wy-color-panel": sub.value === "color" }])
+				class: normalizeClass(["wy-menu wy-block-actions", { "wy-color-panel": sub.value === "color" }]),
+				"anchor-closes": false
 			}, {
 				default: withCtx(() => [sub.value === "convert" ? (openBlock(), createElementBlock("div", {
 					key: 0,
@@ -13452,15 +14103,19 @@ var BlockActionsMenu_default = /* @__PURE__ */ defineComponent({
 					class: "wy-menu-list",
 					role: "menu",
 					"aria-label": unref(t)("convert.title"),
-					onKeydown: _cache[13] || (_cache[13] = ($event) => onKeydown($event, true))
+					onKeydown: _cache[14] || (_cache[14] = ($event) => onKeydown($event, true))
 				}, [createVNode(ConvertItems_default, {
+					ref_key: "convertList",
+					ref: convertList,
 					targets: targets.value,
-					onPick: convert
-				}, null, 8, ["targets"])], 40, _hoisted_6$5)) : (openBlock(), createElementBlock("div", {
+					inserts: inserts.value,
+					onPick: convert,
+					onInsert: insert
+				}, null, 8, ["targets", "inserts"])], 40, _hoisted_6$5)) : (openBlock(), createElementBlock("div", {
 					key: 1,
 					ref_key: "subEl",
 					ref: subEl,
-					onKeydown: _cache[14] || (_cache[14] = ($event) => onKeydown($event, true))
+					onKeydown: _cache[15] || (_cache[15] = ($event) => onKeydown($event, true))
 				}, [createVNode(ColorMenu_default, {
 					editor: __props.editor,
 					block: "",
@@ -13551,6 +14206,7 @@ var Dropdown_default = /* @__PURE__ */ defineComponent({
 				side: __props.side,
 				class: normalizeClass(["wy-menu wy-dropdown-panel is-open", __props.panelClass]),
 				onEscape: _cache[0] || (_cache[0] = ($event) => close()),
+				onClose: _cache[1] || (_cache[1] = ($event) => close()),
 				onKeydown: onPanelKey
 			}, {
 				default: withCtx(() => [renderSlot(_ctx.$slots, "default", { close: () => close() })]),
@@ -13712,7 +14368,7 @@ var MarkButtons_default = /* @__PURE__ */ defineComponent({
 var _hoisted_1$9 = ["aria-label"];
 var _hoisted_2$8 = ["aria-label"];
 var _hoisted_3$8 = { class: "wy-tool-text" };
-var _hoisted_4$6 = ["aria-label", "aria-pressed"];
+var _hoisted_4$7 = ["aria-label", "aria-pressed"];
 var _hoisted_5$6 = [
 	"aria-label",
 	"aria-expanded",
@@ -13946,7 +14602,7 @@ var FloatingToolbar_default = /* @__PURE__ */ defineComponent({
 							"aria-pressed": state.value.link,
 							onMousedown: _cache[2] || (_cache[2] = withModifiers(() => {}, ["prevent"])),
 							onClick: _cache[3] || (_cache[3] = ($event) => emit("link"))
-						}, [createVNode(unref(Link$1), { size: 18 })], 40, _hoisted_4$6)), [[unref(vTooltip), {
+						}, [createVNode(unref(Link$1), { size: 18 })], 40, _hoisted_4$7)), [[unref(vTooltip), {
 							text: unref(t)("toolbar.link"),
 							keys: "Mod-k"
 						}]]) : createCommentVNode("", true),
@@ -14021,8 +14677,10 @@ var FloatingToolbar_default = /* @__PURE__ */ defineComponent({
 });
 // src/components/ImageLightbox.vue?vue&type=script&setup=true&lang.ts
 var _hoisted_1$8 = ["aria-label"];
-var _hoisted_2$7 = ["src", "alt"];
-var _hoisted_3$7 = ["aria-label", "title"];
+var _hoisted_2$7 = ["aria-label", "innerHTML"];
+var _hoisted_3$7 = ["src", "alt"];
+var _hoisted_4$6 = ["aria-label", "title"];
+var OPEN_GRACE = 400;
 // src/components/ImageLightbox.vue
 var ImageLightbox_default = /* @__PURE__ */ defineComponent({
 	__name: "ImageLightbox",
@@ -14036,14 +14694,20 @@ var ImageLightbox_default = /* @__PURE__ */ defineComponent({
 		const emit = __emit;
 		const closeButton = ref(null);
 		let returnTo = null;
+		let openedAt = 0;
 		function onKey(e) {
 			if (e.key !== "Escape" && e.key !== "Tab") return;
 			e.preventDefault();
 			e.stopPropagation();
 			if (e.key === "Escape") emit("close");
 		}
+		function onClick(e) {
+			if (e.detail > 1 || performance.now() - openedAt < OPEN_GRACE) return;
+			emit("close");
+		}
 		watch(() => props.image, async (img, prev) => {
 			if (img && !prev) {
+				openedAt = performance.now();
 				returnTo = document.activeElement;
 				document.addEventListener("keydown", onKey, true);
 				await nextTick();
@@ -14062,19 +14726,27 @@ var ImageLightbox_default = /* @__PURE__ */ defineComponent({
 				role: "dialog",
 				"aria-modal": "true",
 				"aria-label": __props.image.alt || __props.closeLabel,
-				onClick: _cache[0] || (_cache[0] = ($event) => emit("close"))
-			}, [createElementVNode("img", {
+				onClick
+			}, [__props.image.svg ? (openBlock(), createElementBlock("div", {
+				key: 0,
+				class: "wy-lightbox-svg",
+				role: "img",
+				"aria-label": __props.image.alt,
+				innerHTML: __props.image.svg
+			}, null, 8, _hoisted_2$7)) : (openBlock(), createElementBlock("img", {
+				key: 1,
 				class: "wy-lightbox-image",
 				src: __props.image.src,
 				alt: __props.image.alt
-			}, null, 8, _hoisted_2$7), createElementVNode("button", {
+			}, null, 8, _hoisted_3$7)), createElementVNode("button", {
 				ref_key: "closeButton",
 				ref: closeButton,
 				type: "button",
 				class: "wy-lightbox-close",
 				"aria-label": __props.closeLabel,
-				title: __props.closeLabel
-			}, [createVNode(unref(X), { size: 20 })], 8, _hoisted_3$7)], 8, _hoisted_1$8)) : createCommentVNode("", true)]);
+				title: __props.closeLabel,
+				onClick: _cache[0] || (_cache[0] = withModifiers(($event) => emit("close"), ["stop"]))
+			}, [createVNode(unref(X), { size: 20 })], 8, _hoisted_4$6)], 8, _hoisted_1$8)) : createCommentVNode("", true)]);
 		};
 	}
 });
@@ -14093,13 +14765,19 @@ var Modal_default = /* @__PURE__ */ defineComponent({
 		open: { type: Boolean },
 		title: { default: "" },
 		size: { default: "sm" },
-		closeLabel: { default: "Close" }
+		closeLabel: { default: "Close" },
+		passWheel: {
+			type: Boolean,
+			default: false
+		}
 	},
 	emits: ["close"],
 	setup(__props, { emit: __emit }) {
 		const props = __props;
 		const emit = __emit;
 		const panel = ref(null);
+		const backdrop = ref(null);
+		let unwheel = () => {};
 		let previous = null;
 		let overflow = "";
 		const stack = openDialogs;
@@ -14136,6 +14814,8 @@ var Modal_default = /* @__PURE__ */ defineComponent({
 			const i = stack.indexOf(self);
 			if (i < 0) return;
 			stack.splice(i, 1);
+			unwheel();
+			unwheel = () => {};
 			document.body.style.overflow = overflow;
 			document.removeEventListener("keydown", onKey);
 		}
@@ -14147,6 +14827,8 @@ var Modal_default = /* @__PURE__ */ defineComponent({
 				stack.push(self);
 				document.addEventListener("keydown", onKey);
 				await nextTick();
+				const from = previous;
+				if (props.passWheel && backdrop.value) unwheel = passWheel(backdrop.value, () => from);
 				if (!panel.value?.contains(document.activeElement)) panel.value?.focus();
 			} else if (was) {
 				release();
@@ -14157,6 +14839,8 @@ var Modal_default = /* @__PURE__ */ defineComponent({
 		return (_ctx, _cache) => {
 			return openBlock(), createBlock(Teleport, { to: "body" }, [__props.open ? (openBlock(), createElementBlock("div", {
 				key: 0,
+				ref_key: "backdrop",
+				ref: backdrop,
 				class: "wy-modal-backdrop",
 				onMousedown: _cache[1] || (_cache[1] = withModifiers(($event) => emit("close"), ["self"]))
 			}, [createElementVNode("div", {
@@ -14176,7 +14860,7 @@ var Modal_default = /* @__PURE__ */ defineComponent({
 					"aria-label": __props.closeLabel,
 					onClick: _cache[0] || (_cache[0] = ($event) => emit("close"))
 				}, [createVNode(unref(X), { size: 18 })], 8, _hoisted_4$5)), [[unref(vTooltip), __props.closeLabel]])
-			]), createElementVNode("div", _hoisted_5$5, [renderSlot(_ctx.$slots, "default")])], 10, _hoisted_1$7)], 32)) : createCommentVNode("", true)]);
+			]), createElementVNode("div", _hoisted_5$5, [renderSlot(_ctx.$slots, "default")])], 10, _hoisted_1$7)], 544)) : createCommentVNode("", true)]);
 		};
 	}
 });
@@ -14333,6 +15017,7 @@ var LinkDialog_default = /* @__PURE__ */ defineComponent({
 		return (_ctx, _cache) => {
 			return openBlock(), createBlock(Modal_default, {
 				open: __props.open,
+				"pass-wheel": "",
 				title: unref(t)("link.title"),
 				"close-label": unref(t)("dialog.close"),
 				onClose: _cache[5] || (_cache[5] = ($event) => emit("close"))
@@ -14457,9 +15142,13 @@ var LinkHoverCard_default = /* @__PURE__ */ defineComponent({
 		let onCard = false;
 		let showTimer = 0;
 		let hideTimer = 0;
+		/** a link in the editor's text; links in a block's own ui (a card, an embedded database) are that block's */
 		function ownLink(target) {
 			const link = target instanceof Element ? target.closest("a[href]") : null;
-			return link && link.closest(".ProseMirror") === props.editor.view.dom ? link : null;
+			const dom = props.editor.view.dom;
+			if (!link || link.closest(".ProseMirror") !== dom) return null;
+			for (let el = link.parentElement; el && el !== dom; el = el.parentElement) if (el.getAttribute("contenteditable") === "false") return null;
+			return link;
 		}
 		function show(link) {
 			anchor.value = link;
@@ -14546,6 +15235,7 @@ var LinkHoverCard_default = /* @__PURE__ */ defineComponent({
 			return anchor.value ? (openBlock(), createBlock(AnchoredPopover_default, {
 				key: 0,
 				anchor: anchor.value,
+				"anchor-closes": false,
 				class: "wy-link-card",
 				role: "toolbar",
 				"aria-label": unref(t)("link.title"),
@@ -15178,7 +15868,8 @@ var TableControls_default = /* @__PURE__ */ defineComponent({
 				side: menu.value.kind === "row" ? "right" : "bottom",
 				class: "wy-menu wy-table-menu",
 				role: "menu",
-				onEscape: close
+				onEscape: close,
+				onClose: close
 			}, {
 				default: withCtx(() => [menu.value.kind === "col" ? (openBlock(), createElementBlock(Fragment$1, { key: 0 }, [
 					createElementVNode("button", {
@@ -15888,7 +16579,7 @@ var Toolbar_default = /* @__PURE__ */ defineComponent({
 									"aria-disabled": state.value.inCell && !a.inline || !a.enabled(__props.editor) || void 0,
 									title: state.value.inCell && !a.inline ? unref(t)("editor.inlineOnly") : void 0,
 									onMousedown: _cache[24] || (_cache[24] = withModifiers(() => {}, ["prevent"])),
-									onClick: ($event) => (!state.value.inCell || a.inline) && a.enabled(__props.editor) && (a.run(__props.editor), close())
+									onClick: ($event) => (!state.value.inCell || a.inline) && a.enabled(__props.editor) && (close(), a.run(__props.editor))
 								}, [a.icon ? (openBlock(), createBlock(resolveDynamicComponent(a.icon), {
 									key: 0,
 									class: "wy-menu-icon",
@@ -16228,7 +16919,8 @@ var WysiwygEditor_default = /* @__PURE__ */ defineComponent({
 				return true;
 			};
 			keys["Mod-k"] = () => {
-				if (!config.base.links) return false;
+				const e = editor.value;
+				if (!config.base.links || !e || e.state.selection.empty && !e.isActive("link")) return false;
 				openLink();
 				return true;
 			};

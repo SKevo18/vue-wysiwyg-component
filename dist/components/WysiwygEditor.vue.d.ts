@@ -68,8 +68,8 @@ declare const __VLS_base: import("vue").DefineComponent<__VLS_Props, EditorHandl
     size: EditorSize;
     format: EditorFormat;
     readonly: boolean;
-    autofocus: boolean | "end" | "start";
     placeholder: string;
+    autofocus: boolean | "end" | "start";
     messages: DeepPartial<{
         editor: {
             placeholder: string;
@@ -317,6 +317,8 @@ declare const __VLS_base: import("vue").DefineComponent<__VLS_Props, EditorHandl
         };
         convert: {
             title: string;
+            search: string;
+            empty: string;
             targets: {
                 paragraph: string;
                 unwrap: string;
@@ -530,7 +532,6 @@ declare const __VLS_base: import("vue").DefineComponent<__VLS_Props, EditorHandl
             placeholder: string;
             create: string;
             open: string;
-            interact: string;
             resize: string;
             defaultHeight: string;
             providers: {

@@ -1,8 +1,6 @@
+import type { ZoomImage } from "../editor/context";
 type __VLS_Props = {
-    image: {
-        src: string;
-        alt: string;
-    } | null;
+    image: ZoomImage | null;
     closeLabel: string;
 };
 declare const __VLS_export: import("vue").DefineComponent<__VLS_Props, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {

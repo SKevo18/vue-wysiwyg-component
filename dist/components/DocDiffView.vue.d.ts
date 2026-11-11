@@ -269,6 +269,8 @@ declare const __VLS_export: import("vue").DefineComponent<__VLS_Props, {}, {}, {
         };
         convert: {
             title: string;
+            search: string;
+            empty: string;
             targets: {
                 paragraph: string;
                 unwrap: string;
@@ -482,7 +484,6 @@ declare const __VLS_export: import("vue").DefineComponent<__VLS_Props, {}, {}, {
             placeholder: string;
             create: string;
             open: string;
-            interact: string;
             resize: string;
             defaultHeight: string;
             providers: {

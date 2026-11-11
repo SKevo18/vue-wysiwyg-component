@@ -29,6 +29,13 @@ interface SlashOptions {
 export declare const SlashCommand: Extension<SlashOptions, any>;
 export declare const BlockKeys: Extension<any, any>;
 export declare const InlineKeys: Extension<any, any>;
+/** Mod-a in a code block or table cell selects that block's text first; the next Mod-a selects the document */
+export declare const ScopedSelectAll: Extension<any, any>;
+/**
+ * A mousedown anywhere but the selected block (outside the editor, in another block's own controls such as an embedded
+ * database or a form field) drops a block selection, so no block stays highlighted once the user works elsewhere.
+ */
+export declare const ClickAway: Extension<any, any>;
 /** a click right of an inline atom that ends its line puts the caret after it (firefox puts it before) */
 export declare const InlineAtomClick: Extension<any, any>;
 export declare const TableCells: Extension<any, any>;

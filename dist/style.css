@@ -1284,19 +1284,27 @@ textarea.wy-input {
   color: var(--vc-fg-faint);
   pointer-events: none;
 }
+/* a selected block is marked, not framed: the reader keeps looking at the content */
 .wy-content .ProseMirror-selectednode {
-  outline: 2px solid var(--vc-accent);
+  outline: 1px solid color-mix(in srgb, var(--vc-accent) 45%, transparent);
   outline-offset: 2px;
   border-radius: 4px;
+  background-color: color-mix(in srgb, var(--vc-accent) 6%, transparent);
 }
 .wy-content .wy-node.ProseMirror-selectednode {
   outline: none;
+  background-color: transparent;
 }
 .wy-content .ProseMirror-gapcursor::after {
   border-top-color: var(--vc-fg);
 }
 .wy-content a {
   cursor: text;
+}
+/* links in a block's own ui (cards, page links, an embedded database) navigate on click */
+.wy-content [contenteditable="false"] a[href],
+.wy-content [contenteditable="false"] [role="link"] {
+  cursor: pointer;
 }
 .wy-content .tableWrapper {
   overflow-x: auto;
@@ -1368,6 +1376,22 @@ button.wy-grip {
   .wy-gutter {
     display: none !important;
   }
+}
+.wy-gutter.is-dragging {
+  opacity: 0;
+  pointer-events: none;
+}
+.wy-drop-guide {
+  position: absolute;
+  z-index: 11;
+  height: 3px;
+  margin-top: -1px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--vc-accent) 70%, transparent);
+  pointer-events: none;
+}
+html.wy-block-dragging iframe {
+  pointer-events: none;
 }
 
 .wy-slash {
@@ -1574,6 +1598,22 @@ button.wy-grip {
   object-fit: contain;
   border-radius: 4px;
   box-shadow: 0 10px 40px rgb(0 0 0 / 0.4);
+}
+.wy-lightbox-svg {
+  display: grid;
+  place-items: center;
+  width: min(100%, 80rem);
+  max-height: 100%;
+  padding: 24px;
+  border-radius: 6px;
+  background: var(--vc-bg);
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.4);
+}
+.wy-lightbox-svg svg {
+  width: 100%;
+  height: auto;
+  max-width: none !important;
+  max-height: calc(100dvh - 96px);
 }
 .wy-lightbox-close {
   position: absolute;
@@ -1833,14 +1873,14 @@ button.wy-grip {
   outline-color: var(--vc-border-strong);
 }
 .wy-block-frame.is-selected > .wy-block-body {
-  outline: 2px solid color-mix(in srgb, var(--vc-accent) 60%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--vc-accent) 45%, transparent);
 }
 .wy-block-frame.is-editable > .wy-block-body {
   padding: var(--wy-block-pad);
   outline-offset: 0;
 }
 .wy-block-frame.is-editing > .wy-block-body {
-  outline: 2px solid color-mix(in srgb, var(--vc-accent) 60%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--vc-accent) 55%, transparent);
   background: var(--vc-bg-subtle);
 }
 .wy-block-tools {
@@ -1856,18 +1896,22 @@ button.wy-grip {
   border-radius: 999px;
   background: var(--vc-bg);
   opacity: 0;
+  pointer-events: none;
   user-select: none;
   transition: opacity 120ms ease;
 }
+/* the pill shows on hover and for the block being edited or selected; keyboard focus inside it keeps it too */
 .wy-block-frame:hover > .wy-block-tools,
 .wy-block-frame.is-selected > .wy-block-tools,
 .wy-block-frame.is-editing > .wy-block-tools,
-.wy-block-frame:focus-within > .wy-block-tools {
+.wy-block-tools:has(:focus-visible) {
   opacity: 1;
+  pointer-events: auto;
 }
 @media (hover: none) {
   .wy-block-tools {
     opacity: 1;
+    pointer-events: auto;
     position: static;
     width: fit-content;
     margin: 0 0 4px auto;
@@ -1879,6 +1923,7 @@ button.wy-grip {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--vc-fg-faint);
+  cursor: default;
 }
 .wy-block-menu {
   position: absolute;
@@ -2618,16 +2663,6 @@ button.wy-grip {
 .wy-embed iframe[style*="height"] {
   aspect-ratio: auto;
 }
-.wy-embed-overlay {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  padding: 0;
-  border: 0;
-  border-radius: var(--vc-radius);
-  background: transparent;
-  cursor: pointer;
-}
 .wy-embed-shield {
   position: absolute;
   inset: 0;
@@ -2821,8 +2856,35 @@ button.wy-grip {
 
 /* diagrams under mermaid and plantuml code */
 .wy-code-diagram {
+  position: relative;
+  width: var(--wy-figure-width, 100%);
+  max-width: 100%;
   margin-top: 8px;
   cursor: text;
+}
+.wy-code-diagram.wy-align-center {
+  margin-inline: auto;
+}
+.wy-code-diagram.wy-align-right {
+  margin-left: auto;
+}
+.wy-code-diagram.wy-align-left .wy-diagram {
+  justify-items: start;
+}
+.wy-code-diagram.wy-align-right .wy-diagram {
+  justify-items: end;
+}
+.wy-code-diagram.wy-align-left .wy-diagram-svg {
+  justify-content: flex-start;
+}
+.wy-code-diagram.wy-align-right .wy-diagram-svg {
+  justify-content: flex-end;
+}
+/* a resized diagram fills its box like a resized image */
+.wy-code-diagram.has-width .wy-diagram-svg svg,
+.wy-code-diagram.has-width .wy-diagram-img {
+  width: 100%;
+  max-width: 100% !important;
 }
 .wy-node-code.is-source-hidden .wy-code {
   display: none;

@@ -245,6 +245,8 @@ export declare const en: {
     };
     convert: {
         title: string;
+        search: string;
+        empty: string;
         targets: {
             paragraph: string;
             unwrap: string;
@@ -458,7 +460,6 @@ export declare const en: {
         placeholder: string;
         create: string;
         open: string;
-        interact: string;
         resize: string;
         defaultHeight: string;
         providers: {

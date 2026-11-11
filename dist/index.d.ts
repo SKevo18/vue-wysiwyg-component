@@ -21,7 +21,7 @@ export { looksLikeMarkdown, pasteAsMarkdown, cleanPastedHtml, clipboardText } fr
 export { useDraft, type DraftAdapter, type DraftCursor, type DraftHandle, type DraftOptions, type DraftRecord, type DraftStatus, type DraftStep } from "./draft/useDraft";
 export { createWysiwyg, useEditorHandle, type WysiwygDefaults } from "./plugin";
 export { BLOCK_EDIT_EVENT, blockStopEvent, normalizeHref } from "./editor/behaviour";
-export { contextOf, useEditorContext, type EditorContext, type FileController } from "./editor/context";
+export { contextOf, useEditorContext, type EditorContext, type FileController, type ZoomImage } from "./editor/context";
 export { markFresh, takeFresh, insertFresh } from "./editor/fresh";
 export { collaborationCaret } from "./editor/carets";
 export { isInCell } from "./editor/tables";
