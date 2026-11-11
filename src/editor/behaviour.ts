@@ -134,9 +134,16 @@ export const SlashCommand = Extension.create<SlashOptions>({
         editor: this.editor,
         char: "/",
         pluginKey: SLASH_KEY,
-        allowSpaces: false,
+        // "/link to page" keeps the menu open; a query with a space only continues an open menu, and closes once nothing matches or on a double space
+        allowSpaces: true,
         startOfLine: false,
-        allow: ({ state, range }) => !state.doc.resolve(range.from).parent.type.spec.code,
+        allow: ({ editor, state, range, isActive }) => {
+          if (state.doc.resolve(range.from).parent.type.spec.code) return false;
+          const query = state.doc.textBetween(range.from + 1, range.to, "\n", "\n");
+          if (!/\s/.test(query)) return true;
+          if (!isActive || /^\s|\s\s/.test(query)) return false;
+          return options.items(query).some((i) => i.enabled(editor));
+        },
         items: ({ query, editor }) => options.items(query).filter((i) => i.enabled(editor)),
         command: ({ editor, range, props }) => {
           if (props.inline || !isInCell(editor.state.selection.$from)) props.run(editor, range);
