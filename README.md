@@ -135,37 +135,125 @@ const markdown = ref("");
 
 `CollaborationCaret` carets and name labels are styled with the `--vc-*` tokens (`.collaboration-carets__caret`, `.collaboration-carets__label`); each user's color is set inline. Colors must be `#rrggbb`: CollaborationCaret draws any other color as transparent. To show an avatar before each name, pass `render: (user) => collaborationCaret({ name: user.name, color: user.color, avatar: user.avatar })`; the label is as wide as the full name, and an image (`.collaboration-carets__avatar`) that fails to load becomes a round initials badge (`.collaboration-carets__initials`).
 
-## Notion blocks
+## Notion blocks (schema v3)
 
 Page editors can opt into Notion style blocks through `base`. Every flag is off by default, so mail and note editors keep their schema:
 
 ```vue
-<WysiwygEditor v-model="page" :base="{ details: true, columns: true, bookmarks: true, embeds: true, toc: true, pageLinks: true, mentions: true, diagrams: true, math: true }" :services="services" />
+<WysiwygEditor
+  v-model="page"
+  :base="{ details: true, columns: true, tabs: true, bookmarks: true, embeds: true, toc: true, breadcrumbs: true, buttons: true, ai: true, pageLinks: true, mentions: true, emoji: true, diagrams: true, math: true }"
+  :services="services"
+/>
 ```
 
-| Flag | Nodes | Markdown |
-|---|---|---|
-| `columns` | `columns` > `column` (`width`: percent or null) | ```` ```columns ```` with one `==== <width>` section per column, `====` alone without a width |
-| `details` | `details` gains `heading` (0 plain toggle, 1 to 4 toggle heading) | ```` ```details title="Setup" heading=2 open ```` |
-| `bookmarks` | `bookmark` (`url title description image icon site`) | ```` ```bookmark url=… title="…" description="…" image=… icon=… site="…" ```` with an empty body |
-| `embeds` | `embed` (`url src provider height`) | ```` ```embed url=… provider=youtube height=480 ```` (`src` is derived from `url` on every parse) |
-| `toc` | `tableOfContents` (`color`) | ```` ```toc ```` |
-| `pageLinks` | `pageLink` (`href title icon color`) | ```` ```page href=/p/<id> title="…" icon=📘 ```` |
-| `mentions` | inline `mention` (`kind id label start end`) | `@[Ada](user:58501171)`, `@[Plan](page:<id>)`, `@[May 1, 2024](date:2024-05-01)`, `date:2024-05-01/2024-05-03`, `date:2024-05-01T10:00` |
-| `diagrams` | code blocks in `mermaid` and `plantuml` (or the listed languages) | unchanged code fences |
+| Flag | Node (kind) | Attributes | Markdown | HTML format |
+|---|---|---|---|---|
+| `columns` | `columns` > `column` (blocks) | `column.width`: percent or null | ```` ```columns ```` with one `==== <width>` section per column, `====` alone without a width | `div[data-type=columns]` > `div[data-type=column][data-width]` |
+| `tabs` | `tabs` > `tab` (blocks) | `tab.label` | ```` ```tabs ```` with one `==== <label>` section per tab, `====` alone without a label | `div[data-tabs]` > `div[data-tab][data-label]`, every tab shown |
+| `details` | `details` (blocks), slash "Toggle list" | `title`, `open`, `heading` (0 plain toggle, 1 to 4 toggle heading) | ```` ```details title="Setup" heading=2 open ```` | `details` > `summary` |
+| `bookmarks` | `bookmark` (atom) | `url title description image icon site` | ```` ```bookmark url=… title="…" description="…" image=… icon=… site="…" ```` with an empty body | link card |
+| `embeds` | `embed` (atom) | `url src provider height` | ```` ```embed url=… provider=youtube height=480 ```` (`src` is derived from `url` on every parse) | sandboxed iframe |
+| `toc` | `tableOfContents` (atom) | `color` | ```` ```toc ```` | empty `nav[data-type=toc]` |
+| `breadcrumbs` | `breadcrumbs` (atom) | none | ```` ```breadcrumbs ```` with an empty body | empty `nav[data-type=breadcrumbs]` for the host to fill |
+| `buttons` | `button` (atom) | `label`, `actions` (array of `{ kind, … }`) | ```` ```button label="Add task" ```` whose body is the actions as JSON (`JSON.stringify(actions, null, 2)`, no body without actions) | `div[data-type=button][data-label][data-actions]` holding an inert `button` |
+| `ai` | `aiBlock` (blocks) | `prompt`, `scope`, `updatedAt` (ISO or "") | ```` ```ai prompt="…" scope=<id> updated=<iso> ```` whose body is the generated markdown | `div[data-type=ai-block][data-prompt][data-scope][data-updated]` with the content |
+| `pageLinks` (default: `mentions`) | `pageLink` (inline atom) | `href`, `title` (fallback text), `icon` (fallback emoji or "") | `@[Title](href)`, see below | `a[data-type=page-link][href]` |
+| `mentions` | `mention` (inline atom) | `kind` (`user` or `date`), `id`, `label`, `start`, `end`, `remind` | `@[Ada](user:58501171)`, `@[May 1, 2024](date:2024-05-01)`, see below | `span[data-type=mention][data-kind]` |
+| `emoji` | none | none | emoji are text | text |
+| `diagrams` | code blocks in `mermaid` and `plantuml` (or the listed languages) | | unchanged code fences | |
 
-A date mention's label is the fallback text the editor writes when a date is picked or edited. It is the date formatted with `Intl.DateTimeFormat(locale, { dateStyle: "medium" })`. A value with a time adds `, ` and the time formatted with `{ timeStyle: "short" }`. Every space in it is a plain U+0020. A range joins start and end with ` → ` (space, U+2192, space). The editor's locale is `en` unless the host sets one:
+### Inline page links and mentions
+
+Both are chips: the caret steps over them with the arrow keys, Backspace after one or Delete before one removes it, and text types before and after them like after any character.
+
+`pageLink` is written `@[Title](href)`. `href` starts with `/` (not `//`), `http://`, `https://` or `page:`; spaces, `(`, `)` and `\` in it are percent encoded. `[`, `]` and `\` in the title are escaped with a backslash, a line break becomes a space. A click calls `services.openLink(href, event)`; without it, or when it returns false, a path opens in this tab and an address in a new one. `page:<id>` links to `base.pageHref` with the id (default `/p/{id}`), so a host can map ids itself. `services.resolveLink(href)` supplies the shown title and icon; `title` and `icon` are only the fallbacks stored when the link was inserted.
+
+Older documents keep working:
+
+- the block fence ```` ```page href=/p/<id> title="…" icon=📘 ```` becomes a paragraph holding one `pageLink` (written back as `@[…](…)`). A `{color=…}` line after the fence colors that paragraph.
+- a page mention `@[Plan](page:<id>)` becomes a `pageLink` with href `page:<id>`.
+- html `div[data-type=page-link]` and `a[data-type=mention][data-kind=page]` parse as `pageLink`.
+
+`mention` keeps people and dates:
 
 ```md
+@[Ada Lovelace](user:58501171)
 @[May 1, 2024](date:2024-05-01)
 @[May 1, 2024, 10:00 AM](date:2024-05-01T10:00)
 @[May 1, 2024 → May 3, 2024](date:2024-05-01/2024-05-03)
-@[May 1, 2024, 10:00 AM → May 3, 2024, 10:00 AM](date:2024-05-01T10:00/2024-05-03T10:00)
+@[May 1, 2024, 9:00 AM](date:2024-05-01T09:00!)
 ```
 
-A range with a time gives the end the start's time. The editor shows the stored label as written, so a label from an importer or another locale stays until the date is edited.
+A target is `user:<id>` (no spaces, parentheses or backslashes) or `date:<start>[/<end>]` where a value is `YYYY-MM-DD` or `YYYY-MM-DDTHH:MM[:SS]`. A trailing `!` marks a reminder (`remind: true`), which shows a bell. The label is the fallback text the editor writes when a date is picked or edited: the date formatted with `Intl.DateTimeFormat(locale, { dateStyle: "medium" })`, a value with a time adds `, ` and the time formatted with `{ timeStyle: "short" }`, every space is a plain U+0020, and a range joins start and end with ` → ` (space, U+2192, space). A range with a time gives the end the start's time. The editor shows the stored label as written.
 
-Fence info values are written on one line: `"` and backticks become `'` in text values and are percent encoded in addresses. A `{color=…}` line right after the fence keeps the color of a `pageLink` or `tableOfContents` (`{color=blue_bg}`). Callouts keep an emoji and a color on the line after the quote:
+The `@` menu lists people and pages from `services.searchMentions` and dates. Dates come from English phrases, also with spaces: `today`, `tomorrow`, `yesterday`, weekday names (`friday` is the coming one, today included; `next friday` the one in the week after this one, weeks start on Monday), `next week` (next Monday), `in 3 days`, `in a week`, `in 2 months`, `dec 24`, `1st of may 2027`, `2024-05-01`, each with an optional time (`9am`, `9:30 pm`, `14:30`, `noon`, `midnight`, `at 5pm`). `remind me` in front makes a reminder. `parseNaturalDate(text, now?)` is exported. Slash items: "Link to page" (needs `services.searchMentions`), "Mention a person" (needs `services.searchMentions`) and "Date or reminder" all insert at the caret.
+
+### Emoji
+
+`base.emoji` turns on the `:` suggestion (`:smi` lists matches from two letters on), `:shortcode:` replacement as you type (GitHub shortcodes) and the slash item "Emoji", which opens the full picker. The picker (search, categories, skin tone, recently used, all kept in `localStorage`) is exported as `EmojiPicker` (`<EmojiPicker @pick="…" />`, optional `t` translator and a `footer` slot) and is also the callout icon picker. Emoji data is emojibase, loaded on first use as its own chunk; nothing is fetched from a CDN. `loadEmoji()` and `searchEmoji(data, query)` are exported.
+
+### Blocks
+
+- Tabs: the strip shows one tab at a time, the shown tab follows the caret, and the move, delete and add tools show on hover or while the caret is inside.
+- Button: a click runs the actions in order. Base kinds: `{ kind: "insert", markdown }` inserts the markdown below the button, `{ kind: "link", url }` opens it like a link. A readonly editor skips actions that edit. Edit (in the tools on hover) shows the label and the action list.
+- Breadcrumbs: the trail from `services.breadcrumbs()`; a click opens a crumb like a page link.
+- AI block: the instruction field, the scope select (`services.aiScopes`) and Generate, Regenerate or Stop show while the block is edited or has no instruction yet. The streamed markdown replaces the block's content as it arrives; the content stays ordinary editable blocks. The whole generation is one undo step. Done, or a click away, folds the instruction away. The slash item needs `services.aiGenerate`.
+
+### Services
+
+All optional:
+
+- `openLink(href, event)`: return true when the host handled the click. Page links otherwise navigate in the same tab, bookmarks open a new tab.
+- `resolveLink(href)`: `{ title, icon?, href } | null`; page links show it instead of their stored fallback.
+- `searchMentions(query, kind, signal)`: `[{ kind, id, label, detail?, icon?, href? }]` for the `@` menu (people, pages), "Link to page" (`kind` is `"page"`) and "Mention a person" (`kind` is `"user"`). A page without `href` links to `base.pageHref`.
+- `breadcrumbs()`: `[{ title, icon?, href }]`, outermost first.
+- `buttonActions`: `Record<kind, ButtonActionDef>`, more action kinds: `{ label, icon?, fields?: [{ key, label, placeholder?, multiline? }], readonly?, run(action, { editor, pos, services, event }) }`. `fields` are the text inputs of the action in the button editor; `readonly: false` skips it in readonly editors. A host kind cannot replace `insert` or `link`.
+- `aiGenerate({ prompt, scope, document }, signal)`: an `AsyncIterable<string>` of markdown pieces; `document` is the markdown of the whole document. Stop aborts `signal`.
+- `aiScopes`: `[{ id, label }]`; the first is the default scope of a new AI block.
+- `linkPreview(url, signal)`: `{ title?, description?, image?, icon?, site? } | null` for bookmarks. Pasting a lone URL on an empty line offers to keep it as a link or turn it into a bookmark or an embed.
+- `plantuml(source, signal)`: SVG markup. Without it diagrams load from `base.plantumlServer` (default `https://www.plantuml.com/plantuml`, `svg/<encoded>`) as an image.
+- `katex`: without it, math loads KaTeX, its stylesheet and mhchem from this package on first use. Mermaid loads on first use too, with `securityLevel: "strict"` and the theme of the host's `--vc-bg`.
+
+### Your own inline blocks
+
+`defineInlineBlock` builds a chip-like inline atom with the same caret handling, an optional Vue view and an optional inline markdown syntax. Wrap the view in the exported `InlineChip` for the shared chip look and selection outline:
+
+```ts
+import { defineInlineBlock } from "@skevo18/vue-wysiwyg-component";
+import BlankView from "./BlankView.vue";
+
+export const quizBlank = defineInlineBlock({
+  name: "quizBlank",
+  attrs: { answer: "", width: 0 },
+  text: (a) => `[${a.answer}]`,
+  view: BlankView,
+  markdown: {
+    // tried where markdown-it stops for a special character, so it starts with one (`{`, `@`, `[`, `:` …)
+    pattern: /\{\{([^{}\n]+)\}\}/,
+    parse: (m) => ({ answer: m[1]!.trim() }),
+    serialize: (a) => `{{${a.answer}}}`,
+  },
+});
+```
+
+```vue
+<!-- BlankView.vue -->
+<script setup lang="ts">
+import { nodeViewProps } from "@tiptap/vue-3";
+import { InlineChip } from "@skevo18/vue-wysiwyg-component";
+defineProps(nodeViewProps);
+</script>
+<template>
+  <InlineChip :selected="selected"><span class="blank">{{ node.attrs.answer }}</span></InlineChip>
+</template>
+```
+
+Attributes keep their default's type and render in html as `data-<kebab-name>`; the node renders as `span[data-type=<kebab-name>]` (an `a` when `html.href` returns an address) holding `text(attrs)`. Options: `html.class`, `html.href`, `html.parse` (more parse rules), `markdown.before` (the markdown-it rule it runs before, default `link`), `slash`, `tiptap` (more extensions), `formats`, `messages`. `inlineChipKeys(name)` gives an existing inline node the same keys; `escapeChipLabel`, `unescapeChipLabel` and `AT_LINK` help with `@[label](target)` style syntaxes. A fence rule can turn a fence into a paragraph holding one chip with `ctx.inline(inlineBlockToken(name), attrs)`.
+
+### Notes
+
+Fence info values are written on one line: `"` and backticks become `'` in text values and are percent encoded in addresses. A `{color=…}` line right after the fence keeps the color of a `tableOfContents` (`{color=blue_bg}`). Callouts keep an emoji and a color on the line after the quote:
 
 ```md
 > [!NOTE] Heads up
@@ -175,18 +263,9 @@ Fence info values are written on one line: `"` and backticks become `'` in text 
 
 Colors are the palette tokens `gray brown orange yellow green blue purple pink red` and the same names with `_bg` for backgrounds; they render through `--vc-color-<name>` and `--vc-bg-<name>`. Tables persist `colwidth` from dragging a column border and have a header column toggle; markdown stays a pipe table without either. A host fence rule of the same kind (an `embed` fence block, a `mermaid` block) wins over the base block.
 
-Services used by these blocks, all optional:
-
-- `openLink(href, event)`: return true when the host handled the click. Page links and page mentions otherwise navigate in the same tab, bookmarks open a new tab.
-- `resolveLink(href)`: `{ title, icon?, href } | null`; page links and page mentions show it instead of their stored fallback.
-- `searchMentions(query, kind, signal)`: `[{ kind, id, label, detail?, icon?, href? }]` for the `@` menu (people, pages; dates are built in) and the "Link to page" slash item (`kind` is `"page"`). A page without `href` links to `base.pageHref` (default `/p/{id}`).
-- `linkPreview(url, signal)`: `{ title?, description?, image?, icon?, site? } | null` for bookmarks. Pasting a lone URL on an empty line offers to keep it as a link or turn it into a bookmark or an embed.
-- `plantuml(source, signal)`: SVG markup. Without it diagrams load from `base.plantumlServer` (default `https://www.plantuml.com/plantuml`, `svg/<encoded>`) as an image.
-- `katex`: without it, math loads KaTeX, its stylesheet and mhchem from this package on first use. Mermaid loads on first use too, with `securityLevel: "strict"` and the theme of the host's `--vc-bg`.
-
 Embeds recognise YouTube, Vimeo, Loom, Figma, Gist, Google Maps, posts on X, CodePen and any other https page, and run in a sandboxed iframe (a page of the host's own origin loses `allow-same-origin`). While editing, a click selects the embed before the iframe takes input.
 
-CSS hooks: `.wy-columns`, `.wy-column`, `.wy-column-resize`, `.wy-details[data-heading]`, `.wy-callout[data-color]`, `.wy-callout-emoji`, `.wy-bookmark`, `.wy-bookmark-card`, `.wy-embed`, `.wy-embed-overlay`, `.wy-toc`, `.wy-toc-item`, `.wy-page-link`, `.wy-mention.is-user|is-page|is-date`, `.wy-diagram`, `.wy-diagram-error`, `.wy-suggest` (the shared suggestion list).
+CSS hooks: `.wy-columns`, `.wy-column`, `.wy-column-resize`, `.wy-tabs`, `.wy-tab`, `.wy-tab-panel`, `.wy-details[data-heading]`, `.wy-callout[data-color]`, `.wy-callout-emoji`, `.wy-bookmark`, `.wy-bookmark-card`, `.wy-embed`, `.wy-embed-overlay`, `.wy-toc`, `.wy-toc-item`, `.wy-breadcrumbs`, `.wy-breadcrumb`, `.wy-button`, `.wy-ai-block`, `.wy-ai-panel`, `.wy-page-link`, `.wy-mention.is-user|is-date|is-reminder|is-overdue`, `.wy-chip-atom`, `.wy-emoji-picker`, `.wy-diagram`, `.wy-diagram-error`, `.wy-suggest` (the shared suggestion list).
 
 ## Floating toolbar tools in readonly editors
 
