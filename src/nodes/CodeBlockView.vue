@@ -23,15 +23,18 @@ const { selected, remove, update, copyText, readonly } = useBlockNode(props);
 const menu = ref(false);
 const language = computed<string>(() => props.node.attrs.language ?? "");
 const editing = ref(false);
-const highlighted = computed(() => (editing.value ? "" : highlightCode(props.node.textContent, language.value)));
+// focus is in the tools (the width field); the tools show like a figure's while the diagram is selected or its source is open
+const toolsFocused = ref(false);
+const tools = ref<InstanceType<typeof MediaTools> | null>(null);
+// the editor blurs while the width field of the tools has focus; the source stays open so the bar does not move away
+const sourceOpen = computed(() => editing.value || toolsFocused.value);
+const highlighted = computed(() => (sourceOpen.value ? "" : highlightCode(props.node.textContent, language.value)));
 const diagram = computed(() => ((ctx.config.base.diagrams as string[]).includes(language.value) ? (language.value as DiagramLanguage) : null));
 // a diagram hides its source until the block is selected or the caret is in it
-const sourceShown = computed(() => !diagram.value || editing.value || selected.value || !props.node.textContent.trim());
+const sourceShown = computed(() => !diagram.value || sourceOpen.value || selected.value || !props.node.textContent.trim());
 const layout = computed(() => diagramLayout(String(props.node.attrs.meta ?? "")));
 const shownAlign = computed(() => layout.value.align ?? "center");
-// like a figure being edited: the diagram is selected or its source is open
-const toolsFocused = ref(false);
-const mediaTools = computed(() => !!diagram.value && !readonly.value && (selected.value || editing.value || toolsFocused.value));
+const mediaTools = computed(() => !!diagram.value && !readonly.value && (selected.value || sourceOpen.value));
 const diagramBox = ref<HTMLElement | null>(null);
 const diagramView = ref<InstanceType<typeof DiagramView> | null>(null);
 let clickTimer = 0;
@@ -51,12 +54,19 @@ function syncEditing() {
   const { from, to } = props.editor.state.selection;
   editing.value = props.editor.isFocused && from > pos && to < pos + props.node.nodeSize;
 }
+
+/** a blur into the tools keeps them: Vue renders between the blur and the focus, which would remove the field taking focus */
+function onBlur({ event }: { event: FocusEvent }) {
+  const root: unknown = tools.value?.$el;
+  if (root instanceof HTMLElement && event.relatedTarget instanceof Node && root.contains(event.relatedTarget)) toolsFocused.value = true;
+  syncEditing();
+}
 props.editor.on("selectionUpdate", syncEditing);
-props.editor.on("blur", syncEditing);
+props.editor.on("blur", onBlur);
 props.editor.on("focus", syncEditing);
 onBeforeUnmount(() => {
   props.editor.off("selectionUpdate", syncEditing);
-  props.editor.off("blur", syncEditing);
+  props.editor.off("blur", onBlur);
   props.editor.off("focus", syncEditing);
   window.clearTimeout(clickTimer);
 });
@@ -105,9 +115,9 @@ function commit(e: Event) {
 </script>
 
 <template>
-  <NodeViewWrapper as="div" class="wy-node wy-node-code" :class="{ 'is-editing': editing, 'is-diagram': diagram, 'is-source-hidden': !sourceShown }">
+  <NodeViewWrapper as="div" class="wy-node wy-node-code" :class="{ 'is-editing': sourceOpen, 'is-diagram': diagram, 'is-source-hidden': !sourceShown }">
     <BlockFrame :label="label" :selected="selected" :readonly="readonly" :copy-text="copyText" :editable="false" @delete="remove" @more="menu = !menu">
-      <pre class="wy-code"><code v-if="!editing" class="wy-code-highlight" aria-hidden="true" contenteditable="false" v-html="highlighted"></code><NodeViewContent as="code" :class="language ? `language-${language}` : ''" spellcheck="false" /></pre>
+      <pre class="wy-code"><code v-if="!sourceOpen" class="wy-code-highlight" aria-hidden="true" contenteditable="false" v-html="highlighted"></code><NodeViewContent as="code" :class="language ? `language-${language}` : ''" spellcheck="false" /></pre>
       <div
         v-if="diagram"
         ref="diagramBox"
@@ -123,6 +133,7 @@ function commit(e: Event) {
       </div>
       <MediaTools
         v-if="mediaTools"
+        ref="tools"
         :box="diagramBox"
         :aligns="DIAGRAM_ALIGNS"
         :align="shownAlign"

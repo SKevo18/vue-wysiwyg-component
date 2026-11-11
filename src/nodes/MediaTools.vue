@@ -69,7 +69,7 @@ defineExpose({ place });
   <div ref="root" class="wy-figure-tools wy-media-tools" :style="style" contenteditable="false" data-block-portal @mousedown.stop>
     <div class="wy-figure-bar">
       <div class="wy-seg" role="group">
-        <button v-for="a in aligns" :key="a" v-tooltip="t(`image.align.${a}`)" type="button" :aria-pressed="align === a" :aria-label="t(`image.align.${a}`)" @click="emit('align', a)">
+        <button v-for="a in aligns" :key="a" v-tooltip="t(`image.align.${a}`)" type="button" :aria-pressed="align === a" :aria-label="t(`image.align.${a}`)" @mousedown.prevent @click="emit('align', a)">
           <component :is="ICONS[a]" :size="16" />
         </button>
       </div>
@@ -78,8 +78,8 @@ defineExpose({ place });
         <input class="wy-input is-sm is-num" type="number" min="10" max="100" step="1" :value="width" :aria-label="t('image.width')" @change="set(Number(($event.target as HTMLInputElement).value))" @keydown="onWidthKey" />
         <span class="wy-muted">%</span>
       </label>
-      <button v-tooltip="t('image.originalSize')" type="button" class="wy-tool" :aria-label="t('image.originalSize')" :disabled="!resettable" @click="emit('reset')"><Scaling :size="16" /></button>
-      <button v-if="zoomable" v-tooltip="t('image.zoom')" type="button" class="wy-tool" :aria-label="t('image.zoom')" @click="emit('zoom')"><ZoomIn :size="16" /></button>
+      <button v-tooltip="t('image.originalSize')" type="button" class="wy-tool" :aria-label="t('image.originalSize')" :disabled="!resettable" @mousedown.prevent @click="emit('reset')"><Scaling :size="16" /></button>
+      <button v-if="zoomable" v-tooltip="t('image.zoom')" type="button" class="wy-tool" :aria-label="t('image.zoom')" @mousedown.prevent @click="emit('zoom')"><ZoomIn :size="16" /></button>
       <slot />
     </div>
     <slot name="form" />
