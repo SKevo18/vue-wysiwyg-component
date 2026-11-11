@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { NodeViewContent, NodeViewWrapper, nodeViewProps } from "@tiptap/vue-3";
 import { NodeSelection } from "@tiptap/pm/state";
 import { ChevronRight } from "@lucide/vue";
 import { blockColorStyle } from "../core/colors";
 import { contextOf } from "../editor/context";
+import { takeFresh } from "../editor/fresh";
 import BlockFrame from "../blocks/BlockFrame.vue";
 import { useBlockNode } from "../blocks/useBlockNode";
 import { vTooltip } from "../components/tooltip";
@@ -29,6 +30,18 @@ function toggle() {
   }
   update({ open: !open.value });
 }
+
+const title = ref<HTMLInputElement | null>(null);
+// a new toggle takes the caret in its title, after the frame in which the inserting command focuses the editor
+onMounted(() => {
+  if (takeFresh("details")) requestAnimationFrame(() => title.value?.focus());
+});
+
+/** Enter or ArrowDown in the title opens a closed toggle first, so the caret lands in its body and not past it */
+function onTitleKey(e: KeyboardEvent) {
+  if ((e.key === "Enter" || e.key === "ArrowDown") && !open.value && !readonly.value) update({ open: true });
+  onHeaderKey(e);
+}
 </script>
 
 <template>
@@ -39,7 +52,7 @@ function toggle() {
           <button v-tooltip="t(open ? 'details.collapse' : 'details.expand')" type="button" class="wy-details-toggle" :aria-label="t(open ? 'details.collapse' : 'details.expand')" :aria-expanded="open" @mousedown.prevent @click="toggle">
             <ChevronRight :size="16" />
           </button>
-          <input class="wy-details-title" :value="node.attrs.title" :placeholder="t('details.titlePlaceholder')" :aria-label="t('details.title')" :readonly="readonly" @input="update({ title: ($event.target as HTMLInputElement).value })" @keydown="onHeaderKey" />
+          <input ref="title" class="wy-details-title" :value="node.attrs.title" :placeholder="t('details.titlePlaceholder')" :aria-label="t('details.title')" :readonly="readonly" @input="update({ title: ($event.target as HTMLInputElement).value })" @keydown="onTitleKey" />
         </div>
         <NodeViewContent v-show="open" class="wy-details-body" />
       </div>
