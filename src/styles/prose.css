@@ -43,6 +43,7 @@
   color: var(--vc-accent);
   text-decoration: underline;
   text-underline-offset: 2px;
+  cursor: pointer;
 }
 .wy-prose a[data-file-size] {
   display: inline-flex;
@@ -81,9 +82,21 @@
   border-radius: 2px;
   padding: 0 0.1em;
 }
-/* tiptap writes `color: inherit` inline; pastel mark colours need dark text in dark themes too */
-.wy-prose mark[data-color] {
+/* tiptap writes `color: inherit` inline; the pastel colours of html documents need dark text in dark themes too.
+   palette backgrounds (`yellow_bg`) follow the theme themselves */
+.wy-prose mark[data-color]:not([data-color$="_bg"]) {
   color: #18181b !important;
+}
+/* block colours: a background fills the block like a card */
+.wy-prose :is(p, h1, h2, h3, h4, h5, h6)[data-block-color$="_bg"] {
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.wy-prose li[data-block-color$="_bg"] {
+  border-radius: 4px;
+}
+.wy-prose img.is-zoomable {
+  cursor: zoom-in;
 }
 .wy-prose :not(pre) > code {
   font-family: var(--vc-font-mono);
@@ -125,7 +138,8 @@
 .wy-prose li {
   margin: 0.2em 0;
 }
-.wy-prose li > :is(p, ul, ol) {
+.wy-prose li > :is(p, ul, ol),
+.wy-prose ul[data-type="taskList"] li > div > :is(p, ul, ol) {
   margin: 0.2em 0;
 }
 .wy-prose ol.wy-list-lower-alpha {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createMarkdown } from "./index";
+import { createMarkdown, markdownFor } from "./index";
+import { resolveConfig } from "../schema";
 import { flattenToParagraph } from "../schema/nodes";
 
 const md = createMarkdown([], { base: { math: true, details: true, footnotes: true } });
@@ -130,10 +131,10 @@ describe("markdown round trip", () => {
     expect(once).toBe(src);
     const doc = md.parse(once);
     expect(doc.child(0).type.name).toBe("details");
-    expect(doc.child(0).attrs).toEqual({ title: "Moje riešenie", open: true, heading: 0 });
+    expect(doc.child(0).attrs).toEqual({ title: "Moje riešenie", open: true, heading: 0, color: null });
     expect(doc.child(0).childCount).toBe(3);
     expect(doc.child(0).child(2).type.name).toBe("codeBlock");
-    expect(doc.child(1).attrs).toEqual({ title: "", open: false, heading: 0 });
+    expect(doc.child(1).attrs).toEqual({ title: "", open: false, heading: 0, color: null });
     expect(roundTrip("```details\n```\n")).toBe("```details\n```\n");
   });
 
@@ -256,5 +257,91 @@ describe("markdown round trip", () => {
     ].join("\n");
     expect(expectStable(src)).toBe(src);
     expect(md.parse(src).childCount).toBe(7);
+  });
+});
+
+describe("colours and underline", () => {
+  const marksOf = (src: string) => {
+    const out: { text: string; marks: Record<string, unknown> }[] = [];
+    md.parse(src).descendants((n) => {
+      if (n.isText) out.push({ text: n.text!, marks: Object.fromEntries(n.marks.map((m) => [m.type.name, m.attrs.color ?? true])) });
+    });
+    return out;
+  };
+
+  it("keeps text colour, background colour, both together and plain highlight", () => {
+    const src = "A [red]{color=red} word, [marked]{bg=yellow}, [both]{color=blue bg=pink} and ==plain== mark.\n";
+    expect(expectStable(src)).toBe(src);
+    const marks = marksOf(src);
+    expect(marks.find((m) => m.text === "red")!.marks).toEqual({ textStyle: "red" });
+    expect(marks.find((m) => m.text === "marked")!.marks).toEqual({ highlight: "yellow_bg" });
+    expect(marks.find((m) => m.text === "both")!.marks).toEqual({ textStyle: "blue", highlight: "pink_bg" });
+    expect(marks.find((m) => m.text === "plain")!.marks).toEqual({ highlight: true });
+  });
+
+  it("nests colours with links and other marks, and writes overlapping runs separately", () => {
+    const src = "[**bold** and [link](/p/1)]{color=green} then [[label](https://x.example)]{color=red}\n";
+    expect(expectStable(src)).toBe(src);
+    expect(marksOf(src).find((m) => m.text === "link")!.marks).toMatchObject({ textStyle: "green", link: true });
+    const overlap = expectStable("[a [b]{bg=yellow}]{color=red}\n");
+    expect(marksOf(overlap).find((m) => m.text === "b")!.marks).toEqual({ textStyle: "red", highlight: "yellow_bg" });
+  });
+
+  it("reads background tokens written either way and leaves unknown colours as text", () => {
+    expect(roundTrip("[x]{bg=yellow_bg} [y]{color=gray_bg}\n")).toBe("[x]{bg=yellow} [y]{bg=gray}\n");
+    expect(roundTrip("[x]{color=teal} [y]{bg=#fff}\n")).toBe("\\[x\\]{color=teal} \\[y\\]{bg=#fff}\n");
+  });
+
+  it("keeps underline and escapes literal plus pairs", () => {
+    const src = "Some ++underlined *text*++ here.\n";
+    expect(expectStable(src)).toBe(src);
+    expect(marksOf(src).find((m) => m.text === "underlined ")!.marks).toEqual({ underline: true });
+    const literal = md.serialize(schema.node("doc", null, [schema.node("paragraph", null, [schema.text("a ++b++ c")])]));
+    expect(literal).toBe("a \\++b\\++ c\n");
+    expect(marksOf(literal)[0]!.marks).toEqual({});
+  });
+
+  it("keeps block colours on paragraphs, headings, quotes and collapsibles", () => {
+    const src = "Plain\n{color=red}\n\n## Title\n{color=blue_bg}\n\n> quoted\n{color=gray_bg}\n\n> inner\n> {color=green}\n\n```details title=More\nBody\n```\n{color=yellow_bg}\n";
+    expect(expectStable(src)).toBe(src);
+    const doc = md.parse(src);
+    expect(doc.child(0).attrs.color).toBe("red");
+    expect(doc.child(1).attrs.color).toBe("blue_bg");
+    expect(doc.child(2).attrs.color).toBe("gray_bg");
+    expect(doc.child(2).child(0).attrs.color).toBe(null);
+    expect(doc.child(3).attrs.color).toBe(null);
+    expect(doc.child(3).child(0).attrs.color).toBe("green");
+    expect(doc.child(4).type.name).toBe("details");
+    expect(doc.child(4).attrs.color).toBe("yellow_bg");
+  });
+
+  it("keeps list item colours after the item's first line, next to list styles", () => {
+    const src = "- one\n  {color=red}\n- two\n  {color=purple_bg}\n  - nested\n    {color=green}\n{style=square}\n\n1. first\n   {color=orange}\n\n- [ ] task\n  {color=pink_bg}\n";
+    expect(expectStable(src)).toBe(src);
+    const doc = md.parse(src);
+    expect(doc.child(0).attrs.listStyle).toBe("square");
+    expect(doc.child(0).child(0).attrs.color).toBe("red");
+    expect(doc.child(0).child(0).child(0).attrs.color).toBe(null);
+    expect(doc.child(0).child(1).attrs.color).toBe("purple_bg");
+    expect(doc.child(0).child(1).child(1).child(0).attrs.color).toBe("green");
+    expect(doc.child(1).child(0).attrs.color).toBe("orange");
+    expect(doc.child(2).child(0).type.name).toBe("taskItem");
+    expect(doc.child(2).child(0).attrs).toMatchObject({ checked: false, color: "pink_bg" });
+  });
+
+  it("leaves unknown or misplaced attribute lines as text and never writes cell colours", () => {
+    expect(roundTrip("Plain\n{color=teal}\n")).toBe("Plain {color=teal}\n");
+    expect(roundTrip("- a\n{color=red}\n")).toBe("- a\n\n{color=red}\n");
+    const table = schema.node("doc", null, [
+      schema.node("table", null, [schema.node("tableRow", null, [schema.node("tableHeader", { color: "red_bg" }, [schema.node("paragraph", { color: "red" }, [schema.text("h")])])])]),
+    ]);
+    expect(md.serialize(table)).toBe("| h |\n| --- |\n");
+  });
+
+  it("writes html documents' colours as markdown only when they are palette colours", () => {
+    const html = markdownFor(resolveConfig("html", {}));
+    const s = html.schema;
+    const doc = s.node("doc", null, [s.node("paragraph", null, [s.text("x", [s.marks.textStyle!.create({ color: "#123456" })]), s.text(" y", [s.marks.highlight!.create({ color: "#fef08a" })]), s.text(" z", [s.marks.textStyle!.create({ color: "red" })])])]);
+    expect(html.serialize(doc)).toBe("x ==y== [z]{color=red}\n");
   });
 });

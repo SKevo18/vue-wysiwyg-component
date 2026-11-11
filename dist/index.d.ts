@@ -28,7 +28,7 @@ export { formatBytes, isImageSrc, mediaKind } from "./core/media";
 export { MARKDOWN_CALLOUTS, HTML_CALLOUTS } from "./core/callouts";
 export { embedFor, EMBED_PROVIDERS, type EmbedProvider, type EmbedTarget } from "./core/embeds";
 export { mentionMarkdown, parseMentionTarget, type MentionAttrs } from "./core/mentions";
-export { PALETTE, isPaletteToken, paletteCss } from "./core/palette";
+export { PALETTE, isBgToken, isColorToken, isTextToken, tokenCss, type PaletteName } from "./core/colors";
 export { MESSAGES, type Locale, type Messages, type Translate } from "./i18n";
 export type * from "./types";
 export declare function markdownToHtml(md: string, extensions?: readonly EditorExtension[], base?: BaseOptions): string;

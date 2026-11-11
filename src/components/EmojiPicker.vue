@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { validIcon } from "../core/attrs";
+import { parseBlockAttrs } from "../core/attrs";
+
+const validIcon = (v: string) => !!v && parseBlockAttrs({ icon: v }) !== null;
 
 const props = defineProps<{ value: string; t: (key: string) => string }>();
 const emit = defineEmits<{ pick: [icon: string] }>();

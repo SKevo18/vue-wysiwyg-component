@@ -319,12 +319,178 @@ button.wy-grip {
   background: var(--vc-bg);
   box-shadow: var(--vc-shadow-pop);
 }
-.wy-link-hits {
-  display: grid;
+.wy-bubble-block {
+  max-width: 10rem;
+}
+.wy-bubble-block .wy-tool-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wy-color-trigger {
+  gap: 2px;
+  padding: 0 4px 0 6px;
+}
+.wy-color-sample {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* link card: the address with its actions, under a hovered link or the one holding the caret */
+.wy-link-card {
+  display: flex;
+  align-items: center;
   gap: 1px;
-  max-height: 14rem;
+  max-width: min(24rem, calc(100vw - 16px));
+  padding: 3px 3px 3px 10px;
+  border: 1px solid var(--vc-border);
+  border-radius: var(--vc-radius);
+  background: var(--vc-bg);
+  box-shadow: var(--vc-shadow-pop);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.wy-link-card-url {
+  flex: 1;
+  min-width: 0;
+  margin-right: 6px;
+  overflow: hidden;
+  color: var(--vc-fg-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* link dialog: one field, options under it */
+.wy-link-search {
+  display: grid;
+  gap: 6px;
+}
+.wy-link-options {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 16rem;
   overflow-y: auto;
-  margin-top: -6px;
+  padding: 4px;
+  border: 1px solid var(--vc-border);
+  border-radius: var(--vc-radius-sm);
+  line-height: 1.35;
+}
+.wy-link-option {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: var(--vc-radius-sm);
+  background: transparent;
+  color: var(--vc-fg);
+  font: inherit;
+  line-height: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.wy-link-option[aria-selected="true"] {
+  background: var(--vc-bg-muted);
+}
+.wy-link-option-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  color: var(--vc-fg-muted);
+  font-size: 16px;
+  line-height: 1;
+}
+.wy-link-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.wy-link-option-title,
+.wy-link-option-detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wy-link-option-title {
+  font-size: 14px;
+  font-weight: 550;
+}
+.wy-link-option-detail {
+  font-size: 12px;
+  color: var(--vc-fg-muted);
+}
+.wy-link-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  font-size: 13px;
+  color: var(--vc-fg-muted);
+}
+.wy-spin {
+  animation: wy-spin 0.8s linear infinite;
+}
+@keyframes wy-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wy-spin {
+    animation: none;
+  }
+}
+
+/* image lightbox */
+.wy-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(0 0 0 / 0.82);
+  cursor: zoom-out;
+}
+.wy-lightbox-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.4);
+}
+.wy-lightbox-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.14);
+  color: #fff;
+  cursor: pointer;
+}
+.wy-lightbox-close:hover,
+.wy-lightbox-close:focus-visible {
+  background: rgb(255 255 255 / 0.26);
+  outline: none;
 }
 
 .wy-editor.is-compact {
@@ -518,6 +684,8 @@ button.wy-grip {
   display: flex;
   align-items: center;
   gap: 4px;
+  width: max-content;
+  max-width: none;
   padding: 1px 5px;
   border-radius: var(--vc-radius-sm) var(--vc-radius-sm) var(--vc-radius-sm) 0;
   background: var(--vc-accent);
@@ -527,11 +695,22 @@ button.wy-grip {
   white-space: nowrap;
   user-select: none;
 }
-.wy-content .collaboration-carets__avatar {
+.wy-content .collaboration-carets__avatar,
+.wy-content .collaboration-carets__initials {
   width: 14px;
   height: 14px;
   margin-left: -3px;
   border-radius: 50%;
-  object-fit: cover;
   flex-shrink: 0;
+}
+.wy-content .collaboration-carets__avatar {
+  object-fit: cover;
+}
+.wy-content .collaboration-carets__initials {
+  display: inline-grid;
+  place-items: center;
+  background: rgb(255 255 255 / 0.3);
+  font-size: 7.5px;
+  line-height: 1;
+  letter-spacing: 0;
 }

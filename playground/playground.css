@@ -69,3 +69,9 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
   gap: 1rem;
 }
+.pg-controls {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  font-size: 14px;
+}

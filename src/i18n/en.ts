@@ -65,7 +65,7 @@ export const en = {
   },
   colors: {
     text: "Text colour",
-    background: "Highlight",
+    background: "Background colour",
     default: "Default",
     none: "No highlight",
     gray: "Gray",
@@ -76,6 +76,8 @@ export const en = {
     blue: "Blue",
     purple: "Purple",
     pink: "Pink",
+    brown: "Brown",
+    reset: "Remove colour",
   },
   bubble: {
     label: "Selection",
@@ -127,6 +129,7 @@ export const en = {
     duplicate: "Duplicate",
     copy: "Copy as markdown",
     delete: "Delete",
+    color: "Colour",
   },
   gutter: {
     drag: "Drag to move, click for options",
@@ -156,15 +159,19 @@ export const en = {
   link: {
     title: "Link",
     url: "Address",
-    urlPlaceholder: "https://",
+    urlPlaceholder: "Paste a link",
     text: "Text",
     textPlaceholder: "Shown text",
-    search: "Search",
-    searchPlaceholder: "Search pages",
+    searchPlaceholder: "Search or paste a link",
+    results: "Results",
+    searching: "Searching",
+    linkTo: "Link to this address",
     noResults: "Nothing found",
     apply: "Apply",
     remove: "Remove link",
     open: "Open link",
+    copy: "Copy link",
+    edit: "Edit link",
   },
   field: {
     tools: "Formatting",
@@ -231,6 +238,7 @@ export const en = {
     replaceFile: "Replace the file",
     originalSize: "Original size",
     toFigure: "Own block",
+    zoom: "Enlarge",
     align: {
       left: "Left",
       center: "Center",
@@ -269,6 +277,8 @@ export const en = {
     openByDefault: "Open for readers",
     closedByDefault: "Closed for readers",
     headingLabel: "Toggle heading {n}",
+    expand: "Expand",
+    collapse: "Collapse",
   },
   footnote: {
     label: "Footnote",

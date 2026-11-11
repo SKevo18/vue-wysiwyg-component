@@ -40,8 +40,8 @@ export declare function listLook(attrs: Partial<ListAttrs>): {
 };
 export declare function dividerOrnament(attrs: DividerAttrs): string;
 export declare function dividerStyle(attrs: DividerAttrs): string;
+export declare const BLOCK_ATTR_KEYS: readonly string[];
+export declare function parseBlockAttrs(fields: Record<string, string>): Record<string, string> | null;
+/** `{icon=💡 color=gray_bg}`; empty and null values are left out */
+export declare function formatBlockAttrs(attrs: Record<string, unknown>): string;
 export declare function blockAttrsPlugin(md: MarkdownIt): void;
-/** an emoji or a short text icon; no line breaks */
-export declare function validIcon(s: string): boolean;
-export declare function blockColorPlugin(md: MarkdownIt): void;
-export declare function formatBlockAttrs(fields: [string, string | null | undefined][]): string;

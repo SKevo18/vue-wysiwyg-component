@@ -1,5 +1,5 @@
 import type { MarkdownIt, StateBlock, Token } from "markdown-it";
-import { isPaletteToken } from "./palette";
+import { isColorToken } from "./colors";
 
 export const ORDERED_STYLES = ["decimal", "lower-alpha", "upper-alpha", "lower-roman", "upper-roman"] as const;
 export const BULLET_STYLES = ["disc", "circle", "square", "dash", "arrow"] as const;
@@ -154,21 +154,75 @@ function listOpen(tokens: Token[], close: Token): Token | null {
   return null;
 }
 
+/** keys an attribute line may set on the block before it, in written order; a line with any other key stays text */
+const BLOCK_ATTRS: [string, (v: string) => boolean][] = [
+  ["icon", (v) => v.length > 0 && v.length <= 64 && !/[\n"]/.test(v)],
+  ["color", isColorToken],
+];
+export const BLOCK_ATTR_KEYS: readonly string[] = BLOCK_ATTRS.map(([k]) => k);
+
+export function parseBlockAttrs(fields: Record<string, string>): Record<string, string> | null {
+  for (const [k, v] of Object.entries(fields)) {
+    const valid = BLOCK_ATTRS.find(([key]) => key === k)?.[1];
+    if (!valid?.(v)) return null;
+  }
+  return fields;
+}
+
+/** `{icon=💡 color=gray_bg}`; empty and null values are left out */
+export function formatBlockAttrs(attrs: Record<string, unknown>): string {
+  const fields: [string, string][] = [];
+  for (const [k, valid] of BLOCK_ATTRS) {
+    const v = attrs[k];
+    if (typeof v === "string" && v && valid(v)) fields.push([k, v]);
+  }
+  return formatFields(fields);
+}
+
+// lists, tables and rules own their line (or have none); a first child of a list item hands its line to the item
+const NO_BLOCK_ATTRS: Record<string, true> = { bullet_list_close: true, ordered_list_close: true, table_close: true, list_item_close: true };
+
+function blockAttrsTarget(tokens: Token[]): Token | null {
+  const last = tokens.length - 1;
+  const prev = tokens[last];
+  if (!prev || NO_BLOCK_ATTRS[prev.type] === true) return null;
+  let at = -1;
+  if (prev.type === "fence") at = last;
+  else if (prev.nesting === -1) {
+    const type = prev.type.replace(/_close$/, "_open");
+    for (let i = last - 1; i >= 0; i--) {
+      if (tokens[i]!.type === type && tokens[i]!.level === prev.level) {
+        at = i;
+        break;
+      }
+    }
+  }
+  if (at < 0) return null;
+  const before = tokens[at - 1];
+  return before?.type === "list_item_open" ? before : tokens[at]!;
+}
+
 function attrLineRule(state: StateBlock, startLine: number, _endLine: number, silent: boolean): boolean {
   if (state.sCount[startLine]! - state.blkIndent >= 4) return false;
   const fields = parseAttrLine(state.src.slice(state.bMarks[startLine]! + state.tShift[startLine]!, state.eMarks[startLine]!));
   if (!fields) return false;
-  if (silent) return state.listIndent >= 0 && parseListAttrs(fields, null) !== null;
+  const block = parseBlockAttrs(fields);
+  if (silent) return block !== null || (state.listIndent >= 0 && parseListAttrs(fields, null) !== null);
   const prev = state.tokens[state.tokens.length - 1];
+  const list = prev?.type === "bullet_list_close" || prev?.type === "ordered_list_close" ? parseListAttrs(fields, prev.type === "ordered_list_close" ? "ordered" : "bullet") : null;
   if (prev?.type === "hr") {
     const divider = parseDividerAttrs(fields);
     if (!divider) return false;
     prev.meta = { ...prev.meta, divider };
-  } else if (prev?.type === "bullet_list_close" || prev?.type === "ordered_list_close") {
-    const list = parseListAttrs(fields, prev.type === "ordered_list_close" ? "ordered" : "bullet");
-    const open = list && listOpen(state.tokens, prev);
-    if (!list || !open) return false;
+  } else if (list) {
+    const open = listOpen(state.tokens, prev!);
+    if (!open) return false;
     open.meta = { ...open.meta, list };
+  } else if (block) {
+    const target = blockAttrsTarget(state.tokens);
+    if (!target) return false;
+    const meta = (target.meta ?? {}) as { blockAttrs?: Record<string, string> };
+    target.meta = { ...meta, blockAttrs: { ...meta.blockAttrs, ...block } };
   } else {
     return false;
   }
@@ -177,43 +231,7 @@ function attrLineRule(state: StateBlock, startLine: number, _endLine: number, si
 }
 
 export function blockAttrsPlugin(md: MarkdownIt) {
-  // before `lheading`: `---` under an attribute line is another rule, never a setext underline
-  md.block.ruler.before("lheading", "block_attrs", attrLineRule, { alt: ["paragraph"] });
-}
-
-const ICON_GRAPHEMES = 8;
-
-/** an emoji or a short text icon; no line breaks */
-export function validIcon(s: string): boolean {
-  if (!s || /[\r\n]/.test(s)) return false;
-  let n = 0;
-  for (const _ of graphemes(s)) if (++n > ICON_GRAPHEMES) return false;
-  return true;
-}
-
-function validBlockAttrs(fields: Record<string, string>): boolean {
-  return Object.entries(fields).every(([k, v]) => (k === "color" && isPaletteToken(v)) || (k === "icon" && validIcon(v)));
-}
-
-/** `{color=… icon=…}` right after a quote (on its opener) or a fence (on the fence token) lands in `meta.blockAttrs` */
-function blockAttrsLineRule(state: StateBlock, startLine: number, _endLine: number, silent: boolean): boolean {
-  if (state.sCount[startLine]! - state.blkIndent >= 4) return false;
-  const fields = parseAttrLine(state.src.slice(state.bMarks[startLine]! + state.tShift[startLine]!, state.eMarks[startLine]!));
-  if (!fields || !validBlockAttrs(fields)) return false;
-  // a quote ends at the line instead of taking it as a lazy continuation
-  if (silent) return true;
-  const prev = state.tokens[state.tokens.length - 1];
-  const target = prev?.type === "fence" ? prev : prev?.type === "blockquote_close" ? listOpen(state.tokens, prev) : null;
-  if (!target) return false;
-  target.meta = { ...target.meta, blockAttrs: { ...(target.meta?.blockAttrs as Record<string, string> | undefined), ...fields } };
-  state.line = startLine + 1;
-  return true;
-}
-
-export function blockColorPlugin(md: MarkdownIt) {
-  md.block.ruler.before("lheading", "wy_block_attrs_e2", blockAttrsLineRule, { alt: ["blockquote"] });
-}
-
-export function formatBlockAttrs(fields: [string, string | null | undefined][]): string {
-  return formatFields(fields.filter((f): f is [string, string] => !!f[1]));
+  // before `lheading`: `---` under an attribute line is another rule, never a setext underline. it ends a lazy quote
+  // line too, so `{color=…}` right after a quote belongs to the quote
+  md.block.ruler.before("lheading", "block_attrs", attrLineRule, { alt: ["paragraph", "blockquote"] });
 }

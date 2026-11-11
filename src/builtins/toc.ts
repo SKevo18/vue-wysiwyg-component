@@ -29,7 +29,7 @@ export function tocEntries(doc: PMNode): TocEntry[] {
 
 /** `{color=…}` on the line after an atom fence */
 export function writeColorLine(state: MarkdownSerializerState, node: PMNode) {
-  const attrs = formatBlockAttrs([["color", node.attrs.color as string | null]]);
+  const attrs = formatBlockAttrs({ color: node.attrs.color });
   if (!attrs) return;
   (state as MarkdownSerializerState & { flushClose(size: number): void }).flushClose(1);
   state.write(attrs);

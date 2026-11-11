@@ -67,7 +67,7 @@ export const sk: Messages = {
   },
   colors: {
     text: "Farba textu",
-    background: "Zvýraznenie",
+    background: "Farba pozadia",
     default: "Predvolená",
     none: "Bez zvýraznenia",
     gray: "Sivá",
@@ -78,6 +78,8 @@ export const sk: Messages = {
     blue: "Modrá",
     purple: "Fialová",
     pink: "Ružová",
+    brown: "Hnedá",
+    reset: "Odstrániť farbu",
   },
   bubble: {
     label: "Formátovanie výberu",
@@ -129,6 +131,7 @@ export const sk: Messages = {
     duplicate: "Duplikovať",
     copy: "Kopírovať ako markdown",
     delete: "Odstrániť",
+    color: "Farba",
   },
   gutter: {
     drag: "Potiahnutím presuniete, kliknutím otvoríte ponuku bloku",
@@ -158,15 +161,19 @@ export const sk: Messages = {
   link: {
     title: "Odkaz",
     url: "Adresa",
-    urlPlaceholder: "https://",
+    urlPlaceholder: "Vložte odkaz",
     text: "Text odkazu",
     textPlaceholder: "Zobrazený text",
-    search: "Hľadať",
-    searchPlaceholder: "Začnite písať názov",
+    searchPlaceholder: "Hľadajte alebo vložte odkaz",
+    results: "Výsledky",
+    searching: "Hľadám",
+    linkTo: "Odkaz na túto adresu",
     noResults: "Nič sa nenašlo",
     apply: "Použiť",
     remove: "Odstrániť odkaz",
     open: "Otvoriť odkaz",
+    copy: "Kopírovať odkaz",
+    edit: "Upraviť odkaz",
   },
   field: {
     tools: "Formátovanie",
@@ -233,6 +240,7 @@ export const sk: Messages = {
     replaceFile: "Nahradiť súbor",
     originalSize: "Pôvodná veľkosť",
     toFigure: "Samostatný blok",
+    zoom: "Zväčšiť",
     align: {
       left: "Vľavo",
       center: "Na stred",
@@ -271,6 +279,8 @@ export const sk: Messages = {
     openByDefault: "Čitatelia ho uvidia otvorené",
     closedByDefault: "Čitatelia ho uvidia zbalené",
     headingLabel: "Rozbaľovací nadpis {n}",
+    expand: "Rozbaliť",
+    collapse: "Zbaliť",
   },
   footnote: {
     label: "Poznámka pod čiarou",

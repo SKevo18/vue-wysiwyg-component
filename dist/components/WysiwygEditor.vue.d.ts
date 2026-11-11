@@ -29,6 +29,8 @@ type __VLS_Props = {
     shortcuts?: string[];
     trailingNewline?: boolean;
     contentClass?: string;
+    /** `fixed`: the toolbar above the content, plus a compact one on a text selection. `floating`: only the selection toolbar, with the turn-into menu. `both`: the two at full strength */
+    toolbar?: "fixed" | "floating" | "both";
 };
 declare const __VLS_template: () => {
     __VLS_Slots: {
@@ -70,6 +72,7 @@ declare const __VLS_base: import("vue").DefineComponent<__VLS_Props, EditorHandl
     placeholder: string;
     services: EditorServices;
     locale: Locale;
+    toolbar: "floating" | "fixed" | "both";
     messages: DeepPartial<{
         editor: {
             placeholder: string;
@@ -148,6 +151,8 @@ declare const __VLS_base: import("vue").DefineComponent<__VLS_Props, EditorHandl
             blue: string;
             purple: string;
             pink: string;
+            brown: string;
+            reset: string;
         };
         bubble: {
             label: string;
@@ -298,6 +303,7 @@ declare const __VLS_base: import("vue").DefineComponent<__VLS_Props, EditorHandl
             duplicate: string;
             copy: string;
             delete: string;
+            color: string;
         };
         gutter: {
             drag: string;
@@ -330,12 +336,16 @@ declare const __VLS_base: import("vue").DefineComponent<__VLS_Props, EditorHandl
             urlPlaceholder: string;
             text: string;
             textPlaceholder: string;
-            search: string;
             searchPlaceholder: string;
+            results: string;
+            searching: string;
+            linkTo: string;
             noResults: string;
             apply: string;
             remove: string;
             open: string;
+            copy: string;
+            edit: string;
         };
         field: {
             tools: string;
@@ -402,6 +412,7 @@ declare const __VLS_base: import("vue").DefineComponent<__VLS_Props, EditorHandl
             replaceFile: string;
             originalSize: string;
             toFigure: string;
+            zoom: string;
             align: {
                 left: string;
                 center: string;
@@ -460,6 +471,8 @@ declare const __VLS_base: import("vue").DefineComponent<__VLS_Props, EditorHandl
             openByDefault: string;
             closedByDefault: string;
             headingLabel: string;
+            expand: string;
+            collapse: string;
         };
         footnote: {
             label: string;

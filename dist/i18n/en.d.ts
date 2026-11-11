@@ -76,6 +76,8 @@ export declare const en: {
         blue: string;
         purple: string;
         pink: string;
+        brown: string;
+        reset: string;
     };
     bubble: {
         label: string;
@@ -226,6 +228,7 @@ export declare const en: {
         duplicate: string;
         copy: string;
         delete: string;
+        color: string;
     };
     gutter: {
         drag: string;
@@ -258,12 +261,16 @@ export declare const en: {
         urlPlaceholder: string;
         text: string;
         textPlaceholder: string;
-        search: string;
         searchPlaceholder: string;
+        results: string;
+        searching: string;
+        linkTo: string;
         noResults: string;
         apply: string;
         remove: string;
         open: string;
+        copy: string;
+        edit: string;
     };
     field: {
         tools: string;
@@ -330,6 +337,7 @@ export declare const en: {
         replaceFile: string;
         originalSize: string;
         toFigure: string;
+        zoom: string;
         align: {
             left: string;
             center: string;
@@ -388,6 +396,8 @@ export declare const en: {
         openByDefault: string;
         closedByDefault: string;
         headingLabel: string;
+        expand: string;
+        collapse: string;
     };
     footnote: {
         label: string;

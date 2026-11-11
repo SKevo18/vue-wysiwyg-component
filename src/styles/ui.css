@@ -452,7 +452,8 @@ textarea.wy-input {
   font-size: 14px;
   cursor: pointer;
 }
-.wy-swatch[aria-pressed="true"] {
+.wy-swatch[aria-pressed="true"],
+.wy-swatch[aria-checked="true"] {
   outline: 2px solid var(--vc-accent);
   outline-offset: 1px;
 }
@@ -481,6 +482,18 @@ textarea.wy-input {
   border-radius: 999px;
   background: var(--vc-accent);
   color: var(--vc-accent-fg);
+}
+.wy-colors {
+  display: grid;
+}
+.wy-colors .wy-swatches {
+  display: grid;
+  grid-template-columns: repeat(5, 26px);
+  max-width: none;
+}
+.wy-colors-reset {
+  margin-top: 2px;
+  font-size: 13px;
 }
 
 .wy-modal-backdrop {

@@ -116,6 +116,6 @@ describe("readonly bubble tools", () => {
     editable.handle.editor!.commands.setTextSelection({ from: 1, to: 8 });
     await vi.waitFor(() => expect(labels()).toEqual(expect.arrayContaining(["Bold", "Comment", "Shout"])));
     const plain = await mountEditor({ modelValue: "Echidna spines.\n", readonly: true });
-    expect(plain.wrapper.findComponent({ name: "BubbleMenu" }).exists()).toBe(false);
+    expect(plain.wrapper.findComponent({ name: "FloatingToolbar" }).exists()).toBe(false);
   });
 });

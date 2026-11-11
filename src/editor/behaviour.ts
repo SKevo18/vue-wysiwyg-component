@@ -3,7 +3,7 @@ import { VueRenderer } from "@tiptap/vue-3";
 import Suggestion, { type SuggestionProps } from "@tiptap/suggestion";
 import { NodeSelection, Plugin, PluginKey, TextSelection } from "@tiptap/pm/state";
 import { floatNear } from "../components/floating";
-import type { SlashItem } from "../types";
+import type { EditorServices, SlashItem } from "../types";
 import SlashMenu from "../components/SlashMenu.vue";
 import { cellSlice, isInCell } from "./tables";
 
@@ -68,6 +68,51 @@ export function applyLink(editor: Editor, rawHref: string, text: string) {
 export function removeLink(editor: Editor) {
   editor.chain().focus().extendMarkRange("link").unsetLink().run();
 }
+
+/** the host's `openLink` first (it returns true for routes it handles), otherwise a new tab without an opener */
+export function openHref(services: EditorServices, raw: string, event: MouseEvent) {
+  const href = normalizeHref(raw);
+  if (!href || services.openLink?.(href, event) === true) return;
+  window.open(href, "_blank", "noopener,noreferrer");
+}
+
+const DRAG_PX = 4;
+
+/** a plain click on a link opens it in editable and readonly editors; dragging, shift and multi clicks select text */
+export const LinkClicks = Extension.create<{ open(href: string, event: MouseEvent): void }>({
+  name: "linkClicks",
+  addOptions() {
+    return { open: () => {} };
+  },
+  addProseMirrorPlugins() {
+    const open = this.options.open;
+    let down: { x: number; y: number } | null = null;
+    return [
+      new Plugin({
+        key: new PluginKey("linkClicks"),
+        props: {
+          handleDOMEvents: {
+            mousedown(_view, event) {
+              down = { x: event.clientX, y: event.clientY };
+              return false;
+            },
+            click(view, event) {
+              const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
+              // links of a nested editor (a caption field) belong to that editor
+              if (!link || event.button !== 0 || link.closest(".ProseMirror") !== view.dom) return false;
+              event.preventDefault();
+              const moved = !!down && Math.hypot(event.clientX - down.x, event.clientY - down.y) > DRAG_PX;
+              const selecting = window.getSelection()?.isCollapsed === false;
+              if (moved || selecting || event.shiftKey || event.detail > 1) return false;
+              open(link.getAttribute("href") ?? "", event);
+              return true;
+            },
+          },
+        },
+      }),
+    ];
+  },
+});
 
 export const SLASH_KEY = new PluginKey("wysiwygSlash");
 
