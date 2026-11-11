@@ -6,6 +6,8 @@ export { default as WysiwygEditor } from "./components/WysiwygEditor.vue";
 export { default as SaveStatus } from "./components/SaveStatus.vue";
 export { default as AnchoredPopover } from "./components/AnchoredPopover.vue";
 export { vTooltip, type TooltipValue } from "./components/tooltip";
+export { default as SuggestionList, type SuggestionEntry } from "./components/SuggestionList.vue";
+export { default as PageSearch } from "./components/PageSearch.vue";
 
 export { default as BlockFrame } from "./blocks/BlockFrame.vue";
 export { default as BlockMenu } from "./blocks/BlockMenu.vue";
@@ -30,6 +32,9 @@ export { highlightCode, registerCodeLanguage, escapeHtml, CODE_LANGUAGES } from 
 export { renderMath, type KatexLike, type KatexLoader } from "./core/math";
 export { formatBytes, isImageSrc, mediaKind } from "./core/media";
 export { MARKDOWN_CALLOUTS, HTML_CALLOUTS } from "./core/callouts";
+export { embedFor, EMBED_PROVIDERS, type EmbedProvider, type EmbedTarget } from "./core/embeds";
+export { mentionMarkdown, parseMentionTarget, type MentionAttrs } from "./core/mentions";
+export { PALETTE, isPaletteToken, paletteCss } from "./core/palette";
 export { MESSAGES, type Locale, type Messages, type Translate } from "./i18n";
 export type * from "./types";
 

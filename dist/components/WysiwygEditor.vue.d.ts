@@ -65,6 +65,11 @@ declare const __VLS_base: import("vue").DefineComponent<__VLS_Props, EditorHandl
     base: BaseOptions;
     size: EditorSize;
     format: EditorFormat;
+    readonly: boolean;
+    autofocus: boolean | "end" | "start";
+    placeholder: string;
+    services: EditorServices;
+    locale: Locale;
     messages: DeepPartial<{
         editor: {
             placeholder: string;
@@ -238,6 +243,46 @@ declare const __VLS_base: import("vue").DefineComponent<__VLS_Props, EditorHandl
                     label: string;
                     description: string;
                 };
+                toggleHeading1: {
+                    label: string;
+                    description: string;
+                };
+                toggleHeading2: {
+                    label: string;
+                    description: string;
+                };
+                toggleHeading3: {
+                    label: string;
+                    description: string;
+                };
+                columns2: {
+                    label: string;
+                    description: string;
+                };
+                columns3: {
+                    label: string;
+                    description: string;
+                };
+                columns4: {
+                    label: string;
+                    description: string;
+                };
+                bookmark: {
+                    label: string;
+                    description: string;
+                };
+                embed: {
+                    label: string;
+                    description: string;
+                };
+                tableOfContents: {
+                    label: string;
+                    description: string;
+                };
+                pageLink: {
+                    label: string;
+                    description: string;
+                };
             };
         };
         convert: {
@@ -245,6 +290,7 @@ declare const __VLS_base: import("vue").DefineComponent<__VLS_Props, EditorHandl
             targets: {
                 paragraph: string;
                 unwrap: string;
+                columns: string;
             };
         };
         blockMenu: {
@@ -271,6 +317,7 @@ declare const __VLS_base: import("vue").DefineComponent<__VLS_Props, EditorHandl
             alignCenter: string;
             alignRight: string;
             headerRow: string;
+            headerColumn: string;
             deleteColumn: string;
             deleteRow: string;
             deleteTable: string;
@@ -319,6 +366,11 @@ declare const __VLS_base: import("vue").DefineComponent<__VLS_Props, EditorHandl
             changeType: string;
             title: string;
             addTitle: string;
+            changeIcon: string;
+            icon: string;
+            ownIcon: string;
+            useIcon: string;
+            defaultIcon: string;
             kinds: string;
             types: {
                 note: string;
@@ -407,6 +459,7 @@ declare const __VLS_base: import("vue").DefineComponent<__VLS_Props, EditorHandl
             toggleDefault: string;
             openByDefault: string;
             closedByDefault: string;
+            headingLabel: string;
         };
         footnote: {
             label: string;
@@ -414,16 +467,105 @@ declare const __VLS_base: import("vue").DefineComponent<__VLS_Props, EditorHandl
         source: {
             label: string;
         };
+        columns: {
+            label: string;
+            add: string;
+            remove: string;
+            removeHint: string;
+            equal: string;
+            resize: string;
+        };
+        bookmark: {
+            edit: string;
+            label: string;
+            url: string;
+            placeholder: string;
+            create: string;
+            loading: string;
+            failed: string;
+            refresh: string;
+            open: string;
+        };
+        embed: {
+            edit: string;
+            url: string;
+            placeholder: string;
+            create: string;
+            open: string;
+            interact: string;
+            resize: string;
+            defaultHeight: string;
+            providers: {
+                youtube: string;
+                vimeo: string;
+                loom: string;
+                figma: string;
+                gist: string;
+                maps: string;
+                tweet: string;
+                codepen: string;
+                generic: string;
+            };
+        };
+        toc: {
+            label: string;
+            empty: string;
+        };
+        pageLink: {
+            label: string;
+            untitled: string;
+            search: string;
+            searchPlaceholder: string;
+        };
+        mention: {
+            label: string;
+            empty: string;
+            searching: string;
+            groups: {
+                user: string;
+                page: string;
+                date: string;
+            };
+            today: string;
+            tomorrow: string;
+            yesterday: string;
+            date: string;
+            time: string;
+            includeTime: string;
+            endDate: string;
+            editDate: string;
+        };
+        paste: {
+            label: string;
+            link: string;
+            bookmark: string;
+            embed: string;
+        };
+        diagram: {
+            alt: string;
+            loading: string;
+            empty: string;
+            failed: string;
+        };
+        palette: {
+            background: string;
+            text: string;
+            default: string;
+            gray: string;
+            brown: string;
+            orange: string;
+            yellow: string;
+            green: string;
+            blue: string;
+            purple: string;
+            pink: string;
+            red: string;
+        };
         dialog: {
             close: string;
             cancel: string;
         };
     }> & Record<string, unknown>;
-    autofocus: boolean | "end" | "start";
-    placeholder: string;
-    readonly: boolean;
-    services: EditorServices;
-    locale: Locale;
     extensions: readonly EditorExtension[];
     minRows: number;
     expandable: boolean;

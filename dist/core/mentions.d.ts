@@ -1,0 +1,22 @@
+import type { StateInline } from "markdown-it";
+import type { MentionKind } from "../types";
+export interface MentionAttrs {
+    kind: MentionKind;
+    id: string;
+    label: string;
+    start: string | null;
+    end: string | null;
+}
+export declare function isMentionDate(v: unknown): v is string;
+/** the target in `@[label](<target>)`: `user:<id>`, `page:<id>`, `date:<start>` or `date:<start>/<end>` */
+export declare function mentionTarget(a: Pick<MentionAttrs, "kind" | "id" | "start" | "end">): string | null;
+export declare function parseMentionTarget(target: string): Omit<MentionAttrs, "label"> | null;
+export declare function escapeMentionLabel(label: string): string;
+export declare function mentionMarkdown(a: MentionAttrs): string | null;
+/** inline rule for `@[label](kind:value)`; must run before `link` */
+export declare function mentionRule(state: StateInline, silent: boolean): boolean;
+/** "May 1, 2024", "May 1, 2024 10:00" or a range of them in the editor's locale */
+export declare function dateLabel(start: string, end: string | null, locale: string): string;
+export declare function isoDate(d: Date): string;
+/** `/p/{id}` style template with the id filled in */
+export declare function pageHref(template: string, id: string): string;

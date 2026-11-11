@@ -45,15 +45,54 @@ import ruby from "highlight.js/lib/languages/ruby";
 import CodeBlock from "@tiptap/extension-code-block";
 import { HorizontalRule } from "@tiptap/extension-horizontal-rule";
 import Image from "@tiptap/extension-image";
-import { AlignCenter, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, AlignHorizontalJustifyStart, AlignJustify, AlignLeft, AlignRight, Baseline, BetweenHorizontalEnd, BetweenHorizontalStart, BetweenVerticalEnd, BetweenVerticalStart, Bold as Bold$1, Check, ChevronDown, ChevronRight, ChevronsDownUp, Code as Code$1, Columns3, Copy, CopyPlus, Ellipsis, FileCode, FileCode2, GripHorizontal, GripVertical, Heading as Heading$1, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, Highlighter, Image as Image$1, ImagePlus, Italic as Italic$1, Link as Link$1, List, ListOrdered, ListTodo, Maximize2, MessageSquareQuote, Minimize2, Minus, MoreHorizontal, PanelLeft, PanelRight, Paperclip, Pencil, Pilcrow, Plus, Quote, Redo2, Scaling, Sigma, Sparkles, SquareFunction, Strikethrough, Trash2, Underline as Underline$1, Undo2, Ungroup, X } from "@lucide/vue";
+import { AlignCenter, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, AlignHorizontalJustifyStart, AlignJustify, AlignLeft, AlignRight, AppWindow, Baseline, BetweenHorizontalEnd, BetweenHorizontalStart, BetweenVerticalEnd, BetweenVerticalStart, Bold as Bold$1, Bookmark, CalendarDays, Check, ChevronDown, ChevronRight, ChevronsDownUp, Code as Code$1, Columns2, Columns3, Columns4, Copy, CopyPlus, Ellipsis, ExternalLink, FileCode, FileCode2, FileSymlink, FileText, Globe, GripHorizontal, GripVertical, Heading as Heading$1, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, Highlighter, Image as Image$1, ImagePlus, Italic as Italic$1, Link as Link$1, List, ListOrdered, ListTodo, ListTree, Maximize2, MessageSquareQuote, Minimize2, Minus, MoreHorizontal, PanelLeft, PanelRight, Paperclip, Pencil, Pilcrow, Plus, Quote, Redo2, RefreshCw, Scaling, Sigma, Sparkles, SquareFunction, Strikethrough, Trash2, Underline as Underline$1, Undo2, Ungroup, User, X } from "@lucide/vue";
 import { Fragment as Fragment$1, Teleport, computed, createBlock, createCommentVNode, createElementBlock, createElementVNode, createSlots, createTextVNode, createVNode, defineComponent, getCurrentInstance, getCurrentScope, inject, mergeProps, nextTick, normalizeClass, normalizeStyle, onBeforeUnmount, onMounted, onScopeDispose, openBlock, provide, ref, renderList, renderSlot, resolveComponent, resolveDynamicComponent, shallowRef, toDisplayString, toRaw, toValue, unref, vModelText, vShow, watch, withCtx, withDirectives, withKeys, withModifiers } from "vue";
 import { EditorContent, NodeViewContent, NodeViewWrapper, VueNodeViewRenderer, VueRenderer, nodeViewProps, useEditor } from "@tiptap/vue-3";
+import { autoUpdate, computePosition, flip, offset, shift, size } from "@floating-ui/dom";
 import { NodeSelection, Plugin, PluginKey, Selection, TextSelection } from "@tiptap/pm/state";
 import Suggestion from "@tiptap/suggestion";
-import { autoUpdate, computePosition, flip, offset, shift, size } from "@floating-ui/dom";
 import { CellSelection, TableMap, moveTableColumn, moveTableRow, selectedRect } from "@tiptap/pm/tables";
 import { redo, undo } from "@tiptap/pm/history";
 import { BubbleMenu } from "@tiptap/vue-3/menus";
+// src/core/palette.ts
+var PALETTE = [
+	"gray",
+	"brown",
+	"orange",
+	"yellow",
+	"green",
+	"blue",
+	"purple",
+	"pink",
+	"red"
+];
+var TINTS = {
+	gray: "var(--vc-fg-muted)",
+	brown: "#9f6b53",
+	orange: "var(--vc-tint-orange)",
+	yellow: "var(--vc-tint-amber)",
+	green: "var(--vc-tint-green)",
+	blue: "var(--vc-tint-blue)",
+	purple: "var(--vc-tint-violet)",
+	pink: "var(--vc-tint-pink)",
+	red: "var(--vc-tint-red)"
+};
+function isPaletteToken(v) {
+	if (typeof v !== "string") return false;
+	return PALETTE.includes(v.endsWith("_bg") ? v.slice(0, -3) : v);
+}
+/** `--vc-color-<name>` / `--vc-bg-<name>`, with a fallback mixed from the theme so it reads in light and dark themes */
+function paletteCss(token) {
+	if (!isPaletteToken(token)) return "";
+	const bg = token.endsWith("_bg");
+	const name = bg ? token.slice(0, -3) : token;
+	return bg ? `var(--vc-bg-${name}, color-mix(in srgb, ${TINTS[name]} 14%, var(--vc-bg)))` : `var(--vc-color-${name}, ${TINTS[name]})`;
+}
+/** custom properties the callout css reads: `--wy-callout-bg` for a background token, `--wy-callout-fg` for a text token */
+function calloutStyle(token) {
+	if (!isPaletteToken(token)) return void 0;
+	return token.endsWith("_bg") ? `--wy-callout-bg: ${paletteCss(token)}` : `--wy-callout-fg: ${paletteCss(token)}`;
+}
 // src/core/attrs.ts
 var ORDERED_STYLES = [
 	"decimal",
@@ -252,6 +291,42 @@ function attrLineRule(state, startLine, _endLine, silent) {
 }
 function blockAttrsPlugin(md) {
 	md.block.ruler.before("lheading", "block_attrs", attrLineRule, { alt: ["paragraph"] });
+}
+var ICON_GRAPHEMES = 8;
+/** an emoji or a short text icon; no line breaks */
+function validIcon(s) {
+	if (!s || /[\r\n]/.test(s)) return false;
+	let n = 0;
+	for (const _ of graphemes(s)) if (++n > ICON_GRAPHEMES) return false;
+	return true;
+}
+function validBlockAttrs(fields) {
+	return Object.entries(fields).every(([k, v]) => k === "color" && isPaletteToken(v) || k === "icon" && validIcon(v));
+}
+/** `{color=… icon=…}` right after a quote (on its opener) or a fence (on the fence token) lands in `meta.blockAttrs` */
+function blockAttrsLineRule(state, startLine, _endLine, silent) {
+	if (state.sCount[startLine] - state.blkIndent >= 4) return false;
+	const fields = parseAttrLine(state.src.slice(state.bMarks[startLine] + state.tShift[startLine], state.eMarks[startLine]));
+	if (!fields || !validBlockAttrs(fields)) return false;
+	if (silent) return true;
+	const prev = state.tokens[state.tokens.length - 1];
+	const target = prev?.type === "fence" ? prev : prev?.type === "blockquote_close" ? listOpen(state.tokens, prev) : null;
+	if (!target) return false;
+	target.meta = {
+		...target.meta,
+		blockAttrs: {
+			...target.meta?.blockAttrs,
+			...fields
+		}
+	};
+	state.line = startLine + 1;
+	return true;
+}
+function blockColorPlugin(md) {
+	md.block.ruler.before("lheading", "wy_block_attrs_e2", blockAttrsLineRule, { alt: ["blockquote"] });
+}
+function formatBlockAttrs(fields) {
+	return formatFields(fields.filter((f) => !!f[1]));
 }
 // src/core/info.ts
 function parseInfo(info) {
@@ -596,6 +671,17 @@ var HTML_CALLOUTS = Object.freeze([
 	"danger"
 ]);
 // src/schema/nodes.ts
+/** a palette token from `data-color`; html may carry other colors, which stay out of the palette attribute */
+function paletteAttribute() {
+	return {
+		default: null,
+		parseHTML: (dom) => {
+			const v = dom.getAttribute("data-color");
+			return isPaletteToken(v) ? v : null;
+		},
+		renderHTML: (a) => a.color ? { "data-color": a.color } : {}
+	};
+}
 function readAlign(dom) {
 	const a = dom.getAttribute("data-align");
 	return a && FIGURE_ALIGNS.includes(a) ? a : null;
@@ -757,7 +843,13 @@ var Callout = Node$1.create({
 				default: "",
 				parseHTML: (dom) => dom.getAttribute("data-title") || "",
 				renderHTML: (a) => a.title ? { "data-title": a.title } : {}
-			}
+			},
+			icon: {
+				default: "",
+				parseHTML: (dom) => dom.getAttribute("data-icon") || "",
+				renderHTML: (a) => a.icon ? { "data-icon": a.icon } : {}
+			},
+			color: paletteAttribute()
 		};
 	},
 	parseHTML() {
@@ -769,7 +861,8 @@ var Callout = Node$1.create({
 			mergeAttributes({
 				"data-type": "callout",
 				"data-variant": node.attrs.type,
-				class: "wy-callout"
+				class: "wy-callout",
+				style: calloutStyle(node.attrs.color) ?? null
 			}, HTMLAttributes),
 			0
 		];
@@ -1150,73 +1243,124 @@ var mathExtension = {
 		}]
 	}
 };
+// src/builtins/details.ts
+function headingLevel(v) {
+	const n = Number(v);
+	return Number.isInteger(n) && n >= 1 && n <= 4 ? n : 0;
+}
+var Details = Node$1.create({
+	name: "details",
+	group: "block",
+	content: "block+",
+	defining: true,
+	draggable: false,
+	addAttributes() {
+		return {
+			title: {
+				default: "",
+				parseHTML: (dom) => dom.getAttribute("data-title") || dom.querySelector(":scope > summary")?.textContent || "",
+				renderHTML: () => ({})
+			},
+			open: {
+				default: false,
+				parseHTML: (dom) => dom.hasAttribute("open"),
+				renderHTML: (a) => a.open ? { open: "" } : {}
+			},
+			heading: {
+				default: 0,
+				parseHTML: (dom) => headingLevel(dom.getAttribute("data-heading") ?? dom.querySelector(":scope > summary > :is(h1, h2, h3, h4)")?.tagName.slice(1)),
+				renderHTML: (a) => a.heading ? { "data-heading": String(a.heading) } : {}
+			}
+		};
+	},
+	parseHTML() {
+		return [{
+			tag: "details",
+			contentElement: (dom) => dom.querySelector(":scope > [data-details-body]") ?? dom
+		}];
+	},
+	renderHTML({ HTMLAttributes, node }) {
+		const title = node.attrs.title || "";
+		const level = headingLevel(node.attrs.heading);
+		const summary = level ? [
+			"summary",
+			{},
+			[
+				`h${level}`,
+				{},
+				title
+			]
+		] : [
+			"summary",
+			{},
+			title
+		];
+		return [
+			"details",
+			mergeAttributes({
+				"data-type": "details",
+				"data-title": title || null,
+				class: "wy-details"
+			}, HTMLAttributes),
+			summary,
+			[
+				"div",
+				{ "data-details-body": "" },
+				0
+			]
+		];
+	}
+});
+function toggleHeading(level) {
+	return (blocks, ctx) => {
+		const details = ctx.schema.nodes.details;
+		const b = blocks.length === 1 ? blocks[0] : null;
+		if (b?.type === details) return [details.create({
+			...b.attrs,
+			heading: level
+		}, b.content)];
+		if (!level) return null;
+		if (b && (b.type.name === "paragraph" || b.type.name === "heading")) return [details.create({
+			title: ctx.plainText(b.content).replace(/\n/g, " ").trim(),
+			open: true,
+			heading: level
+		}, ctx.schema.nodes.paragraph.create())];
+		return ctx.wrap(blocks, "details", `toggleHeading${level}`)?.map((n) => n.type === details ? details.create({
+			...n.attrs,
+			heading: level
+		}, n.content) : n) ?? null;
+	};
+}
+var HEADING_ICONS$2 = [
+	Heading1,
+	Heading2,
+	Heading3
+];
 var detailsExtension = {
 	name: "details",
-	tiptap: [Node$1.create({
-		name: "details",
-		group: "block",
-		content: "block+",
-		defining: true,
-		draggable: false,
-		addAttributes() {
-			return {
-				title: {
-					default: "",
-					parseHTML: (dom) => dom.getAttribute("data-title") || dom.querySelector(":scope > summary")?.textContent || "",
-					renderHTML: () => ({})
-				},
-				open: {
-					default: false,
-					parseHTML: (dom) => dom.hasAttribute("open"),
-					renderHTML: (a) => a.open ? { open: "" } : {}
-				}
-			};
-		},
-		parseHTML() {
-			return [{
-				tag: "details",
-				contentElement: (dom) => dom.querySelector(":scope > [data-details-body]") ?? dom
-			}];
-		},
-		renderHTML({ HTMLAttributes, node }) {
-			return [
-				"details",
-				mergeAttributes({
-					"data-type": "details",
-					"data-title": node.attrs.title || null,
-					class: "wy-details"
-				}, HTMLAttributes),
-				[
-					"summary",
-					{},
-					node.attrs.title || ""
-				],
-				[
-					"div",
-					{ "data-details-body": "" },
-					0
-				]
-			];
-		}
-	})],
+	tiptap: [Details],
 	markdown: {
 		fences: [{
 			kind: "details",
 			parse: (ctx) => ctx.container("details", {
 				title: ctx.info.attrs.title ?? "",
-				open: ctx.info.attrs.open === "true"
+				open: ctx.info.attrs.open === "true",
+				heading: headingLevel(ctx.info.attrs.heading)
 			})
 		}],
 		tokens: { details: {
 			block: "details",
 			getAttrs: (tok) => ({
 				title: tok.meta.title,
-				open: !!tok.meta.open
+				open: !!tok.meta.open,
+				heading: tok.meta.heading ?? 0
 			})
 		} },
 		nodes: { details(state, node, _parent, _index, h) {
+			const level = headingLevel(node.attrs.heading);
 			const info = formatInfo("details", {
 				title: String(node.attrs.title ?? "").trim(),
+				heading: level ? String(level) : "",
 				open: node.attrs.open ? "true" : ""
 			});
 			h.writeFence(state, node, info, h.contentMarkdown(node));
@@ -1232,22 +1376,49 @@ var detailsExtension = {
 			title: "",
 			open: false
 		}, [{ type: "paragraph" }])
-	}],
+	}, ...HEADING_ICONS$2.map((icon, i) => ({
+		id: `toggleHeading${i + 1}`,
+		group: "text",
+		rank: 41 + i,
+		label: "",
+		icon,
+		keywords: "toggle collapsible details",
+		run: (c) => c.insert("details", {
+			title: "",
+			open: true,
+			heading: i + 1
+		}, [{ type: "paragraph" }])
+	}))],
 	convert: {
 		containers: { details: {
 			title: (node) => String(node.attrs.title ?? "").trim(),
-			build: ({ title, content }, ctx) => ctx.schema.nodes.details.create({
+			build: ({ title, content }, ctx, target) => ctx.schema.nodes.details.create({
 				title,
-				open: false
+				open: false,
+				heading: headingLevel(/^toggleHeading(\d)$/.exec(target)?.[1])
 			}, content)
 		} },
-		targets: [{
-			id: "details",
-			label: "",
-			icon: ChevronsDownUp,
-			rank: 32,
-			container: "details"
-		}]
+		targets: [
+			{
+				id: "details",
+				label: "",
+				icon: ChevronsDownUp,
+				rank: 32,
+				container: "details"
+			},
+			{
+				id: "details",
+				label: "",
+				convert: toggleHeading(0)
+			},
+			...HEADING_ICONS$2.map((icon, i) => ({
+				id: `toggleHeading${i + 1}`,
+				label: "",
+				icon,
+				rank: 33 + i * .1,
+				convert: toggleHeading(i + 1)
+			}))
+		]
 	}
 };
 // src/builtins/footnotes.ts
@@ -1373,1668 +1544,26 @@ var footnotesExtension = {
 		}
 	}
 };
-// src/builtins/index.ts
-function builtinExtensions(base) {
-	const out = [];
-	if (base.math) out.push(mathExtension);
-	if (base.details) out.push(detailsExtension);
-	if (base.footnotes) out.push(footnotesExtension);
-	return out;
-}
-// src/schema/index.ts
-var ALL_LEVELS = [
-	1,
-	2,
-	3,
-	4,
-	5,
-	6
-];
-function resolveBase(format, base = {}) {
-	const html = format === "html";
-	const callouts = base.callouts ?? true;
-	const code = base.codeBlocks ?? true;
-	return {
-		headings: base.headings === false ? [] : base.headings ?? (html ? [
-			1,
-			2,
-			3
-		] : ALL_LEVELS),
-		underline: base.underline ?? html,
-		highlight: base.highlight ?? true,
-		color: base.color ?? html,
-		textAlign: base.textAlign ?? html,
-		lists: base.lists ?? true,
-		listStyles: base.listStyles ?? !html,
-		taskLists: base.taskLists ?? true,
-		blockquote: base.blockquote ?? true,
-		callouts: callouts === true ? [...html ? HTML_CALLOUTS : MARKDOWN_CALLOUTS] : callouts === false ? [] : callouts,
-		dividers: base.dividers ?? true,
-		codeBlocks: code === true ? [...CODE_LANGUAGES] : code === false ? false : code,
-		tables: base.tables ?? true,
-		images: base.images ?? true,
-		files: base.files ?? true,
-		links: base.links ?? true,
-		downscale: base.downscale ?? 2560,
-		math: base.math ?? false,
-		details: base.details ?? false,
-		footnotes: base.footnotes ?? false
-	};
-}
-/** shared default, so callers without extensions hit the same cache entry */
-var NO_EXTENSIONS = [];
-var configs = /* @__PURE__ */ new WeakMap();
-function resolveConfig(format, base, extensions = NO_EXTENSIONS) {
-	let byKey = configs.get(extensions);
-	if (!byKey) configs.set(extensions, byKey = /* @__PURE__ */ new Map());
-	const key = `${format}:${JSON.stringify(base ?? {})}`;
-	const hit = byKey.get(key);
-	if (hit) return hit;
-	const resolved = resolveBase(format, base);
-	const config = {
-		format,
-		base: resolved,
-		extensions: [...builtinExtensions(resolved), ...extensions.filter((e) => !e.formats || e.formats.includes(format))]
-	};
-	byKey.set(key, config);
-	return config;
-}
-function coreExtensions(config, inline, history) {
-	const b = config.base;
-	const lists = b.lists && !inline;
-	const listItems = lists || !inline && b.taskLists;
-	const out = [Bold];
-	if (!inline && (b.blockquote || b.callouts.length > 0)) out.push(Blockquote);
-	if (listItems) out.push(BulletList);
-	out.push(Code);
-	if (!inline) out.push(Document, Dropcursor.configure({
-		color: "var(--vc-accent)",
-		width: 2
-	}), Gapcursor, HardBreak);
-	if (!inline && b.headings.length) out.push(Heading.configure({ levels: b.headings }));
-	if (history) out.push(UndoRedo.configure({ newGroupDelay: 500 }));
-	out.push(Italic);
-	if (listItems) out.push(ListItem);
-	if (!inline) out.push(ListKeymap);
-	if (b.links) out.push(Link.configure({
-		openOnClick: false,
-		autolink: true,
-		linkOnPaste: true,
-		defaultProtocol: "https",
-		HTMLAttributes: {
-			target: "_blank",
-			rel: "noopener noreferrer"
-		}
-	}));
-	if (lists) out.push(OrderedList);
-	out.push(Paragraph, Strike, Text);
-	if (b.underline) out.push(Underline);
-	if (!inline) out.push(TrailingNode);
-	return out;
-}
-/**
-* not cached: `history: false` leaves the local undo history out for a collaborative editor, whose
-* collaboration extension owns it. the history adds no schema, so `schemaFor` is the same either way.
-*/
-function schemaExtensions(config, inline = false, history = true) {
-	const b = config.base;
-	const html = config.format === "html";
-	const out = [];
-	if (inline) out.push(InlineDocument);
-	out.push(...coreExtensions(config, inline, history));
-	if (b.highlight) out.push(Highlight.configure({ multicolor: html }));
-	if (b.color) out.push(TextStyle, Color);
-	if (b.textAlign && !inline) out.push(TextAlign.configure({ types: ["heading", "paragraph"] }));
-	if (b.links && b.files) out.push(FileChips);
-	if (!inline) {
-		if (b.dividers) out.push(Divider);
-		if (b.listStyles && b.lists) out.push(ListStyles);
-		if (b.codeBlocks) out.push(GenericCodeBlock);
-		if (b.images) out.push(InlineImage, Figure);
-		if (b.tables) out.push(Table.configure({ resizable: false }), TableRow, InlineTableHeader, InlineTableCell);
-		if (b.taskLists) out.push(TaskList, TaskItem.configure({ nested: true }));
-		if (b.callouts.length) out.push(Callout);
-	}
-	for (const ext of config.extensions) out.push(...ext.tiptap ?? []);
-	return out;
-}
-var schemas = /* @__PURE__ */ new WeakMap();
-function schemaFor(config, inline = false) {
-	let entry = schemas.get(config);
-	if (!entry) schemas.set(config, entry = {});
-	const key = inline ? "inline" : "block";
-	return entry[key] ??= getSchema(schemaExtensions(config, inline, false));
-}
-// src/markdown/rules.ts
-function imageAttrsRule(state, silent) {
-	if (silent || state.src.charCodeAt(state.pos) !== 123 || state.pending) return false;
-	const prev = state.tokens[state.tokens.length - 1];
-	if (!prev || prev.type !== "image") return false;
-	const m = /^\{([^{}\n]*)\}/.exec(state.src.slice(state.pos, state.posMax));
-	if (!m) return false;
-	const attrs = parseImageAttrs(m[1]);
-	if (!attrs) return false;
-	prev.meta = {
-		...prev.meta,
-		...attrs
-	};
-	state.pos += m[0].length;
-	return true;
-}
-function figureRule(state) {
-	const tokens = state.tokens;
-	for (let i = 0; i + 2 < tokens.length; i++) {
-		const inline = tokens[i + 1];
-		if (tokens[i].type !== "paragraph_open" || inline.type !== "inline" || tokens[i + 2].type !== "paragraph_close") continue;
-		const prev = i > 0 ? tokens[i - 1].type : "";
-		if (prev === "list_item_open" || prev === "task_item_open") continue;
-		const image = inline.children?.length === 1 ? inline.children[0] : null;
-		if (!image || image.type !== "image") continue;
-		const attrs = image.meta ?? {
-			width: null,
-			align: null
-		};
-		const fig = new state.Token("figure", "figure", 0);
-		fig.block = true;
-		fig.map = tokens[i].map;
-		fig.meta = {
-			image,
-			caption: String(image.attrGet("title") ?? ""),
-			width: attrs.width,
-			align: attrs.align
-		};
-		tokens.splice(i, 3, fig);
-	}
-}
-var CELL_BREAK = /<br\s*\/?>/gi;
-/** an all-empty header row is dropped (that is how a headerless table is written); `\<br>` stays text; must run before `text_join` */
-function tableCellsRule(state) {
-	const tokens = state.tokens;
-	let inCell = false;
-	for (let i = 0; i < tokens.length; i++) {
-		const t = tokens[i];
-		if (t.type === "th_open" || t.type === "td_open") inCell = true;
-		else if (t.type === "th_close" || t.type === "td_close") inCell = false;
-		else if (t.type === "inline" && inCell && t.children) t.children = splitCellBreaks(state, t.children);
-		else if (t.type === "thead_open" && dropEmptyHead(tokens, i)) i--;
-	}
-}
-function splitCellBreaks(state, children) {
-	const out = [];
-	for (const child of children) {
-		const parts = child.type === "text" ? child.content.split(CELL_BREAK) : [];
-		if (parts.length < 2) {
-			out.push(child);
-			continue;
-		}
-		parts.forEach((part, k) => {
-			if (k > 0) out.push(new state.Token("hardbreak", "br", 0));
-			if (!part) return;
-			const text = new state.Token("text", "", 0);
-			text.content = part;
-			out.push(text);
-		});
-	}
-	return out;
-}
-function dropEmptyHead(tokens, i) {
-	let end = i;
-	while (end < tokens.length && tokens[end].type !== "thead_close") end++;
-	if (tokens[end + 1]?.type !== "tbody_open") return false;
-	for (let k = i; k < end; k++) if (tokens[k].type === "inline" && tokens[k].content.trim()) return false;
-	tokens.splice(i, end - i + 1);
-	return true;
-}
-var CALLOUT_RE = /^\[!([A-Za-z]+)\][ \t]*([^\n]*)(?:\n|$)/;
-function calloutAt(tokens, i, kinds) {
-	const inline = tokens[i + 2];
-	if (tokens[i]?.type !== "blockquote_open" || tokens[i + 1]?.type !== "paragraph_open" || inline?.type !== "inline") return null;
-	const m = CALLOUT_RE.exec(inline.content);
-	const type = m?.[1].toLowerCase() ?? "";
-	if (!m || !kinds.includes(type)) return null;
-	let depth = 0;
-	for (let j = i; j < tokens.length; j++) {
-		const t = tokens[j].type;
-		if (t === "blockquote_open") depth++;
-		else if (t === "blockquote_close" && --depth === 0) return {
-			type,
-			title: m[2].trim(),
-			inline,
-			rest: inline.content.slice(m[0].length),
-			close: j
-		};
-	}
-	return null;
-}
-function retagCallouts(tokens, kinds) {
-	for (let i = 0; i < tokens.length; i++) {
-		const callout = calloutAt(tokens, i, kinds);
-		if (!callout) continue;
-		tokens[i].type = "callout_open";
-		tokens[i].meta = {
-			type: callout.type,
-			title: callout.title
-		};
-		tokens[callout.close].type = "callout_close";
-		if (callout.rest.trim() === "") tokens.splice(i + 1, 3);
-		else {
-			callout.inline.content = callout.rest;
-			callout.inline.children = [];
-		}
-	}
-}
-var TASK_RE = /^\[([ xX])\][ \t]+/;
-function retagTaskLists(tokens) {
-	for (let i = 0; i < tokens.length; i++) {
-		if (tokens[i].type !== "bullet_list_open") continue;
-		const items = [];
-		let ok = true;
-		let depth = 0;
-		let j = i;
-		for (; j < tokens.length; j++) {
-			const t = tokens[j];
-			if (t.type === "bullet_list_open" || t.type === "ordered_list_open") depth++;
-			else if (t.type === "bullet_list_close" || t.type === "ordered_list_close") {
-				if (--depth === 0) break;
-			} else if (t.type === "list_item_open" && depth === 1) {
-				const para = tokens[j + 1];
-				const inline = tokens[j + 2];
-				const m = para?.type === "paragraph_open" && inline?.type === "inline" ? TASK_RE.exec(inline.content) : null;
-				if (!m) {
-					ok = false;
-					break;
-				}
-				items.push({
-					open: t,
-					inline,
-					checked: m[1] !== " "
-				});
-			}
-		}
-		if (!ok || items.length === 0) continue;
-		tokens[i].type = "task_list_open";
-		tokens[j].type = "task_list_close";
-		depth = 0;
-		for (let k = i; k <= j; k++) {
-			const t = tokens[k];
-			if (t.type === "task_list_open" || t.type === "bullet_list_open" || t.type === "ordered_list_open") depth++;
-			else if (t.type === "task_list_close" || t.type === "bullet_list_close" || t.type === "ordered_list_close") depth--;
-			else if (depth === 1 && t.type === "list_item_open") t.type = "task_item_open";
-			else if (depth === 1 && t.type === "list_item_close") t.type = "task_item_close";
-		}
-		for (const it of items) {
-			it.open.meta = { checked: it.checked };
-			it.inline.content = it.inline.content.replace(TASK_RE, "");
-			it.inline.children = [];
-		}
-	}
-}
-function wrapTableCells(state, tokens) {
-	for (let i = 0; i < tokens.length; i++) {
-		const t = tokens[i];
-		if (t.type !== "th_open" && t.type !== "td_open" || tokens[i + 1]?.type !== "inline") continue;
-		tokens.splice(i + 1, 0, new state.Token("paragraph_open", "p", 1));
-		tokens.splice(i + 3, 0, new state.Token("paragraph_close", "p", -1));
-		i += 3;
-	}
-}
-function atomToken(node) {
-	return `${node}__fence`;
-}
-/** runs on the block stream before the inline rule so nested container bodies are retagged too and their inline content is parsed once by the outer core chain */
-function retagTokens(state, tokens, opts) {
-	retagFences(state, tokens, opts);
-	if (opts.callouts.length) retagCallouts(tokens, opts.callouts);
-	if (opts.taskLists) retagTaskLists(tokens);
-	if (opts.tables) wrapTableCells(state, tokens);
-	for (const hook of opts.hooks) hook(tokens, { Token: state.Token });
-}
-function spliceContainer(state, tokens, i, name, meta, body, opts) {
-	const open = new state.Token(`${name}_open`, "div", 1);
-	open.block = true;
-	open.meta = meta;
-	const close = new state.Token(`${name}_close`, "div", -1);
-	close.block = true;
-	const inner = [];
-	state.md.block.parse(body.replace(/\n$/, ""), state.md, state.env, inner);
-	if (inner.length === 0) {
-		const text = new state.Token("inline", "", 0);
-		text.content = "";
-		text.children = [];
-		inner.push(new state.Token("paragraph_open", "p", 1), text, new state.Token("paragraph_close", "p", -1));
-	}
-	retagTokens(state, inner, opts);
-	tokens.splice(i, 1, open, ...inner, close);
-	return inner.length + 1;
-}
-function spliceSections(state, tokens, i, name, child, meta, body, opts) {
-	const sections = splitSections(body.replace(/\n$/, ""));
-	if (sections.length === 0) sections.push({
-		label: "",
-		body: ""
-	});
-	const inner = sections.map(() => tokens[i]);
-	for (let k = sections.length - 1; k >= 0; k--) spliceContainer(state, inner, k, child, { label: sections[k].label }, sections[k].body, opts);
-	const open = new state.Token(`${name}_open`, "div", 1);
-	open.block = true;
-	open.meta = meta;
-	const close = new state.Token(`${name}_close`, "div", -1);
-	close.block = true;
-	tokens.splice(i, 1, open, ...inner, close);
-	return inner.length + 1;
-}
-function findRule(rules, info) {
-	for (let k = rules.length - 1; k >= 0; k--) {
-		const r = rules[k];
-		if (r.kind === info.kind && (!r.match || r.match(info))) return r;
-	}
-	return null;
-}
-function retagFences(state, tokens, opts) {
-	if (!opts.fences.length) return;
-	for (let i = 0; i < tokens.length; i++) {
-		const t = tokens[i];
-		if (t.type !== "fence") continue;
-		const info = parseInfo(t.info.trim());
-		const rule = findRule(opts.fences, info);
-		if (!rule) continue;
-		if (rule.parse) {
-			let advance = 0;
-			const own = t.content.replace(/\n$/, "");
-			const ctx = {
-				info,
-				body: own,
-				token: t,
-				container: (name, meta, body = own) => void (advance = spliceContainer(state, tokens, i, name, meta, body, opts)),
-				sections: (name, child, meta, body = own) => void (advance = spliceSections(state, tokens, i, name, child, meta, body, opts)),
-				atom: (name, meta) => {
-					t.type = name;
-					t.meta = meta;
-				}
-			};
-			rule.parse(ctx);
-			i += advance;
-			continue;
-		}
-		if (!rule.node) continue;
-		if (rule.ensureId && !info.attrs.id) info.attrs = {
-			id: newBlockId(),
-			...info.attrs
-		};
-		t.meta = {
-			kind: info.kind,
-			attrs: info.attrs
-		};
-		t.type = atomToken(rule.node);
-	}
-}
-// src/markdown/index.ts
-function cellAttrs(tok) {
-	const m = /text-align:\s*(left|center|right)/.exec(String(tok.attrGet("style") ?? ""));
-	return { align: m ? m[1] : null };
-}
-function imageAttrs(meta) {
-	return {
-		width: meta?.width ?? null,
-		align: meta?.align ?? null
-	};
-}
-function baseTokens(config) {
-	const levels = config.base.headings;
-	const top = levels.length ? Math.max(...levels) : 6;
-	return {
-		blockquote: { block: "blockquote" },
-		paragraph: { block: "paragraph" },
-		list_item: { block: "listItem" },
-		bullet_list: {
-			block: "bulletList",
-			getAttrs: (tok) => ({
-				listStyle: tok.meta?.list?.style ?? null,
-				marker: tok.meta?.list?.marker ?? null
-			})
-		},
-		ordered_list: {
-			block: "orderedList",
-			getAttrs: (tok) => ({
-				start: +(tok.attrGet("start") ?? 1) || 1,
-				listStyle: tok.meta?.list?.style ?? null
-			})
-		},
-		task_list: { block: "taskList" },
-		task_item: {
-			block: "taskItem",
-			getAttrs: (tok) => ({ checked: !!tok.meta?.checked })
-		},
-		heading: {
-			block: "heading",
-			getAttrs: (tok) => ({ level: Math.min(+tok.tag.slice(1), top) })
-		},
-		code_block: {
-			block: "codeBlock",
-			noCloseToken: true,
-			getAttrs: () => ({
-				language: null,
-				meta: ""
-			})
-		},
-		fence: {
-			block: "codeBlock",
-			noCloseToken: true,
-			getAttrs: (tok) => {
-				const info = tok.info.trim();
-				const sp = info.search(/\s/);
-				return {
-					language: (sp < 0 ? info : info.slice(0, sp)) || null,
-					meta: sp < 0 ? "" : info.slice(sp + 1).trim()
-				};
-			}
-		},
-		hr: {
-			node: "horizontalRule",
-			getAttrs: (tok) => ({
-				...DEFAULT_DIVIDER,
-				...tok.meta?.divider
-			})
-		},
-		image: {
-			node: "image",
-			getAttrs: (tok) => ({
-				src: tok.attrGet("src"),
-				title: tok.attrGet("title") || null,
-				alt: tok.children?.map((c) => c.content).join("") || null,
-				...imageAttrs(tok.meta)
-			})
-		},
-		figure: {
-			node: "figure",
-			getAttrs: (tok) => {
-				const meta = tok.meta;
-				return {
-					src: meta.image.attrGet("src"),
-					alt: meta.image.children?.map((c) => c.content).join("") || null,
-					caption: meta.caption || null,
-					...imageAttrs(meta)
-				};
-			}
-		},
-		hardbreak: { node: "hardBreak" },
-		em: { mark: "italic" },
-		strong: { mark: "bold" },
-		s: { mark: "strike" },
-		mark: { mark: "highlight" },
-		link: {
-			mark: "link",
-			getAttrs: (tok) => ({
-				href: tok.attrGet("href"),
-				title: tok.attrGet("title") || null
-			})
-		},
-		code_inline: {
-			mark: "code",
-			noCloseToken: true
-		},
-		table: { block: "table" },
-		thead: { ignore: true },
-		tbody: { ignore: true },
-		tr: { block: "tableRow" },
-		th: {
-			block: "tableHeader",
-			getAttrs: cellAttrs
-		},
-		td: {
-			block: "tableCell",
-			getAttrs: cellAttrs
-		},
-		callout: {
-			block: "callout",
-			getAttrs: (tok) => ({
-				type: tok.meta.type,
-				title: tok.meta.title
-			})
-		}
-	};
-}
-function backticksFor(node, side) {
-	const ticks = /`+/g;
-	let m;
-	let len = 0;
-	if (node.isText) while (m = ticks.exec(node.text)) len = Math.max(len, m[0].length);
-	let result = len > 0 && side > 0 ? " `" : "`";
-	for (let i = 0; i < len; i++) result += "`";
-	if (len > 0 && side < 0) result += " ";
-	return result;
-}
-var ALIGN_RULES = {
-	left: ":--- |",
-	center: ":---: |",
-	right: "---: |"
-};
-function buildConverter(config) {
-	const b = config.base;
-	const exts = config.extensions;
-	const fences = exts.flatMap((e) => e.markdown?.fences ?? []);
-	const retag = {
-		callouts: b.callouts,
-		taskLists: b.taskLists,
-		tables: b.tables,
-		fences,
-		hooks: exts.flatMap((e) => e.markdown?.retag ? [e.markdown.retag] : [])
-	};
-	function markdownIt(schema, inline) {
-		const md = markdownit({
-			html: false,
-			linkify: false,
-			typographer: false,
-			breaks: false
-		});
-		if (b.highlight) md.use(mark);
-		if (!b.images) md.disable("image");
-		else md.inline.ruler.after("image", "image_attrs", imageAttrsRule);
-		if (b.images && schema.nodes.figure) md.core.ruler.after("inline", "figures", figureRule);
-		if (b.tables) md.core.ruler.before("text_join", "table_cells", tableCellsRule);
-		else md.disable("table");
-		if (b.listStyles || b.dividers) md.use(blockAttrsPlugin);
-		if (!b.dividers) md.disable("hr");
-		if (!b.headings.length) md.disable(["heading", "lheading"]);
-		if (!b.blockquote && !b.callouts.length) md.disable("blockquote");
-		if (!b.lists && !b.taskLists) md.disable("list");
-		if (!b.codeBlocks) md.disable(fences.length ? ["code"] : ["code", "fence"]);
-		if (!b.links) md.disable([
-			"link",
-			"autolink",
-			"reference"
-		]);
-		md.core.ruler.after("block", "pm_retag", (state) => retagTokens(state, state.tokens, retag));
-		for (const e of exts) for (const plugin of e.markdown?.plugins ?? []) plugin(md, {
-			schema,
-			inline
-		});
-		return md;
-	}
-	const specs = baseTokens(config);
-	for (const r of fences) if (!r.parse && r.node) specs[atomToken(r.node)] = {
-		node: r.node,
-		getAttrs: (tok) => ({
-			attrs: tok.meta.attrs,
-			body: tok.content.replace(/\n$/, "")
-		})
-	};
-	for (const e of exts) Object.assign(specs, e.markdown?.tokens);
-	const normalizers = exts.flatMap((e) => e.markdown?.normalize ? [e.markdown.normalize] : []);
-	function specsFor(schema) {
-		const out = {};
-		for (const [token, spec] of Object.entries(specs)) {
-			const name = spec.block ?? spec.node ?? spec.mark;
-			if (!name || schema.nodes[name] || schema.marks[name]) out[token] = spec;
-		}
-		return out;
-	}
-	const parsers = /* @__PURE__ */ new WeakMap();
-	const inlineParsers = /* @__PURE__ */ new WeakMap();
-	function parse(md, schema = blockSchema) {
-		let p = parsers.get(schema);
-		if (!p) parsers.set(schema, p = new MarkdownParser(schema, markdownIt(schema, false), specsFor(schema)));
-		let doc = p.parse(md.replace(/\r\n?/g, "\n"));
-		for (const n of normalizers) try {
-			doc = n(doc);
-		} catch (e) {
-			console.error("vue-wysiwyg-component: markdown normalize hook failed", e);
-		}
-		return doc;
-	}
-	function parseInline(md, schema = inlineSchema) {
-		let p = inlineParsers.get(schema);
-		if (!p) {
-			const it = markdownIt(schema, true);
-			p = new MarkdownParser(schema, { parse(src, env) {
-				const inline = it.parseInline(src, env)[0];
-				if (!inline) return [];
-				const Tok = inline.constructor;
-				return [
-					new Tok("paragraph_open", "p", 1),
-					inline,
-					new Tok("paragraph_close", "p", -1)
-				];
-			} }, specsFor(schema));
-			inlineParsers.set(schema, p);
-		}
-		return p.parse(md.replace(/\s*\n\s*/g, " ").trim());
-	}
-	let inAutolink = false;
-	function isPlainURL(link, parent, index) {
-		if (link.attrs.title || !/^\w+:/.test(String(link.attrs.href))) return false;
-		const content = parent.child(index);
-		if (!content.isText || content.text !== link.attrs.href || content.marks[content.marks.length - 1] !== link) return false;
-		return index === parent.childCount - 1 || !link.isInSet(parent.child(index + 1).marks);
-	}
-	const marks = {
-		italic: {
-			open: "*",
-			close: "*",
-			mixable: true,
-			expelEnclosingWhitespace: true
-		},
-		bold: {
-			open: "**",
-			close: "**",
-			mixable: true,
-			expelEnclosingWhitespace: true
-		},
-		strike: {
-			open: "~~",
-			close: "~~",
-			mixable: true,
-			expelEnclosingWhitespace: true
-		},
-		highlight: {
-			open: "==",
-			close: "==",
-			mixable: true,
-			expelEnclosingWhitespace: true
-		},
-		link: {
-			open(_state, mark, parent, index) {
-				inAutolink = isPlainURL(mark, parent, index);
-				return inAutolink ? "<" : "[";
-			},
-			close(_state, mark) {
-				const auto = inAutolink;
-				inAutolink = false;
-				if (auto) return ">";
-				const title = mark.attrs.title ? ` "${String(mark.attrs.title).replace(/"/g, String.raw`\"`)}"` : "";
-				return `](${String(mark.attrs.href ?? "").replace(/[()"]/g, String.raw`\$&`)}${title})`;
-			},
-			mixable: true
-		},
-		code: {
-			open: (_state, _mark, parent, index) => backticksFor(parent.child(index), -1),
-			close: (_state, _mark, parent, index) => backticksFor(parent.child(index - 1), 1),
-			escape: false
-		}
-	};
-	for (const e of exts) Object.assign(marks, e.markdown?.marks);
-	const escapes = [...b.highlight ? ["=(?==)"] : [], ...exts.flatMap((e) => e.markdown?.escape ? [e.markdown.escape] : [])];
-	const options = {
-		hardBreakNodeName: "hardBreak",
-		escapeExtraCharacters: escapes.length ? new RegExp(escapes.join("|"), "g") : void 0,
-		strict: false
-	};
-	function writeFence(state, node, info, body) {
-		const fence = fenceFor(body);
-		state.write(fence + info + "\n");
-		if (body) {
-			state.text(body, false);
-			state.write("\n");
-		}
-		state.write(fence);
-		state.closeBlock(node);
-	}
-	function contentMarkdown(node) {
-		return fragmentMarkdown(converter, node.content, node.type.schema);
-	}
-	function sectionsMarkdown(node) {
-		const sections = [];
-		node.forEach((child) => sections.push({
-			label: String(child.attrs.label ?? ""),
-			body: contentMarkdown(child)
-		}));
-		return joinSections(sections);
-	}
-	function inlineMarkdown(content) {
-		const schema = content.firstChild?.type.schema;
-		if (!schema || !content.size) return "";
-		return serializeInline(schema.topNodeType.create(null, schema.nodes.paragraph.create(null, content)));
-	}
-	const helpers = {
-		writeFence,
-		contentMarkdown,
-		sectionsMarkdown,
-		inlineMarkdown
-	};
-	function imageSyntax(state, node) {
-		const caption = String(node.attrs.caption ?? node.attrs.title ?? "");
-		const title = caption ? ` "${caption.replace(/"/g, String.raw`\"`)}"` : "";
-		return `![${state.esc(node.attrs.alt || "")}](${String(node.attrs.src).replace(/[()]/g, String.raw`\$&`)}${title})${formatImageAttrs(node.attrs)}`;
-	}
-	function writeListAttrs(state, node) {
-		const attrs = formatListAttrs({
-			style: node.attrs.listStyle,
-			marker: node.attrs.marker
-		});
-		if (!attrs) return;
-		state.flushClose(1);
-		state.write(attrs);
-		state.closeBlock(node.lastChild);
-	}
-	let cellSerializer = null;
-	function cellText(cell) {
-		cellSerializer ??= new MarkdownSerializer({
-			...nodes,
-			hardBreak(state) {
-				state.write("<br>");
-			},
-			text(state, node) {
-				state.text(node.text.replace(/<(br\s*\/?>)/gi, "\0$1"), !inAutolink);
-			}
-		}, marks, options);
-		const doc = cell.type.schema.topNodeType.create(null, cell.content);
-		return cellSerializer.serialize(doc, { tightLists: true }).split(/\n+/).map((l) => l.trim()).filter(Boolean).join(" ").replace(/\u0000/g, String.raw`\<`).replace(/\|/g, String.raw`\|`);
-	}
-	function serializeTable(state, node) {
-		const rows = [];
-		node.forEach((row) => {
-			const cells = [];
-			row.forEach((cell) => cells.push(cellText(cell)));
-			rows.push(cells);
-		});
-		const first = node.firstChild;
-		const cols = Math.max(1, ...rows.map((r) => r.length));
-		let header = true;
-		first?.forEach((cell) => {
-			if (cell.type.name !== "tableHeader") header = false;
-		});
-		const aligns = Array.from({ length: cols }, (_, i) => first && i < first.childCount ? first.child(i).attrs.align : null);
-		const line = (cells) => "| " + Array.from({ length: cols }, (_, i) => cells[i] ?? "").join(" | ") + " |";
-		const body = header ? rows.slice(1) : rows;
-		state.write(line(header ? rows[0] : []) + "\n");
-		state.write("|" + aligns.map((a) => " " + (ALIGN_RULES[a ?? ""] ?? "--- |")).join("") + (body.length ? "\n" : ""));
-		state.write(body.map(line).join("\n"));
-		state.closeBlock(node);
-	}
-	const nodes = {
-		blockquote(state, node) {
-			state.wrapBlock("> ", null, node, () => state.renderContent(node));
-		},
-		callout(state, node) {
-			const title = String(node.attrs.title ?? "").trim();
-			state.write(`> [!${String(node.attrs.type).toUpperCase()}]${title ? " " + title : ""}\n`);
-			state.wrapBlock("> ", null, node, () => state.renderContent(node));
-		},
-		codeBlock(state, node) {
-			const lang = String(node.attrs.language ?? "");
-			const meta = String(node.attrs.meta ?? "");
-			writeFence(state, node, lang ? lang + (meta ? " " + meta : "") : "", node.textContent);
-		},
-		heading(state, node) {
-			state.write(state.repeat("#", node.attrs.level) + " ");
-			state.renderInline(node, false);
-			state.closeBlock(node);
-		},
-		horizontalRule(state, node) {
-			state.write("---");
-			const attrs = formatDividerAttrs(node.attrs);
-			if (attrs) {
-				state.ensureNewLine();
-				state.write(attrs);
-			}
-			state.closeBlock(node);
-		},
-		bulletList(state, node) {
-			state.renderList(node, "  ", () => "- ");
-			writeListAttrs(state, node);
-		},
-		orderedList(state, node) {
-			const start = node.attrs.start || 1;
-			const maxW = String(start + node.childCount - 1).length;
-			const space = state.repeat(" ", maxW + 2);
-			state.renderList(node, space, (i) => {
-				const n = String(start + i);
-				return state.repeat(" ", maxW - n.length) + n + ". ";
-			});
-			writeListAttrs(state, node);
-		},
-		listItem(state, node) {
-			state.renderContent(node);
-		},
-		taskList(state, node) {
-			state.renderList(node, "  ", () => "- ");
-		},
-		taskItem(state, node) {
-			state.write(node.attrs.checked ? "[x] " : "[ ] ");
-			state.renderContent(node);
-		},
-		paragraph(state, node) {
-			state.renderInline(node);
-			state.closeBlock(node);
-		},
-		image(state, node) {
-			state.write(imageSyntax(state, node));
-		},
-		figure(state, node) {
-			state.write(imageSyntax(state, node));
-			state.closeBlock(node);
-		},
-		hardBreak(state, node, parent, index) {
-			for (let i = index + 1; i < parent.childCount; i++) if (parent.child(i).type !== node.type) {
-				state.write("  \n");
-				return;
-			}
-		},
-		text(state, node) {
-			state.text(node.text, !inAutolink);
-		},
-		table: serializeTable,
-		tableRow() {},
-		tableCell() {},
-		tableHeader() {}
-	};
-	for (const r of fences) {
-		if (r.parse || !r.node) continue;
-		const kind = r.kind;
-		nodes[r.node] = (state, node) => writeFence(state, node, formatInfo(kind, node.attrs.attrs ?? {}), String(node.attrs.body ?? ""));
-	}
-	for (const e of exts) for (const [name, fn] of Object.entries(e.markdown?.nodes ?? {})) nodes[name] = (state, node, parent, index) => fn(state, node, parent, index, helpers);
-	const serializer = new MarkdownSerializer(nodes, marks, options);
-	function serialize(doc) {
-		return serializer.serialize(doc, { tightLists: true }).trimEnd() + "\n";
-	}
-	function serializeInline(doc) {
-		return serializer.serialize(doc, { tightLists: true }).replace(/\s*\n\s*/g, " ").trim();
-	}
-	function serializeNode(node) {
-		const schema = node.type.schema;
-		return serialize(schema.topNodeType.create(null, node.isBlock ? [node] : [schema.nodes.paragraph.create(null, [node])])).trimEnd();
-	}
-	const blockSchema = schemaFor(config);
-	const inlineSchema = schemaFor(config, true);
-	const converter = {
-		config,
-		schema: blockSchema,
-		inlineSchema,
-		parse,
-		parseInline,
-		serialize,
-		serializeInline,
-		serializeNode,
-		slice: (md, schema = blockSchema) => Slice.maxOpen(parse(md, schema).content),
-		toHtml(md) {
-			const doc = parse(md);
-			return fragmentHtml(doc.content, doc.type.schema);
-		}
-	};
-	return converter;
-}
-function fragmentHtml(content, schema) {
-	const div = document.createElement("div");
-	div.appendChild(DOMSerializer.fromSchema(schema).serializeFragment(content, { document }));
-	return div.innerHTML;
-}
-function fragmentMarkdown(markdown, content, schema) {
-	return markdown.serialize(schema.topNodeType.create(null, content)).trimEnd();
-}
-var converters = /* @__PURE__ */ new WeakMap();
-function markdownFor(config) {
-	let c = converters.get(config);
-	if (!c) converters.set(config, c = buildConverter(config));
-	return c;
-}
-function createMarkdown(extensions = NO_EXTENSIONS, options = {}) {
-	return markdownFor(resolveConfig("markdown", options.base, extensions));
-}
-// src/i18n/index.ts
-var MESSAGES = {
-	en: {
-		editor: {
-			placeholder: "Write, or type / for blocks",
-			parseFailed: "The content could not be shown visually. It opened in source mode.",
-			uploading: "Uploading {n} file(s)",
-			uploadingProgress: "Uploading {n} file(s), {percent} %",
-			uploadFailed: "Upload failed: {name}",
-			copied: "Copied",
-			inlineOnly: "Table cells hold text only"
-		},
-		toolbar: {
-			label: "Formatting",
-			undo: "Undo",
-			redo: "Redo",
-			textStyle: "Text style",
-			paragraph: "Text",
-			heading: "Heading {n}",
-			codeBlock: "Code",
-			bold: "Bold",
-			italic: "Italic",
-			underline: "Underline",
-			strike: "Strikethrough",
-			code: "Inline code",
-			highlight: "Highlight",
-			color: "Colour",
-			link: "Link",
-			bulletList: "Bulleted list",
-			orderedList: "Numbered list",
-			taskList: "Checklist",
-			listStyle: "List style",
-			quote: "Quote",
-			callout: "Callout",
-			insert: "Insert",
-			image: "Image",
-			file: "File",
-			align: "Alignment",
-			alignLeft: "Left",
-			alignCenter: "Center",
-			alignRight: "Right",
-			alignJustify: "Justify",
-			focus: "Focus mode",
-			exitFocus: "Leave focus mode",
-			source: "Markdown source",
-			visual: "Visual editor",
-			more: "More"
-		},
-		listStyle: {
-			numbering: "Numbering",
-			bullets: "Bullets",
-			custom: "Own character",
-			apply: "Apply",
-			customHint: "One or two characters, no spaces or quotes.",
-			styles: {
-				decimal: "1, 2, 3",
-				"lower-alpha": "a, b, c",
-				"upper-alpha": "A, B, C",
-				"lower-roman": "i, ii, iii",
-				"upper-roman": "I, II, III",
-				disc: "Dot",
-				circle: "Circle",
-				square: "Square",
-				dash: "Dash",
-				arrow: "Arrow"
-			}
-		},
-		colors: {
-			text: "Text colour",
-			background: "Highlight",
-			default: "Default",
-			none: "No highlight",
-			gray: "Gray",
-			red: "Red",
-			orange: "Orange",
-			yellow: "Yellow",
-			green: "Green",
-			blue: "Blue",
-			purple: "Purple",
-			pink: "Pink"
-		},
-		bubble: {
-			label: "Selection",
-			askAi: "Ask AI"
-		},
-		slash: {
-			title: "Blocks",
-			empty: "Nothing found",
-			groups: {
-				text: "Text",
-				lists: "Lists",
-				blocks: "Blocks",
-				media: "Media"
-			},
-			items: {
-				paragraph: {
-					label: "Text",
-					description: "Plain paragraph"
-				},
-				heading1: {
-					label: "Heading 1",
-					description: "Title of the page"
-				},
-				heading2: {
-					label: "Heading 2",
-					description: "Section heading"
-				},
-				heading3: {
-					label: "Heading 3",
-					description: "Subsection heading"
-				},
-				heading4: {
-					label: "Heading 4",
-					description: "Small heading"
-				},
-				heading5: {
-					label: "Heading 5",
-					description: "Smaller heading"
-				},
-				heading6: {
-					label: "Heading 6",
-					description: "Smallest heading"
-				},
-				quote: {
-					label: "Quote",
-					description: "Quoted text"
-				},
-				callout: {
-					label: "Callout",
-					description: "Box for a note, tip or warning"
-				},
-				codeBlock: {
-					label: "Code",
-					description: "Code with syntax highlighting"
-				},
-				hr: {
-					label: "Divider",
-					description: "Line between sections"
-				},
-				bulletList: {
-					label: "Bulleted list",
-					description: "List with bullets"
-				},
-				orderedList: {
-					label: "Numbered list",
-					description: "List with numbers"
-				},
-				taskList: {
-					label: "Checklist",
-					description: "List with checkboxes"
-				},
-				table: {
-					label: "Table",
-					description: "Rows and columns"
-				},
-				image: {
-					label: "Image",
-					description: "Upload or pick a picture"
-				},
-				file: {
-					label: "File",
-					description: "Attach a file as a link"
-				},
-				mathInline: {
-					label: "Inline formula",
-					description: "LaTeX in the text"
-				},
-				mathBlock: {
-					label: "Formula",
-					description: "LaTeX on its own line"
-				},
-				details: {
-					label: "Collapsible",
-					description: "Section readers open on click"
-				}
-			}
-		},
-		convert: {
-			title: "Turn into",
-			targets: {
-				paragraph: "Text",
-				unwrap: "Unwrap"
-			}
-		},
-		blockMenu: {
-			label: "Block",
-			duplicate: "Duplicate",
-			copy: "Copy as markdown",
-			delete: "Delete"
-		},
-		gutter: {
-			drag: "Drag to move, click for options",
-			add: "Add a block below"
-		},
-		table: {
-			menu: "Table",
-			column: "Column {n}",
-			row: "Row {n}",
-			dragHint: "Drag to move, click for options",
-			insertLeft: "Insert left",
-			insertRight: "Insert right",
-			insertAbove: "Insert above",
-			insertBelow: "Insert below",
-			align: "Align",
-			alignLeft: "Left",
-			alignCenter: "Center",
-			alignRight: "Right",
-			headerRow: "Header row",
-			deleteColumn: "Delete column",
-			deleteRow: "Delete row",
-			deleteTable: "Delete table",
-			addColumn: "Add column",
-			addRow: "Add row"
-		},
-		link: {
-			title: "Link",
-			url: "Address",
-			urlPlaceholder: "https://",
-			text: "Text",
-			textPlaceholder: "Shown text",
-			search: "Search",
-			searchPlaceholder: "Search pages",
-			noResults: "Nothing found",
-			apply: "Apply",
-			remove: "Remove link",
-			open: "Open link"
-		},
-		field: {
-			tools: "Formatting",
-			expand: "Open the full editor",
-			expandTitle: "Edit",
-			close: "Close"
-		},
-		draft: {
-			idle: "Unsaved changes",
-			saving: "Saving",
-			saved: "Saved",
-			offline: "Offline",
-			error: "Not saved"
-		},
-		block: {
-			edit: "Edit",
-			copy: "Copy as markdown",
-			delete: "Delete",
-			more: "More"
-		},
-		code: {
-			label: "Code",
-			language: "Language",
-			languagePlaceholder: "e.g. python"
-		},
-		callout: {
-			label: "Callout",
-			changeType: "Change the type",
-			title: "Title",
-			addTitle: "Add a title",
-			kinds: "Kind",
-			types: {
-				note: "Note",
-				info: "Info",
-				tip: "Tip",
-				success: "Success",
-				important: "Important",
-				warning: "Warning",
-				caution: "Caution",
-				danger: "Danger",
-				question: "Question",
-				example: "Example",
-				details: "Details"
-			}
-		},
-		image: {
-			label: "Image",
-			video: "Video",
-			audio: "Audio",
-			alt: "Description",
-			altPlaceholder: "What the picture shows",
-			altHelp: "Read by screen readers and shown when the image cannot load.",
-			title: "Title",
-			caption: "Caption",
-			captionPlaceholder: "Caption (optional)",
-			width: "Width",
-			resize: "Drag to resize",
-			replace: "Image",
-			replaceFile: "Replace the file",
-			originalSize: "Original size",
-			toFigure: "Own block",
-			align: {
-				left: "Left",
-				center: "Center",
-				right: "Right",
-				"float-left": "Wrap on the left",
-				"float-right": "Wrap on the right"
-			}
-		},
-		divider: {
-			label: "Divider",
-			line: "Line",
-			width: "Width",
-			widthPx: "{n} px",
-			color: "Colour",
-			defaultColor: "Default",
-			customColor: "Own colour",
-			design: "Ornament",
-			customChar: "Own ornament",
-			charInvalid: "One or two characters, no spaces or quotes.",
-			styles: {
-				solid: "Solid",
-				dashed: "Dashed",
-				dotted: "Dotted",
-				double: "Double"
-			},
-			designs: {
-				none: "None",
-				star: "Star",
-				diamond: "Diamond",
-				dots: "Dots",
-				fleuron: "Fleuron"
-			},
-			colors: {
-				red: "Red",
-				orange: "Orange",
-				amber: "Amber",
-				green: "Green",
-				teal: "Teal",
-				blue: "Blue",
-				violet: "Violet",
-				pink: "Pink"
-			}
-		},
-		math: {
-			label: "Formula",
-			edit: "Edit the formula",
-			empty: "Empty formula",
-			placeholder: "LaTeX, e.g. \\frac{a}{b}",
-			tex: "LaTeX"
-		},
-		details: {
-			label: "Collapsible",
-			title: "Title",
-			titlePlaceholder: "Title readers click to open",
-			toggleDefault: "Open for readers",
-			openByDefault: "Open for readers",
-			closedByDefault: "Closed for readers"
-		},
-		footnote: { label: "Footnote" },
-		source: { label: "Markdown source" },
-		dialog: {
-			close: "Close",
-			cancel: "Cancel"
-		}
+// src/editor/context.ts
+var ContextStorage = Extension.create({
+	name: "wysiwyg",
+	addOptions() {
+		return { context: null };
 	},
-	sk: {
-		editor: {
-			placeholder: "Píšte text alebo napíšte / pre vloženie bloku",
-			parseFailed: "Obsah sa nepodarilo zobraziť vizuálne, otvoril sa zdrojový text.",
-			uploading: "Nahráva sa súborov: {n}",
-			uploadingProgress: "Nahráva sa súborov: {n} ({percent} %)",
-			uploadFailed: "Súbor {name} sa nepodarilo nahrať.",
-			copied: "Skopírované",
-			inlineOnly: "V bunke tabuľky môže byť len text"
-		},
-		toolbar: {
-			label: "Nástroje editora",
-			undo: "Späť",
-			redo: "Znova",
-			textStyle: "Štýl textu",
-			paragraph: "Odsek",
-			heading: "Nadpis {n}",
-			codeBlock: "Blok kódu",
-			bold: "Tučné",
-			italic: "Kurzíva",
-			underline: "Podčiarknuté",
-			strike: "Prečiarknuté",
-			code: "Kód v texte",
-			highlight: "Zvýraznenie",
-			color: "Farba",
-			link: "Odkaz",
-			bulletList: "Odrážky",
-			orderedList: "Číslovaný zoznam",
-			taskList: "Zoznam úloh",
-			listStyle: "Štýl zoznamu",
-			quote: "Citát",
-			callout: "Upozornenie",
-			insert: "Vložiť",
-			image: "Obrázok",
-			file: "Súbor",
-			align: "Zarovnanie",
-			alignLeft: "Doľava",
-			alignCenter: "Na stred",
-			alignRight: "Doprava",
-			alignJustify: "Do bloku",
-			focus: "Sústrediť sa",
-			exitFocus: "Ukončiť sústredenie",
-			source: "Zdrojový text (Markdown)",
-			visual: "Vizuálny editor",
-			more: "Ďalšie"
-		},
-		listStyle: {
-			numbering: "Číslovanie",
-			bullets: "Odrážky",
-			custom: "Vlastný znak",
-			apply: "Použiť",
-			customHint: "Jeden alebo dva znaky bez medzier a úvodzoviek.",
-			styles: {
-				decimal: "Čísla",
-				"lower-alpha": "Malé písmená",
-				"upper-alpha": "Veľké písmená",
-				"lower-roman": "Malé rímske číslice",
-				"upper-roman": "Veľké rímske číslice",
-				disc: "Plný krúžok",
-				circle: "Prázdny krúžok",
-				square: "Štvorček",
-				dash: "Pomlčka",
-				arrow: "Šípka"
-			}
-		},
-		colors: {
-			text: "Farba textu",
-			background: "Zvýraznenie",
-			default: "Predvolená",
-			none: "Bez zvýraznenia",
-			gray: "Sivá",
-			red: "Červená",
-			orange: "Oranžová",
-			yellow: "Žltá",
-			green: "Zelená",
-			blue: "Modrá",
-			purple: "Fialová",
-			pink: "Ružová"
-		},
-		bubble: {
-			label: "Formátovanie výberu",
-			askAi: "Opýtať sa AI"
-		},
-		slash: {
-			title: "Vložiť blok",
-			empty: "Žiadny blok nezodpovedá hľadaniu",
-			groups: {
-				text: "Text",
-				lists: "Zoznamy",
-				blocks: "Bloky",
-				media: "Médiá"
-			},
-			items: {
-				paragraph: {
-					label: "Odsek",
-					description: "Obyčajný text"
-				},
-				heading1: {
-					label: "Nadpis 1",
-					description: "Najvyššia úroveň, nad kapitolami"
-				},
-				heading2: {
-					label: "Nadpis 2",
-					description: "Hlavná sekcia"
-				},
-				heading3: {
-					label: "Nadpis 3",
-					description: "Podsekcia"
-				},
-				heading4: {
-					label: "Nadpis 4",
-					description: "Menší nadpis"
-				},
-				heading5: {
-					label: "Nadpis 5",
-					description: "Drobný nadpis"
-				},
-				heading6: {
-					label: "Nadpis 6",
-					description: "Najmenší nadpis"
-				},
-				quote: {
-					label: "Citát",
-					description: "Odsadený citát"
-				},
-				callout: {
-					label: "Upozornenie",
-					description: "Zvýraznený box: poznámka, tip, varovanie"
-				},
-				codeBlock: {
-					label: "Blok kódu",
-					description: "Kód so zvýraznením syntaxe"
-				},
-				hr: {
-					label: "Oddeľovač",
-					description: "Vodorovná čiara"
-				},
-				bulletList: {
-					label: "Odrážky",
-					description: "Jednoduchý zoznam"
-				},
-				orderedList: {
-					label: "Číslovaný zoznam",
-					description: "Zoznam s poradím"
-				},
-				taskList: {
-					label: "Zoznam úloh",
-					description: "Zoznam so zaškrtávacími políčkami"
-				},
-				table: {
-					label: "Tabuľka",
-					description: "Tabuľka 3 x 3 s hlavičkou"
-				},
-				image: {
-					label: "Obrázok",
-					description: "Nahrať alebo vybrať obrázok"
-				},
-				file: {
-					label: "Súbor",
-					description: "Priložiť súbor ako odkaz"
-				},
-				mathInline: {
-					label: "Vzorec v texte",
-					description: "Matematika (LaTeX) v riadku"
-				},
-				mathBlock: {
-					label: "Vzorec",
-					description: "Matematika (LaTeX) ako samostatný blok"
-				},
-				details: {
-					label: "Zbaliť obsah",
-					description: "Skrytý text, napríklad riešenie"
-				}
-			}
-		},
-		convert: {
-			title: "Previesť na",
-			targets: {
-				paragraph: "Text",
-				unwrap: "Zrušiť obal"
-			}
-		},
-		blockMenu: {
-			label: "Ponuka bloku",
-			duplicate: "Duplikovať",
-			copy: "Kopírovať ako markdown",
-			delete: "Odstrániť"
-		},
-		gutter: {
-			drag: "Potiahnutím presuniete, kliknutím otvoríte ponuku bloku",
-			add: "Vložiť blok pod"
-		},
-		table: {
-			menu: "Tabuľka",
-			column: "Stĺpec {n}",
-			row: "Riadok {n}",
-			dragHint: "Kliknutím otvoríte ponuku, potiahnutím presuniete.",
-			insertLeft: "Vložiť stĺpec vľavo",
-			insertRight: "Vložiť stĺpec vpravo",
-			insertAbove: "Vložiť riadok nad",
-			insertBelow: "Vložiť riadok pod",
-			align: "Zarovnanie stĺpca",
-			alignLeft: "Doľava",
-			alignCenter: "Na stred",
-			alignRight: "Doprava",
-			headerRow: "Hlavičkový riadok",
-			deleteColumn: "Odstrániť stĺpec",
-			deleteRow: "Odstrániť riadok",
-			deleteTable: "Odstrániť tabuľku",
-			addColumn: "Pridať stĺpec",
-			addRow: "Pridať riadok"
-		},
-		link: {
-			title: "Odkaz",
-			url: "Adresa",
-			urlPlaceholder: "https://",
-			text: "Text odkazu",
-			textPlaceholder: "Zobrazený text",
-			search: "Hľadať",
-			searchPlaceholder: "Začnite písať názov",
-			noResults: "Nič sa nenašlo",
-			apply: "Použiť",
-			remove: "Odstrániť odkaz",
-			open: "Otvoriť odkaz"
-		},
-		field: {
-			tools: "Formátovanie",
-			expand: "Otvoriť v editore",
-			expandTitle: "Úprava textu",
-			close: "Zavrieť"
-		},
-		draft: {
-			idle: "Neuložené zmeny",
-			saving: "Ukladá sa",
-			saved: "Koncept uložený",
-			offline: "Offline, koncept sa neuložil",
-			error: "Koncept sa nepodarilo uložiť"
-		},
-		block: {
-			edit: "Upraviť",
-			copy: "Kopírovať ako markdown",
-			delete: "Odstrániť",
-			more: "Ďalšie"
-		},
-		code: {
-			label: "Kód",
-			language: "Jazyk",
-			languagePlaceholder: "napr. python"
-		},
-		callout: {
-			label: "Upozornenie",
-			changeType: "Zmeniť typ",
-			title: "Nadpis",
-			addTitle: "Pridať nadpis",
-			kinds: "Typ",
-			types: {
-				note: "Poznámka",
-				info: "Informácia",
-				tip: "Tip",
-				success: "Úspech",
-				important: "Dôležité",
-				warning: "Varovanie",
-				caution: "Pozor",
-				danger: "Nebezpečenstvo",
-				question: "Otázka",
-				example: "Príklad",
-				details: "Podrobnosti"
-			}
-		},
-		image: {
-			label: "Obrázok",
-			video: "Video",
-			audio: "Zvuk",
-			alt: "Popis",
-			altPlaceholder: "Čo je na obrázku",
-			altHelp: "Prečíta ho čítačka obrazovky a ukáže sa, keď sa obrázok nenačíta.",
-			title: "Titulok",
-			caption: "Popisok",
-			captionPlaceholder: "Popisok (nepovinný)",
-			width: "Šírka",
-			resize: "Potiahnutím zmeníte veľkosť",
-			replace: "Obrázok",
-			replaceFile: "Nahradiť súbor",
-			originalSize: "Pôvodná veľkosť",
-			toFigure: "Samostatný blok",
-			align: {
-				left: "Vľavo",
-				center: "Na stred",
-				right: "Vpravo",
-				"float-left": "Obtekať zľava",
-				"float-right": "Obtekať sprava"
-			}
-		},
-		divider: {
-			label: "Oddeľovač",
-			line: "Čiara",
-			width: "Hrúbka",
-			widthPx: "{n} px",
-			color: "Farba",
-			defaultColor: "Predvolená",
-			customColor: "Vlastná farba",
-			design: "Ozdoba",
-			customChar: "Vlastná ozdoba",
-			charInvalid: "Jeden alebo dva znaky bez medzier a úvodzoviek.",
-			styles: {
-				solid: "Plná",
-				dashed: "Čiarkovaná",
-				dotted: "Bodkovaná",
-				double: "Dvojitá"
-			},
-			designs: {
-				none: "Žiadna",
-				star: "Hviezda",
-				diamond: "Kosoštvorec",
-				dots: "Bodky",
-				fleuron: "Kvet"
-			},
-			colors: {
-				red: "Červená",
-				orange: "Oranžová",
-				amber: "Jantárová",
-				green: "Zelená",
-				teal: "Tyrkysová",
-				blue: "Modrá",
-				violet: "Fialová",
-				pink: "Ružová"
-			}
-		},
-		math: {
-			label: "Vzorec",
-			edit: "Upraviť vzorec",
-			empty: "Prázdny vzorec",
-			placeholder: "LaTeX, napr. \\frac{a}{b}",
-			tex: "LaTeX"
-		},
-		details: {
-			label: "Zbaliť obsah",
-			title: "Nadpis",
-			titlePlaceholder: "Nadpis, na ktorý čitateľ klikne",
-			toggleDefault: "Otvorené pre čitateľov",
-			openByDefault: "Čitatelia ho uvidia otvorené",
-			closedByDefault: "Čitatelia ho uvidia zbalené"
-		},
-		footnote: { label: "Poznámka pod čiarou" },
-		source: { label: "Zdrojový text (Markdown)" },
-		dialog: {
-			close: "Zavrieť",
-			cancel: "Zrušiť"
-		}
+	addStorage() {
+		return { context: this.options.context };
 	}
-};
-function lookup(tree, path) {
-	let cur = tree;
-	for (const p of path) {
-		if (!cur || typeof cur !== "object") return void 0;
-		cur = Reflect.get(cur, p);
-	}
-	return typeof cur === "string" ? cur : void 0;
+});
+var EDITOR_CONTEXT = Symbol("wysiwyg-context");
+function contextOf(editor) {
+	const ctx = editor.storage.wysiwyg?.context;
+	if (!ctx) throw new Error("not a wysiwyg editor");
+	return ctx;
 }
-function hasMessage(trees, key) {
-	const path = key.split(".");
-	return trees.some((t) => lookup(t, path) !== void 0);
-}
-function createTranslator(trees) {
-	return (key, params) => {
-		const path = key.split(".");
-		let text;
-		for (const t of trees) {
-			text = lookup(t, path);
-			if (text !== void 0) break;
-		}
-		if (text === void 0) return key;
-		return params ? text.replace(/\{(\w+)\}/g, (m, k) => k in params ? String(params[k]) : m) : text;
-	};
-}
-// src/core/math.ts
-var katex = shallowRef(null);
-var loader = null;
-var loading = null;
-var cache = /* @__PURE__ */ new Map();
-function setKatexLoader(load) {
-	if (load && !loader) loader = load;
-}
-function load() {
-	if (!loader || loading) return;
-	loading = loader().then((m) => {
-		katex.value = "renderToString" in m ? m : m.default;
-	}, (e) => console.error("vue-wysiwyg-component: services.katex failed to load KaTeX", e));
-}
-function renderMath(tex, display) {
-	const k = katex.value;
-	if (!k) {
-		load();
-		return `<code class="wy-math-source">${escapeHtml(tex)}</code>`;
-	}
-	const key = `${display ? "D" : "I"}${tex}`;
-	const hit = cache.get(key);
-	if (hit !== void 0) return hit;
-	let html;
-	try {
-		html = k.renderToString(tex, {
-			displayMode: display,
-			throwOnError: false,
-			strict: "ignore",
-			output: "htmlAndMathml"
-		});
-	} catch {
-		html = `<code class="wy-math-error">${escapeHtml(tex)}</code>`;
-	}
-	cache.set(key, html);
-	if (cache.size > 200) cache.delete(cache.keys().next().value);
-	return html;
+function useEditorContext() {
+	const ctx = inject(EDITOR_CONTEXT, null);
+	if (!ctx) throw new Error("useEditorContext() needs a WysiwygEditor ancestor");
+	return ctx;
 }
 // src/components/floating.ts
 function floatNear(anchor, el, o) {
@@ -3059,736 +1588,321 @@ function floatNear(anchor, el, o) {
 		stop: autoUpdate(anchor, el, update)
 	};
 }
-// src/components/SlashMenu.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$23 = ["aria-label"];
-var _hoisted_2$18 = {
-	key: 0,
-	class: "wy-menu-empty"
-};
-var _hoisted_3$18 = {
-	class: "wy-menu-heading",
-	role: "presentation"
-};
-var _hoisted_4$17 = [
-	"aria-selected",
-	"aria-disabled",
-	"title",
-	"data-index",
-	"onMouseenter",
-	"onClick"
-];
-var _hoisted_5$15 = { class: "wy-slash-text" };
-var _hoisted_6$12 = { class: "wy-slash-label" };
-var _hoisted_7$10 = {
-	key: 0,
-	class: "wy-slash-desc"
-};
-// src/components/SlashMenu.vue
-var SlashMenu_default = /* @__PURE__ */ defineComponent({
-	__name: "SlashMenu",
-	props: {
-		items: {},
-		command: { type: Function },
-		inCell: { type: Boolean },
-		groupLabel: { type: Function },
-		t: { type: Function }
+// src/components/tooltip.ts
+var DELAY = 450;
+var apple = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+function formatKeys(keys) {
+	const parts = keys.split("-").map((k) => {
+		const low = k.toLowerCase();
+		if (low === "mod") return apple ? "⌘" : "Ctrl";
+		if (low === "shift") return apple ? "⇧" : "Shift";
+		if (low === "alt") return apple ? "⌥" : "Alt";
+		if (low === "enter") return apple ? "↩" : "Enter";
+		return k.length === 1 ? k.toUpperCase() : k;
+	});
+	return apple ? parts.join("") : parts.join("+");
+}
+var tip = null;
+var current$1 = null;
+var timer = 0;
+var stop = null;
+var values = /* @__PURE__ */ new WeakMap();
+function element() {
+	if (!tip) {
+		tip = document.createElement("div");
+		tip.className = "wy-tooltip";
+		tip.setAttribute("role", "tooltip");
+		tip.hidden = true;
+		document.body.appendChild(tip);
+	}
+	return tip;
+}
+function hide() {
+	window.clearTimeout(timer);
+	stop?.();
+	stop = null;
+	current$1 = null;
+	if (tip) tip.hidden = true;
+}
+function show(el) {
+	const value = values.get(el);
+	const text = typeof value === "string" ? value : value?.text;
+	if (!text || !el.isConnected) return;
+	const t = element();
+	t.textContent = text;
+	const keys = typeof value === "object" && value?.keys ? formatKeys(value.keys) : "";
+	if (keys) {
+		const k = document.createElement("kbd");
+		k.textContent = keys;
+		t.append(" ", k);
+	}
+	t.hidden = false;
+	current$1 = el;
+	stop?.();
+	stop = floatNear(el, t, {
+		placement: "top",
+		offset: 6,
+		padding: 6,
+		apply: (x, y) => {
+			t.style.left = `${x}px`;
+			t.style.top = `${y}px`;
+		}
+	}).stop;
+}
+function onEnter(e) {
+	const el = e.currentTarget;
+	if (e instanceof PointerEvent && e.pointerType === "touch") return;
+	window.clearTimeout(timer);
+	timer = window.setTimeout(() => show(el), current$1 ? 0 : DELAY);
+}
+function onFocus(e) {
+	const el = e.currentTarget;
+	if (el.matches(":focus-visible")) show(el);
+}
+var vTooltip = {
+	mounted(el, binding) {
+		values.set(el, binding.value);
+		const text = typeof binding.value === "string" ? binding.value : binding.value?.text;
+		if (text && !el.getAttribute("aria-label") && !el.textContent?.trim()) el.setAttribute("aria-label", text);
+		el.addEventListener("pointerenter", onEnter);
+		el.addEventListener("pointerleave", hide);
+		el.addEventListener("pointerdown", hide);
+		el.addEventListener("focus", onFocus);
+		el.addEventListener("blur", hide);
 	},
-	setup(__props, { expose: __expose }) {
+	updated(el, binding) {
+		values.set(el, binding.value);
+		if (current$1 === el && JSON.stringify(binding.value) !== JSON.stringify(binding.oldValue)) {
+			hide();
+			show(el);
+		}
+	},
+	beforeUnmount(el) {
+		if (current$1 === el) hide();
+		el.removeEventListener("pointerenter", onEnter);
+		el.removeEventListener("pointerleave", hide);
+		el.removeEventListener("pointerdown", hide);
+		el.removeEventListener("focus", onFocus);
+		el.removeEventListener("blur", hide);
+	}
+};
+// src/nodes/ColumnView.vue?vue&type=script&setup=true&lang.ts
+var _hoisted_1$35 = ["aria-label"];
+// src/nodes/ColumnView.vue
+var ColumnView_default = /* @__PURE__ */ defineComponent({
+	__name: "ColumnView",
+	props: nodeViewProps,
+	setup(__props) {
 		const props = __props;
-		const active = ref(0);
-		const list = ref(null);
-		const groups = computed(() => {
-			const out = [];
-			props.items.forEach((item, index) => {
-				let g = out.find((x) => x.group === item.group);
-				if (!g) out.push(g = {
-					group: item.group,
-					items: []
-				});
-				g.items.push({
-					item,
-					index
-				});
-			});
-			return out;
+		const t = contextOf(props.editor).t;
+		const readonly = computed(() => !props.editor.isEditable);
+		const width = computed(() => props.node.attrs.width);
+		const grow = computed(() => width.value ? formatColumnWidth(width.value) : "calc(100 / var(--wy-columns, 2))");
+		const resizing = ref(false);
+		let drag = null;
+		function parent() {
+			const pos = props.getPos();
+			if (typeof pos !== "number") return null;
+			const $pos = props.editor.state.doc.resolve(pos);
+			return $pos.parent.type.name === "columns" ? {
+				pos: $pos.before(),
+				node: $pos.parent,
+				index: $pos.index()
+			} : null;
+		}
+		function onDown(e) {
+			const p = parent();
+			if (!p || e.button !== 0 || p.index >= p.node.childCount - 1) return;
+			const row = e.currentTarget.closest(".wy-columns");
+			const first = props.editor.view.nodeDOM(p.pos + 1 + offsetOf(p.node, p.index));
+			const second = props.editor.view.nodeDOM(p.pos + 1 + offsetOf(p.node, p.index + 1));
+			if (!(row instanceof HTMLElement) || !(first instanceof HTMLElement) || !(second instanceof HTMLElement)) return;
+			e.preventDefault();
+			e.currentTarget.setPointerCapture(e.pointerId);
+			const shares = columnShares(p.node);
+			drag = {
+				columnsPos: p.pos,
+				index: p.index,
+				shares,
+				px: row.clientWidth,
+				startX: e.clientX,
+				doms: [first, second],
+				next: [shares[p.index], shares[p.index + 1]]
+			};
+			resizing.value = true;
+		}
+		function offsetOf(node, index) {
+			let offset = 0;
+			for (let i = 0; i < index; i++) offset += node.child(i).nodeSize;
+			return offset;
+		}
+		function onMove(e) {
+			if (!drag) return;
+			const total = drag.shares.reduce((s, w) => s + w, 0);
+			const pair = drag.shares[drag.index] + drag.shares[drag.index + 1];
+			const delta = (e.clientX - drag.startX) / Math.max(1, drag.px) * total;
+			const a = Math.min(pair - 10, Math.max(10, drag.shares[drag.index] + delta));
+			drag.next = [a, pair - a];
+			drag.doms[0].style.flexGrow = String(a);
+			drag.doms[1].style.flexGrow = String(pair - a);
+		}
+		function onUp() {
+			const d = drag;
+			drag = null;
+			resizing.value = false;
+			if (!d) return;
+			d.doms.forEach((el) => el.style.removeProperty("flex-grow"));
+			const node = props.editor.state.doc.nodeAt(d.columnsPos);
+			if (!node || node.type.name !== "columns") return;
+			const shares = [...d.shares];
+			shares[d.index] = d.next[0];
+			shares[d.index + 1] = d.next[1];
+			const total = shares.reduce((s, w) => s + w, 0);
+			const tr = props.editor.state.tr;
+			node.forEach((c, offset, i) => tr.setNodeMarkup(d.columnsPos + 1 + offset, null, {
+				...c.attrs,
+				width: Math.round(shares[i] * 100 / total * 10) / 10
+			}));
+			props.editor.view.dispatch(tr);
+		}
+		onBeforeUnmount(() => {
+			drag = null;
 		});
-		const enabled = (i) => !props.inCell || !!props.items[i]?.inline;
-		watch(() => [props.items, props.inCell], () => {
-			active.value = Math.max(0, props.items.findIndex((_, i) => enabled(i)));
-		}, { immediate: true });
-		async function reveal() {
-			await nextTick();
-			list.value?.querySelector(`[data-index="${active.value}"]`)?.scrollIntoView({ block: "nearest" });
-		}
-		function select(i) {
-			const item = props.items[i];
-			if (item && enabled(i)) props.command(item);
-		}
-		function step(dir) {
-			const n = props.items.length;
-			for (let k = 1; k <= n; k++) {
-				const i = ((active.value + dir * k) % n + n) % n;
-				if (enabled(i)) {
-					active.value = i;
-					return;
-				}
-			}
-		}
-		function onKeyDown(e) {
-			if (props.items.length === 0) return false;
-			if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-				step(e.key === "ArrowDown" ? 1 : -1);
-				reveal();
-				return true;
-			}
-			if (e.key === "Enter" || e.key === "Tab") {
-				select(active.value);
-				return true;
-			}
-			return false;
-		}
-		__expose({ onKeyDown });
 		return (_ctx, _cache) => {
-			return openBlock(), createElementBlock("div", {
-				class: "wy-menu wy-slash",
-				role: "listbox",
-				"aria-label": __props.t("slash.title")
-			}, [__props.items.length === 0 ? (openBlock(), createElementBlock("div", _hoisted_2$18, toDisplayString(__props.t("slash.empty")), 1)) : (openBlock(), createElementBlock("div", {
-				key: 1,
-				ref_key: "list",
-				ref: list,
-				class: "wy-slash-list"
-			}, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(groups.value, (g) => {
-				return openBlock(), createElementBlock(Fragment$1, { key: g.group }, [createElementVNode("div", _hoisted_3$18, toDisplayString(__props.groupLabel(g.group)), 1), (openBlock(true), createElementBlock(Fragment$1, null, renderList(g.items, ({ item, index }) => {
-					return openBlock(), createElementBlock("button", {
-						key: item.id,
-						type: "button",
-						role: "option",
-						class: normalizeClass(["wy-menu-item wy-slash-item", { "is-active": index === active.value }]),
-						"aria-selected": index === active.value,
-						"aria-disabled": !enabled(index) || void 0,
-						title: enabled(index) ? void 0 : __props.t("editor.inlineOnly"),
-						"data-index": index,
-						onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
-						onMouseenter: ($event) => enabled(index) && (active.value = index),
-						onClick: ($event) => select(index)
-					}, [item.icon ? (openBlock(), createBlock(resolveDynamicComponent(item.icon), {
+			return openBlock(), createBlock(unref(NodeViewWrapper), {
+				as: "div",
+				class: normalizeClass(["wy-column", { "is-resizing": resizing.value }]),
+				style: normalizeStyle({ flexGrow: grow.value })
+			}, {
+				default: withCtx(() => [createVNode(unref(NodeViewContent), { class: "wy-column-body" }), !readonly.value ? withDirectives((openBlock(), createElementBlock("div", {
+					key: 0,
+					class: "wy-column-resize",
+					contenteditable: "false",
+					role: "separator",
+					"aria-orientation": "vertical",
+					"aria-label": unref(t)("columns.resize"),
+					onPointerdown: onDown,
+					onPointermove: onMove,
+					onPointerup: onUp,
+					onPointercancel: onUp
+				}, null, 40, _hoisted_1$35)), [[unref(vTooltip), unref(t)("columns.resize")]]) : createCommentVNode("", true)]),
+				_: 1
+			}, 8, ["class", "style"]);
+		};
+	}
+});
+// src/blocks/BlockFrame.vue?vue&type=script&setup=true&lang.ts
+var _hoisted_1$34 = {
+	key: 0,
+	class: "wy-block-tools",
+	contenteditable: "false"
+};
+var _hoisted_2$27 = { class: "wy-block-label" };
+var _hoisted_3$27 = ["aria-label"];
+var _hoisted_4$25 = ["aria-label"];
+var _hoisted_5$22 = ["aria-label"];
+var _hoisted_6$17 = ["aria-label"];
+var _hoisted_7$14 = { class: "wy-block-body" };
+// src/blocks/BlockFrame.vue
+var BlockFrame_default = /* @__PURE__ */ defineComponent({
+	__name: "BlockFrame",
+	props: {
+		label: {},
+		selected: {
+			type: Boolean,
+			default: false
+		},
+		editing: {
+			type: Boolean,
+			default: false
+		},
+		readonly: {
+			type: Boolean,
+			default: false
+		},
+		copyText: { default: "" },
+		editable: {
+			type: Boolean,
+			default: true
+		},
+		deletable: {
+			type: Boolean,
+			default: true
+		}
+	},
+	emits: [
+		"edit",
+		"delete",
+		"more"
+	],
+	setup(__props, { emit: __emit }) {
+		const props = __props;
+		const emit = __emit;
+		const ctx = inject(EDITOR_CONTEXT, null);
+		const t = (key, fallback) => ctx?.t(key) ?? fallback;
+		async function copy() {
+			if (!props.copyText) return;
+			try {
+				await navigator.clipboard.writeText(props.copyText);
+				ctx?.services.toast?.(t("editor.copied", "Copied"), "success");
+			} catch {}
+		}
+		return (_ctx, _cache) => {
+			return openBlock(), createElementBlock("div", { class: normalizeClass(["wy-block-frame", {
+				"is-selected": __props.selected,
+				"is-editing": __props.editing,
+				"is-readonly": __props.readonly,
+				"is-editable": __props.editable && !__props.readonly
+			}]) }, [
+				!__props.readonly ? (openBlock(), createElementBlock("div", _hoisted_1$34, [
+					createElementVNode("span", _hoisted_2$27, toDisplayString(__props.label), 1),
+					__props.editable && !__props.editing ? withDirectives((openBlock(), createElementBlock("button", {
 						key: 0,
-						class: "wy-menu-icon",
-						size: 18,
-						"aria-hidden": "true"
-					})) : createCommentVNode("", true), createElementVNode("span", _hoisted_5$15, [createElementVNode("span", _hoisted_6$12, toDisplayString(item.label), 1), item.description ? (openBlock(), createElementBlock("span", _hoisted_7$10, toDisplayString(item.description), 1)) : createCommentVNode("", true)])], 42, _hoisted_4$17);
-				}), 128))], 64);
-			}), 128))], 512))], 8, _hoisted_1$23);
+						type: "button",
+						class: "wy-icon-btn",
+						"aria-label": t("block.edit", "Edit"),
+						onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
+						onClick: _cache[1] || (_cache[1] = ($event) => emit("edit"))
+					}, [createVNode(unref(Pencil), { size: 14 })], 40, _hoisted_3$27)), [[unref(vTooltip), t("block.edit", "Edit")]]) : createCommentVNode("", true),
+					__props.copyText ? withDirectives((openBlock(), createElementBlock("button", {
+						key: 1,
+						type: "button",
+						class: "wy-icon-btn",
+						"aria-label": t("block.copy", "Copy"),
+						onMousedown: _cache[2] || (_cache[2] = withModifiers(() => {}, ["prevent"])),
+						onClick: copy
+					}, [createVNode(unref(Copy), { size: 14 })], 40, _hoisted_4$25)), [[unref(vTooltip), t("block.copy", "Copy")]]) : createCommentVNode("", true),
+					__props.deletable ? withDirectives((openBlock(), createElementBlock("button", {
+						key: 2,
+						type: "button",
+						class: "wy-icon-btn is-danger",
+						"aria-label": t("block.delete", "Delete"),
+						onMousedown: _cache[3] || (_cache[3] = withModifiers(() => {}, ["prevent"])),
+						onClick: _cache[4] || (_cache[4] = ($event) => emit("delete"))
+					}, [createVNode(unref(Trash2), { size: 14 })], 40, _hoisted_5$22)), [[unref(vTooltip), t("block.delete", "Delete")]]) : createCommentVNode("", true),
+					_ctx.$slots.menu ? withDirectives((openBlock(), createElementBlock("button", {
+						key: 3,
+						type: "button",
+						class: "wy-icon-btn",
+						"data-block-more": "",
+						"aria-label": t("block.more", "More"),
+						onMousedown: _cache[5] || (_cache[5] = withModifiers(() => {}, ["prevent"])),
+						onClick: _cache[6] || (_cache[6] = ($event) => emit("more", $event))
+					}, [createVNode(unref(Ellipsis), { size: 14 })], 40, _hoisted_6$17)), [[unref(vTooltip), t("block.more", "More")]]) : createCommentVNode("", true)
+				])) : createCommentVNode("", true),
+				createElementVNode("div", _hoisted_7$14, [renderSlot(_ctx.$slots, "default")]),
+				renderSlot(_ctx.$slots, "menu")
+			], 2);
 		};
 	}
 });
-// src/editor/tables.ts
-function isInCell($pos) {
-	for (let d = $pos.depth; d > 0; d--) {
-		const role = $pos.node(d).type.spec.tableRole;
-		if (role === "cell" || role === "header_cell") return true;
-	}
-	return false;
-}
-function cellSlice(slice, state) {
-	const role = slice.content.firstChild?.type.spec.tableRole;
-	if (role === "table" || role === "row" || role === "cell" || role === "header_cell") return slice;
-	return new Slice(Fragment.from(flattenToParagraph(slice.content, state.schema)), 1, 1);
-}
-function cellPos(table, row, col) {
-	const map = TableMap.get(table.node);
-	return table.pos + 1 + map.map[row * map.width + col];
-}
-function selectLine(editor, table, kind, index) {
-	const node = editor.state.doc.nodeAt(table.pos);
-	if (!node || node.type.name !== "table") return false;
-	const ref = {
-		pos: table.pos,
-		node
-	};
-	const map = TableMap.get(node);
-	if (index >= (kind === "col" ? map.width : map.height)) return false;
-	const $cell = editor.state.doc.resolve(kind === "col" ? cellPos(ref, 0, index) : cellPos(ref, index, 0));
-	const sel = kind === "col" ? CellSelection.colSelection($cell) : CellSelection.rowSelection($cell);
-	editor.view.dispatch(editor.state.tr.setSelection(sel));
-	return true;
-}
-function caretIn(editor, tablePos, row, col) {
-	const node = editor.state.doc.nodeAt(tablePos);
-	if (!node) return;
-	const pos = cellPos({
-		pos: tablePos,
-		node
-	}, row, col);
-	const cell = editor.state.doc.nodeAt(pos);
-	editor.view.dispatch(editor.state.tr.setSelection(TextSelection.near(editor.state.doc.resolve(pos + cell.nodeSize - 1), -1)));
-}
-function runTableAction(editor, table, a) {
-	const map = TableMap.get(table.node);
-	if (a.kind === "table") {
-		if (a.action === "delete") {
-			selectLine(editor, table, "row", 0);
-			editor.chain().focus().deleteTable().run();
-			return;
-		}
-		const col = a.action === "addCol";
-		selectLine(editor, table, col ? "col" : "row", (col ? map.width : map.height) - 1);
-		if (col) editor.chain().focus().addColumnAfter().run();
-		else editor.chain().focus().addRowAfter().run();
-		caretIn(editor, table.pos, col ? 0 : map.height, col ? map.width : 0);
-		return;
-	}
-	if (!selectLine(editor, table, a.kind, a.index)) return;
-	const chain = editor.chain().focus();
-	const isCol = a.kind === "col";
-	const count = isCol ? map.width : map.height;
-	let target = a.index;
-	switch (a.action) {
-		case "delete":
-			if (count === 1) {
-				chain.deleteTable().run();
-				return;
-			}
-			if (isCol) chain.deleteColumn().run();
-			else chain.deleteRow().run();
-			target = Math.min(a.index, count - 2);
-			break;
-		case "before":
-			if (isCol) chain.addColumnBefore().run();
-			else chain.addRowBefore().run();
-			break;
-		case "after":
-			if (isCol) chain.addColumnAfter().run();
-			else chain.addRowAfter().run();
-			target = a.index + 1;
-			break;
-		case "header":
-			chain.toggleHeaderRow().run();
-			break;
-		default: chain.setCellAttribute("align", a.action).run();
-	}
-	caretIn(editor, table.pos, isCol ? 0 : target, isCol ? target : 0);
-}
-/** the header row stays first: gfm writes it above the `---` line, so it neither moves nor gets displaced */
-function moveLine(editor, table, kind, from, to) {
-	if (from === to) return false;
-	const node = editor.state.doc.nodeAt(table.pos);
-	if (!node || node.type.name !== "table") return false;
-	if (kind === "row" && hasHeaderRow(node) && (from === 0 || to === 0)) return false;
-	if (!selectLine(editor, table, kind, from)) return false;
-	return (kind === "col" ? moveTableColumn({
-		from,
-		to,
-		pos: table.pos + 1
-	}) : moveTableRow({
-		from,
-		to,
-		pos: table.pos + 1
-	}))(editor.state, editor.view.dispatch);
-}
-function hasHeaderRow(table) {
-	let header = table.firstChild !== null && table.firstChild.childCount > 0;
-	table.firstChild?.forEach((cell) => {
-		if (cell.type.name !== "tableHeader") header = false;
-	});
-	return header;
-}
-// src/editor/behaviour.ts
-var BLOCK_EDIT_EVENT = "wy-block-edit";
-function blockStopEvent({ event }) {
-	const target = event.target;
-	if (!(target instanceof Element)) return false;
-	const wrapper = target.closest("[data-node-view-wrapper]");
-	const content = target.closest("[data-node-view-content], [data-node-view-content-vue]");
-	if (content && wrapper && wrapper.contains(content)) return false;
-	const type = event.type;
-	if (type.startsWith("drag") || type === "drop") {
-		if (type === "dragstart" && !target.closest("[data-drag-handle]")) {
-			event.preventDefault();
-			return true;
-		}
-		return false;
-	}
-	if ([
-		"INPUT",
-		"BUTTON",
-		"SELECT",
-		"TEXTAREA"
-	].includes(target.tagName) || target instanceof HTMLElement && target.isContentEditable) return true;
-	if (type === "copy" || type === "paste" || type === "cut") return false;
-	if (type === "mousedown" || type === "mouseup" || type === "click" || type === "dblclick") return !target.closest("[data-drag-handle]");
-	return true;
-}
-/** script and data urls become "" */
-function normalizeHref(raw) {
-	const v = raw.trim();
-	if (/^(javascript|vbscript|data):/i.test(v.replace(/[\u0000-\u0020]/g, ""))) return "";
-	if (!v || /^([a-z][a-z0-9+.-]*:|\/|#|\?|\.)/i.test(v)) return v;
-	if (/^[^\s@/]+@[^\s@/]+\.[^\s@/]+$/.test(v)) return `mailto:${v}`;
-	if (/^\+?[\d\s()-]{6,}$/.test(v)) return `tel:${v.replace(/[\s()-]/g, "")}`;
-	return `https://${v}`;
-}
-function linkAtSelection(editor) {
-	const { from, to } = editor.state.selection;
-	const href = String(editor.getAttributes("link").href ?? "");
-	if (href) editor.chain().focus().extendMarkRange("link").run();
-	const sel = editor.state.selection;
-	return {
-		href,
-		text: editor.state.doc.textBetween(href ? sel.from : from, href ? sel.to : to, " "),
-		hasLink: !!href
-	};
-}
-function applyLink(editor, rawHref, text) {
-	const href = normalizeHref(rawHref);
-	if (!href) {
-		removeLink(editor);
-		return;
-	}
-	const { from, to, empty } = editor.state.selection;
-	const label = text || rawHref.trim();
-	if (empty || text && text !== editor.state.doc.textBetween(from, to, " ")) editor.chain().focus().insertContentAt({
-		from,
-		to
-	}, {
-		type: "text",
-		text: label,
-		marks: [{
-			type: "link",
-			attrs: { href }
-		}]
-	}).run();
-	else editor.chain().focus().setLink({ href }).run();
-}
-function removeLink(editor) {
-	editor.chain().focus().extendMarkRange("link").unsetLink().run();
-}
-var SLASH_KEY = new PluginKey("wysiwygSlash");
-var SlashCommand = Extension.create({
-	name: "slashCommand",
-	addOptions() {
-		return {
-			items: () => [],
-			groupLabel: (id) => id,
-			t: (k) => k
-		};
-	},
-	addProseMirrorPlugins() {
-		const options = this.options;
-		return [Suggestion({
-			editor: this.editor,
-			char: "/",
-			pluginKey: SLASH_KEY,
-			allowSpaces: false,
-			startOfLine: false,
-			allow: ({ state, range }) => !state.doc.resolve(range.from).parent.type.spec.code,
-			items: ({ query, editor }) => options.items(query).filter((i) => i.enabled(editor)),
-			command: ({ editor, range, props }) => {
-				if (props.inline || !isInCell(editor.state.selection.$from)) props.run(editor, range);
-			},
-			render: () => {
-				let renderer = null;
-				let el = null;
-				let floating = null;
-				let rect = null;
-				const close = () => {
-					floating?.stop();
-					renderer?.destroy();
-					el?.remove();
-					renderer = null;
-					el = null;
-					floating = null;
-				};
-				const reference = { getBoundingClientRect: () => rect?.() ?? new DOMRect() };
-				const props = (p) => ({
-					items: p.items,
-					command: p.command,
-					inCell: isInCell(p.editor.state.selection.$from),
-					groupLabel: options.groupLabel,
-					t: options.t
-				});
-				return {
-					onStart(p) {
-						rect = p.clientRect ?? null;
-						renderer = new VueRenderer(SlashMenu_default, {
-							props: props(p),
-							editor: p.editor
-						});
-						const menu = el = renderer.element;
-						menu.style.position = "fixed";
-						menu.style.zIndex = "1000";
-						document.body.appendChild(menu);
-						floating = floatNear(reference, menu, {
-							placement: "bottom-start",
-							offset: 6,
-							padding: 8,
-							apply: (x, y) => {
-								menu.style.left = `${x}px`;
-								menu.style.top = `${y}px`;
-							},
-							room: (h) => menu.style.setProperty("--wy-menu-room", `${Math.max(160, h)}px`)
-						});
-					},
-					onUpdate(p) {
-						rect = p.clientRect ?? null;
-						renderer?.updateProps(props(p));
-						floating?.update();
-					},
-					onKeyDown(p) {
-						if (p.event.key === "Escape") {
-							p.event.stopPropagation();
-							close();
-							return true;
-						}
-						return (renderer?.ref)?.onKeyDown?.(p.event) ?? false;
-					},
-					onExit: close
-				};
-			}
-		})];
-	}
-});
-var BlockKeys = Extension.create({
-	name: "blockKeys",
-	addProseMirrorPlugins() {
-		return [new Plugin({
-			key: new PluginKey("blockKeys"),
-			props: { handleKeyDown(view, event) {
-				const sel = view.state.selection;
-				if (event.key !== "Enter" || !(sel instanceof NodeSelection) || sel.node.isTextblock) return false;
-				const dom = view.nodeDOM(sel.from);
-				if (!(dom instanceof HTMLElement) || !dom.hasAttribute("data-node-view-wrapper")) return false;
-				dom.dispatchEvent(new CustomEvent(BLOCK_EDIT_EVENT));
-				return true;
-			} }
-		})];
-	}
-});
-var InlineKeys = Extension.create({
-	name: "inlineKeys",
-	addKeyboardShortcuts() {
-		return {
-			Enter: () => true,
-			"Shift-Enter": () => true
-		};
-	}
-});
-/** a click right of an inline atom that ends its line puts the caret after it (firefox puts it before) */
-var InlineAtomClick = Extension.create({
-	name: "inlineAtomClick",
-	addProseMirrorPlugins() {
-		return [new Plugin({ props: { handleClick(view, pos, event) {
-			const $pos = view.state.doc.resolve(pos);
-			const rightOf = (at) => {
-				const dom = view.nodeDOM(at);
-				if (!(dom instanceof HTMLElement)) return false;
-				const r = dom.getBoundingClientRect();
-				return event.clientX > r.right && event.clientY >= r.top && event.clientY <= r.bottom;
-			};
-			let target = null;
-			const after = $pos.nodeAfter;
-			const before = $pos.nodeBefore;
-			if (after?.isInline && after.isAtom && rightOf(pos)) target = pos + after.nodeSize;
-			else if (before?.isInline && before.isAtom && $pos.parentOffset === $pos.parent.content.size && rightOf(pos - before.nodeSize)) target = pos;
-			if (target === null) return false;
-			view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, target)));
-			return true;
-		} } })];
-	}
-});
-var TableCells = Extension.create({
-	name: "tableCells",
-	priority: 101,
-	addKeyboardShortcuts() {
-		return { Enter: ({ editor }) => {
-			const sel = editor.state.selection;
-			return sel instanceof TextSelection && isInCell(sel.$from) && !SLASH_KEY.getState(editor.state)?.active && editor.commands.setHardBreak();
-		} };
-	},
-	addProseMirrorPlugins() {
-		return [new Plugin({
-			key: new PluginKey("tableCells"),
-			props: { transformPasted: (slice, view) => isInCell(view.state.selection.$from) ? cellSlice(slice, view.state) : slice }
-		})];
-	}
-});
-var HostKeys = Extension.create({
-	name: "hostKeys",
-	priority: 1e3,
-	addOptions() {
-		return { keys: () => ({}) };
-	},
-	addKeyboardShortcuts() {
-		const out = {};
-		for (const [key, fn] of Object.entries(this.options.keys())) out[key] = fn;
-		return out;
-	}
-});
-// src/editor/fresh.ts
-var freshType = null;
-function markFresh(typeName) {
-	freshType = typeName;
-}
-function takeFresh(typeName) {
-	if (freshType !== typeName) return false;
-	freshType = null;
-	return true;
-}
-function insertFresh(editor, type, attrs = {}, range, content) {
-	markFresh(type);
-	try {
-		const chain = editor.chain().focus();
-		if (range) chain.deleteRange(range);
-		if (!(!!editor.schema.nodes[type] && chain.insertContent(content ? {
-			type,
-			attrs,
-			content
-		} : {
-			type,
-			attrs
-		}).run())) takeFresh(type);
-	} catch (e) {
-		takeFresh(type);
-		throw e;
-	}
-}
-// src/editor/catalog.ts
-var HEADING_ICONS$1 = [
-	Heading1,
-	Heading2,
-	Heading3,
-	Heading4,
-	Heading5,
-	Heading6
-];
-var BASE_GROUPS = [
-	{
-		id: "text",
-		label: "",
-		rank: 10
-	},
-	{
-		id: "lists",
-		label: "",
-		rank: 20
-	},
-	{
-		id: "blocks",
-		label: "",
-		rank: 30
-	},
-	{
-		id: "media",
-		label: "",
-		rank: 40
-	}
-];
-function chainAt(editor, range) {
-	const c = editor.chain().focus();
-	return range ? c.deleteRange(range) : c;
-}
-function slashContext(editor, range, services) {
-	let at = range;
-	return {
-		editor,
-		services,
-		get range() {
-			return at;
-		},
-		insert: (type, attrs = {}, content) => insertFresh(editor, type, attrs, at, content),
-		insertSections(type, child, count = 2) {
-			const section = {
-				type: child,
-				content: [{ type: "paragraph" }]
-			};
-			chainAt(editor, at).insertContent({
-				type,
-				content: Array.from({ length: count }, () => section)
-			}).command(({ tr }) => {
-				const $head = tr.selection.$head;
-				for (let d = $head.depth; d > 0; d--) {
-					if ($head.node(d).type.name !== type) continue;
-					tr.setSelection(TextSelection.near(tr.doc.resolve($head.start(d) + 1)));
-					break;
-				}
-				return true;
-			}).run();
-		},
-		clear() {
-			if (at) editor.chain().focus().deleteRange(at).run();
-			at = void 0;
-		},
-		chain: () => chainAt(editor, at)
-	};
-}
-function builtinItems(config, files, services) {
-	const b = config.base;
-	const canUpload = !!services.upload;
-	const items = b.headings.map((level) => ({
-		id: `heading${level}`,
-		group: "text",
-		rank: level,
-		label: "",
-		icon: HEADING_ICONS$1[level - 1],
-		run: (c) => c.chain().setHeading({ level }).run()
-	}));
-	if (b.blockquote) items.push({
-		id: "quote",
-		group: "text",
-		rank: 20,
-		label: "",
-		icon: Quote,
-		run: (c) => c.chain().toggleBlockquote().run()
-	});
-	if (b.callouts.length) items.push({
-		id: "callout",
-		group: "text",
-		rank: 30,
-		label: "",
-		icon: MessageSquareQuote,
-		run: (c) => c.chain().wrapIn("callout", {
-			type: b.callouts[0],
-			title: ""
-		}).run()
-	});
-	if (b.codeBlocks) items.push({
-		id: "codeBlock",
-		group: "text",
-		rank: 50,
-		label: "",
-		icon: FileCode2,
-		run: (c) => c.chain().setCodeBlock().run()
-	});
-	if (b.dividers) items.push({
-		id: "hr",
-		group: "text",
-		rank: 60,
-		label: "",
-		icon: Minus,
-		run: (c) => c.chain().setHorizontalRule().run()
-	});
-	if (b.lists) {
-		items.push({
-			id: "bulletList",
-			group: "lists",
-			rank: 10,
-			label: "",
-			icon: List,
-			run: (c) => c.chain().toggleBulletList().run()
-		});
-		items.push({
-			id: "orderedList",
-			group: "lists",
-			rank: 20,
-			label: "",
-			icon: ListOrdered,
-			run: (c) => c.chain().toggleOrderedList().run()
-		});
-	}
-	if (b.taskLists) items.push({
-		id: "taskList",
-		group: "lists",
-		rank: 30,
-		label: "",
-		icon: ListTodo,
-		run: (c) => c.chain().toggleTaskList().run()
-	});
-	if (b.tables) items.push({
-		id: "table",
-		group: "blocks",
-		rank: 10,
-		label: "",
-		icon: Columns3,
-		run: (c) => c.chain().insertTable({
-			rows: 3,
-			cols: 3,
-			withHeaderRow: true
-		}).run()
-	});
-	if (b.images && canUpload) items.push({
-		id: "image",
-		group: "media",
-		rank: 10,
-		label: "",
-		icon: Image$1,
-		inline: true,
-		run: (c) => {
-			c.clear();
-			files.pick("image");
-		}
-	});
-	if (b.files && canUpload) items.push({
-		id: "file",
-		group: "media",
-		rank: 20,
-		label: "",
-		icon: Paperclip,
-		inline: true,
-		run: (c) => {
-			c.clear();
-			files.pick("file");
-		}
-	});
-	return items;
-}
-function slashCatalog(config, files, services, text) {
-	const groups = [...BASE_GROUPS, ...config.extensions.flatMap((e) => e.slashGroups ?? [])];
-	const rankOf = (id) => groups.find((g) => g.id === id)?.rank ?? 1e3;
-	const defs = [...builtinItems(config, files, services), ...config.extensions.flatMap((e) => e.slash ?? [])];
-	defs.sort((a, b) => rankOf(a.group) - rankOf(b.group) || (a.rank ?? 100) - (b.rank ?? 100));
-	return defs.map((d) => {
-		const label = text(d.label, `slash.items.${d.id}.label`) || d.id;
-		const description = text(d.description, `slash.items.${d.id}.description`);
-		return {
-			id: d.id,
-			group: d.group,
-			label,
-			description,
-			icon: d.icon,
-			keywords: `${d.id} ${label} ${description} ${d.keywords ?? ""}`.toLowerCase(),
-			inline: !!d.inline,
-			enabled: (editor) => d.enabled?.(editor) ?? true,
-			run: (editor, range) => d.run(slashContext(editor, range, services))
-		};
-	});
-}
-function groupLabel(config, id, text) {
-	return text([...BASE_GROUPS, ...config.extensions.flatMap((e) => e.slashGroups ?? [])].find((g) => g.id === id)?.label, `slash.groups.${id}`) || id;
-}
-function filterItems(items, query) {
-	const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
-	if (!words.length) return items;
-	return items.filter((i) => words.every((w) => i.keywords.includes(w)));
-}
-// src/editor/context.ts
-var ContextStorage = Extension.create({
-	name: "wysiwyg",
-	addOptions() {
-		return { context: null };
-	},
-	addStorage() {
-		return { context: this.options.context };
-	}
-});
-var EDITOR_CONTEXT = Symbol("wysiwyg-context");
-function contextOf(editor) {
-	const ctx = editor.storage.wysiwyg?.context;
-	if (!ctx) throw new Error("not a wysiwyg editor");
-	return ctx;
-}
-function useEditorContext() {
-	const ctx = inject(EDITOR_CONTEXT, null);
-	if (!ctx) throw new Error("useEditorContext() needs a WysiwygEditor ancestor");
-	return ctx;
-}
 // src/editor/convert.ts
 var LISTS = {
 	bulletList: true,
 	orderedList: true,
 	taskList: true
 };
-var HEADING_ICONS = [
+var HEADING_ICONS$1 = [
 	Heading1,
 	Heading2,
 	Heading3,
@@ -3940,7 +2054,7 @@ function convertRegistry(config, markdown) {
 		...b.headings.map((level) => ({
 			id: `heading${level}`,
 			label: "",
-			icon: HEADING_ICONS[level - 1],
+			icon: HEADING_ICONS$1[level - 1],
 			rank: 9 + level,
 			convert: toHeading(level)
 		})),
@@ -4270,6 +2384,5319 @@ function convertRun(reg, state, run, target, selectAll = false) {
 	else tr.setSelection(selectAll ? TextSelection.create(tr.doc, firstStart, lastEnd) : TextSelection.create(tr.doc, firstEnd));
 	return tr.scrollIntoView();
 }
+// src/components/ConvertItems.vue?vue&type=script&setup=true&lang.ts
+var _hoisted_1$33 = ["data-convert", "onClick"];
+// src/components/ConvertItems.vue
+var ConvertItems_default = /* @__PURE__ */ defineComponent({
+	__name: "ConvertItems",
+	props: { targets: {} },
+	emits: ["pick"],
+	setup(__props, { emit: __emit }) {
+		const emit = __emit;
+		const ctx = useEditorContext();
+		function label(target) {
+			return ctx.text(target.label, `convert.targets.${target.id}`) || ctx.text("", `slash.items.${target.id}.label`) || target.id;
+		}
+		return (_ctx, _cache) => {
+			return openBlock(true), createElementBlock(Fragment$1, null, renderList(__props.targets, (target) => {
+				return openBlock(), createElementBlock("button", {
+					key: target.id,
+					type: "button",
+					role: "menuitem",
+					class: "wy-menu-item",
+					"data-convert": target.id,
+					onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
+					onClick: ($event) => emit("pick", target.id)
+				}, [target.icon ? (openBlock(), createBlock(resolveDynamicComponent(target.icon), {
+					key: 0,
+					class: "wy-menu-icon",
+					size: 16,
+					"aria-hidden": "true"
+				})) : createCommentVNode("", true), createElementVNode("span", null, toDisplayString(label(target)), 1)], 40, _hoisted_1$33);
+			}), 128);
+		};
+	}
+});
+// src/blocks/BlockMenu.vue?vue&type=script&setup=true&lang.ts
+var _hoisted_1$32 = { class: "wy-menu-heading" };
+// src/blocks/BlockMenu.vue
+var BlockMenu_default = /* @__PURE__ */ defineComponent({
+	__name: "BlockMenu",
+	props: {
+		open: { type: Boolean },
+		convert: {}
+	},
+	emits: ["close"],
+	setup(__props, { emit: __emit }) {
+		const props = __props;
+		const emit = __emit;
+		const root = ref(null);
+		function run() {
+			const pos = props.convert?.getPos();
+			return props.convert && pos !== void 0 ? nodeRun(props.convert.editor.state, pos) : null;
+		}
+		const targets = computed(() => {
+			const c = props.convert;
+			if (!props.open || !c?.node || !c.editor.isEditable) return [];
+			const r = run();
+			return r ? runTargets(contextOf(c.editor).convert, c.editor.state, r) : [];
+		});
+		const title = computed(() => props.convert ? contextOf(props.convert.editor).t("convert.title") : "");
+		function pick(target) {
+			const editor = props.convert?.editor;
+			const r = run();
+			const tr = editor && r && convertRun(contextOf(editor).convert, editor.state, r, target);
+			emit("close");
+			if (!editor || !tr) return;
+			editor.view.dispatch(tr);
+			editor.view.focus();
+		}
+		function onDocDown(e) {
+			const target = e.target;
+			if (!root.value || root.value.contains(target)) return;
+			if (target.closest?.("[data-block-more]")?.closest(".wy-block-frame") === root.value.parentElement) return;
+			emit("close");
+		}
+		function onKey(e) {
+			if (e.key !== "Escape") return;
+			e.stopPropagation();
+			emit("close");
+		}
+		function listen(on) {
+			const fn = on ? document.addEventListener.bind(document) : document.removeEventListener.bind(document);
+			fn("mousedown", onDocDown, true);
+			fn("keydown", onKey, true);
+		}
+		watch(() => props.open, listen, { immediate: true });
+		onBeforeUnmount(() => listen(false));
+		return (_ctx, _cache) => {
+			return __props.open ? (openBlock(), createElementBlock("div", {
+				key: 0,
+				ref_key: "root",
+				ref: root,
+				class: "wy-menu wy-block-menu",
+				role: "menu",
+				contenteditable: "false",
+				"data-block-portal": "",
+				onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["stop"]))
+			}, [renderSlot(_ctx.$slots, "default"), targets.value.length ? (openBlock(), createElementBlock(Fragment$1, { key: 0 }, [createElementVNode("div", _hoisted_1$32, toDisplayString(title.value), 1), createVNode(ConvertItems_default, {
+				targets: targets.value,
+				onPick: pick
+			}, null, 8, ["targets"])], 64)) : createCommentVNode("", true)], 544)) : createCommentVNode("", true);
+		};
+	}
+});
+// src/components/SlashMenu.vue?vue&type=script&setup=true&lang.ts
+var _hoisted_1$31 = ["aria-label"];
+var _hoisted_2$26 = {
+	key: 0,
+	class: "wy-menu-empty"
+};
+var _hoisted_3$26 = {
+	class: "wy-menu-heading",
+	role: "presentation"
+};
+var _hoisted_4$24 = [
+	"aria-selected",
+	"aria-disabled",
+	"title",
+	"data-index",
+	"onMouseenter",
+	"onClick"
+];
+var _hoisted_5$21 = { class: "wy-slash-text" };
+var _hoisted_6$16 = { class: "wy-slash-label" };
+var _hoisted_7$13 = {
+	key: 0,
+	class: "wy-slash-desc"
+};
+// src/components/SlashMenu.vue
+var SlashMenu_default = /* @__PURE__ */ defineComponent({
+	__name: "SlashMenu",
+	props: {
+		items: {},
+		command: { type: Function },
+		inCell: { type: Boolean },
+		groupLabel: { type: Function },
+		t: { type: Function }
+	},
+	setup(__props, { expose: __expose }) {
+		const props = __props;
+		const active = ref(0);
+		const list = ref(null);
+		const groups = computed(() => {
+			const out = [];
+			props.items.forEach((item, index) => {
+				let g = out.find((x) => x.group === item.group);
+				if (!g) out.push(g = {
+					group: item.group,
+					items: []
+				});
+				g.items.push({
+					item,
+					index
+				});
+			});
+			return out;
+		});
+		const enabled = (i) => !props.inCell || !!props.items[i]?.inline;
+		watch(() => [props.items, props.inCell], () => {
+			active.value = Math.max(0, props.items.findIndex((_, i) => enabled(i)));
+		}, { immediate: true });
+		async function reveal() {
+			await nextTick();
+			list.value?.querySelector(`[data-index="${active.value}"]`)?.scrollIntoView({ block: "nearest" });
+		}
+		function select(i) {
+			const item = props.items[i];
+			if (item && enabled(i)) props.command(item);
+		}
+		function step(dir) {
+			const n = props.items.length;
+			for (let k = 1; k <= n; k++) {
+				const i = ((active.value + dir * k) % n + n) % n;
+				if (enabled(i)) {
+					active.value = i;
+					return;
+				}
+			}
+		}
+		function onKeyDown(e) {
+			if (props.items.length === 0) return false;
+			if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+				step(e.key === "ArrowDown" ? 1 : -1);
+				reveal();
+				return true;
+			}
+			if (e.key === "Enter" || e.key === "Tab") {
+				select(active.value);
+				return true;
+			}
+			return false;
+		}
+		__expose({ onKeyDown });
+		return (_ctx, _cache) => {
+			return openBlock(), createElementBlock("div", {
+				class: "wy-menu wy-slash",
+				role: "listbox",
+				"aria-label": __props.t("slash.title")
+			}, [__props.items.length === 0 ? (openBlock(), createElementBlock("div", _hoisted_2$26, toDisplayString(__props.t("slash.empty")), 1)) : (openBlock(), createElementBlock("div", {
+				key: 1,
+				ref_key: "list",
+				ref: list,
+				class: "wy-slash-list"
+			}, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(groups.value, (g) => {
+				return openBlock(), createElementBlock(Fragment$1, { key: g.group }, [createElementVNode("div", _hoisted_3$26, toDisplayString(__props.groupLabel(g.group)), 1), (openBlock(true), createElementBlock(Fragment$1, null, renderList(g.items, ({ item, index }) => {
+					return openBlock(), createElementBlock("button", {
+						key: item.id,
+						type: "button",
+						role: "option",
+						class: normalizeClass(["wy-menu-item wy-slash-item", { "is-active": index === active.value }]),
+						"aria-selected": index === active.value,
+						"aria-disabled": !enabled(index) || void 0,
+						title: enabled(index) ? void 0 : __props.t("editor.inlineOnly"),
+						"data-index": index,
+						onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
+						onMouseenter: ($event) => enabled(index) && (active.value = index),
+						onClick: ($event) => select(index)
+					}, [item.icon ? (openBlock(), createBlock(resolveDynamicComponent(item.icon), {
+						key: 0,
+						class: "wy-menu-icon",
+						size: 18,
+						"aria-hidden": "true"
+					})) : createCommentVNode("", true), createElementVNode("span", _hoisted_5$21, [createElementVNode("span", _hoisted_6$16, toDisplayString(item.label), 1), item.description ? (openBlock(), createElementBlock("span", _hoisted_7$13, toDisplayString(item.description), 1)) : createCommentVNode("", true)])], 42, _hoisted_4$24);
+				}), 128))], 64);
+			}), 128))], 512))], 8, _hoisted_1$31);
+		};
+	}
+});
+// src/editor/tables.ts
+function isInCell($pos) {
+	for (let d = $pos.depth; d > 0; d--) {
+		const role = $pos.node(d).type.spec.tableRole;
+		if (role === "cell" || role === "header_cell") return true;
+	}
+	return false;
+}
+function cellSlice(slice, state) {
+	const role = slice.content.firstChild?.type.spec.tableRole;
+	if (role === "table" || role === "row" || role === "cell" || role === "header_cell") return slice;
+	return new Slice(Fragment.from(flattenToParagraph(slice.content, state.schema)), 1, 1);
+}
+function cellPos(table, row, col) {
+	const map = TableMap.get(table.node);
+	return table.pos + 1 + map.map[row * map.width + col];
+}
+function selectLine(editor, table, kind, index) {
+	const node = editor.state.doc.nodeAt(table.pos);
+	if (!node || node.type.name !== "table") return false;
+	const ref = {
+		pos: table.pos,
+		node
+	};
+	const map = TableMap.get(node);
+	if (index >= (kind === "col" ? map.width : map.height)) return false;
+	const $cell = editor.state.doc.resolve(kind === "col" ? cellPos(ref, 0, index) : cellPos(ref, index, 0));
+	const sel = kind === "col" ? CellSelection.colSelection($cell) : CellSelection.rowSelection($cell);
+	editor.view.dispatch(editor.state.tr.setSelection(sel));
+	return true;
+}
+function caretIn(editor, tablePos, row, col) {
+	const node = editor.state.doc.nodeAt(tablePos);
+	if (!node) return;
+	const pos = cellPos({
+		pos: tablePos,
+		node
+	}, row, col);
+	const cell = editor.state.doc.nodeAt(pos);
+	editor.view.dispatch(editor.state.tr.setSelection(TextSelection.near(editor.state.doc.resolve(pos + cell.nodeSize - 1), -1)));
+}
+function runTableAction(editor, table, a) {
+	const map = TableMap.get(table.node);
+	if (a.kind === "table") {
+		if (a.action === "delete") {
+			selectLine(editor, table, "row", 0);
+			editor.chain().focus().deleteTable().run();
+			return;
+		}
+		const col = a.action === "addCol";
+		selectLine(editor, table, col ? "col" : "row", (col ? map.width : map.height) - 1);
+		if (col) editor.chain().focus().addColumnAfter().run();
+		else editor.chain().focus().addRowAfter().run();
+		caretIn(editor, table.pos, col ? 0 : map.height, col ? map.width : 0);
+		return;
+	}
+	if (!selectLine(editor, table, a.kind, a.index)) return;
+	const chain = editor.chain().focus();
+	const isCol = a.kind === "col";
+	const count = isCol ? map.width : map.height;
+	let target = a.index;
+	switch (a.action) {
+		case "delete":
+			if (count === 1) {
+				chain.deleteTable().run();
+				return;
+			}
+			if (isCol) chain.deleteColumn().run();
+			else chain.deleteRow().run();
+			target = Math.min(a.index, count - 2);
+			break;
+		case "before":
+			if (isCol) chain.addColumnBefore().run();
+			else chain.addRowBefore().run();
+			break;
+		case "after":
+			if (isCol) chain.addColumnAfter().run();
+			else chain.addRowAfter().run();
+			target = a.index + 1;
+			break;
+		case "header":
+			if (isCol) chain.toggleHeaderColumn().run();
+			else chain.toggleHeaderRow().run();
+			break;
+		default: chain.setCellAttribute("align", a.action).run();
+	}
+	caretIn(editor, table.pos, isCol ? 0 : target, isCol ? target : 0);
+}
+/** the header row stays first: gfm writes it above the `---` line, so it neither moves nor gets displaced */
+function moveLine(editor, table, kind, from, to) {
+	if (from === to) return false;
+	const node = editor.state.doc.nodeAt(table.pos);
+	if (!node || node.type.name !== "table") return false;
+	if (kind === "row" && hasHeaderRow(node) && (from === 0 || to === 0)) return false;
+	if (!selectLine(editor, table, kind, from)) return false;
+	return (kind === "col" ? moveTableColumn({
+		from,
+		to,
+		pos: table.pos + 1
+	}) : moveTableRow({
+		from,
+		to,
+		pos: table.pos + 1
+	}))(editor.state, editor.view.dispatch);
+}
+function hasHeaderRow(table) {
+	let header = table.firstChild !== null && table.firstChild.childCount > 0;
+	table.firstChild?.forEach((cell) => {
+		if (cell.type.name !== "tableHeader") header = false;
+	});
+	return header;
+}
+/** every row starts with a header cell (markdown has no header column; it lives in html and the shared document) */
+function hasHeaderColumn(table) {
+	let header = table.childCount > 0;
+	table.forEach((row) => {
+		if (row.firstChild?.type.name !== "tableHeader") header = false;
+	});
+	return header;
+}
+// src/editor/behaviour.ts
+var BLOCK_EDIT_EVENT = "wy-block-edit";
+function blockStopEvent({ event }) {
+	const target = event.target;
+	if (!(target instanceof Element)) return false;
+	const wrapper = target.closest("[data-node-view-wrapper]");
+	const content = target.closest("[data-node-view-content], [data-node-view-content-vue]");
+	if (content && wrapper && wrapper.contains(content)) return false;
+	const type = event.type;
+	if (type.startsWith("drag") || type === "drop") {
+		if (type === "dragstart" && !target.closest("[data-drag-handle]")) {
+			event.preventDefault();
+			return true;
+		}
+		return false;
+	}
+	if ([
+		"INPUT",
+		"BUTTON",
+		"SELECT",
+		"TEXTAREA"
+	].includes(target.tagName) || target instanceof HTMLElement && target.isContentEditable) return true;
+	if (type === "copy" || type === "paste" || type === "cut") return false;
+	if (type === "mousedown" || type === "mouseup" || type === "click" || type === "dblclick") return !target.closest("[data-drag-handle]");
+	return true;
+}
+/** script and data urls become "" */
+function normalizeHref(raw) {
+	const v = raw.trim();
+	if (/^(javascript|vbscript|data):/i.test(v.replace(/[\u0000-\u0020]/g, ""))) return "";
+	if (!v || /^([a-z][a-z0-9+.-]*:|\/|#|\?|\.)/i.test(v)) return v;
+	if (/^[^\s@/]+@[^\s@/]+\.[^\s@/]+$/.test(v)) return `mailto:${v}`;
+	if (/^\+?[\d\s()-]{6,}$/.test(v)) return `tel:${v.replace(/[\s()-]/g, "")}`;
+	return `https://${v}`;
+}
+function linkAtSelection(editor) {
+	const { from, to } = editor.state.selection;
+	const href = String(editor.getAttributes("link").href ?? "");
+	if (href) editor.chain().focus().extendMarkRange("link").run();
+	const sel = editor.state.selection;
+	return {
+		href,
+		text: editor.state.doc.textBetween(href ? sel.from : from, href ? sel.to : to, " "),
+		hasLink: !!href
+	};
+}
+function applyLink(editor, rawHref, text) {
+	const href = normalizeHref(rawHref);
+	if (!href) {
+		removeLink(editor);
+		return;
+	}
+	const { from, to, empty } = editor.state.selection;
+	const label = text || rawHref.trim();
+	if (empty || text && text !== editor.state.doc.textBetween(from, to, " ")) editor.chain().focus().insertContentAt({
+		from,
+		to
+	}, {
+		type: "text",
+		text: label,
+		marks: [{
+			type: "link",
+			attrs: { href }
+		}]
+	}).run();
+	else editor.chain().focus().setLink({ href }).run();
+}
+function removeLink(editor) {
+	editor.chain().focus().extendMarkRange("link").unsetLink().run();
+}
+var SLASH_KEY = new PluginKey("wysiwygSlash");
+var SlashCommand = Extension.create({
+	name: "slashCommand",
+	addOptions() {
+		return {
+			items: () => [],
+			groupLabel: (id) => id,
+			t: (k) => k
+		};
+	},
+	addProseMirrorPlugins() {
+		const options = this.options;
+		return [Suggestion({
+			editor: this.editor,
+			char: "/",
+			pluginKey: SLASH_KEY,
+			allowSpaces: false,
+			startOfLine: false,
+			allow: ({ state, range }) => !state.doc.resolve(range.from).parent.type.spec.code,
+			items: ({ query, editor }) => options.items(query).filter((i) => i.enabled(editor)),
+			command: ({ editor, range, props }) => {
+				if (props.inline || !isInCell(editor.state.selection.$from)) props.run(editor, range);
+			},
+			render: () => {
+				let renderer = null;
+				let el = null;
+				let floating = null;
+				let rect = null;
+				const close = () => {
+					floating?.stop();
+					renderer?.destroy();
+					el?.remove();
+					renderer = null;
+					el = null;
+					floating = null;
+				};
+				const reference = { getBoundingClientRect: () => rect?.() ?? new DOMRect() };
+				const props = (p) => ({
+					items: p.items,
+					command: p.command,
+					inCell: isInCell(p.editor.state.selection.$from),
+					groupLabel: options.groupLabel,
+					t: options.t
+				});
+				return {
+					onStart(p) {
+						rect = p.clientRect ?? null;
+						renderer = new VueRenderer(SlashMenu_default, {
+							props: props(p),
+							editor: p.editor
+						});
+						const menu = el = renderer.element;
+						menu.style.position = "fixed";
+						menu.style.zIndex = "1000";
+						document.body.appendChild(menu);
+						floating = floatNear(reference, menu, {
+							placement: "bottom-start",
+							offset: 6,
+							padding: 8,
+							apply: (x, y) => {
+								menu.style.left = `${x}px`;
+								menu.style.top = `${y}px`;
+							},
+							room: (h) => menu.style.setProperty("--wy-menu-room", `${Math.max(160, h)}px`)
+						});
+					},
+					onUpdate(p) {
+						rect = p.clientRect ?? null;
+						renderer?.updateProps(props(p));
+						floating?.update();
+					},
+					onKeyDown(p) {
+						if (p.event.key === "Escape") {
+							p.event.stopPropagation();
+							close();
+							return true;
+						}
+						return (renderer?.ref)?.onKeyDown?.(p.event) ?? false;
+					},
+					onExit: close
+				};
+			}
+		})];
+	}
+});
+var BlockKeys = Extension.create({
+	name: "blockKeys",
+	addProseMirrorPlugins() {
+		return [new Plugin({
+			key: new PluginKey("blockKeys"),
+			props: { handleKeyDown(view, event) {
+				const sel = view.state.selection;
+				if (event.key !== "Enter" || !(sel instanceof NodeSelection) || sel.node.isTextblock) return false;
+				const dom = view.nodeDOM(sel.from);
+				if (!(dom instanceof HTMLElement) || !dom.hasAttribute("data-node-view-wrapper")) return false;
+				dom.dispatchEvent(new CustomEvent(BLOCK_EDIT_EVENT));
+				return true;
+			} }
+		})];
+	}
+});
+var InlineKeys = Extension.create({
+	name: "inlineKeys",
+	addKeyboardShortcuts() {
+		return {
+			Enter: () => true,
+			"Shift-Enter": () => true
+		};
+	}
+});
+/** a click right of an inline atom that ends its line puts the caret after it (firefox puts it before) */
+var InlineAtomClick = Extension.create({
+	name: "inlineAtomClick",
+	addProseMirrorPlugins() {
+		return [new Plugin({ props: { handleClick(view, pos, event) {
+			const $pos = view.state.doc.resolve(pos);
+			const rightOf = (at) => {
+				const dom = view.nodeDOM(at);
+				if (!(dom instanceof HTMLElement)) return false;
+				const r = dom.getBoundingClientRect();
+				return event.clientX > r.right && event.clientY >= r.top && event.clientY <= r.bottom;
+			};
+			let target = null;
+			const after = $pos.nodeAfter;
+			const before = $pos.nodeBefore;
+			if (after?.isInline && after.isAtom && rightOf(pos)) target = pos + after.nodeSize;
+			else if (before?.isInline && before.isAtom && $pos.parentOffset === $pos.parent.content.size && rightOf(pos - before.nodeSize)) target = pos;
+			if (target === null) return false;
+			view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, target)));
+			return true;
+		} } })];
+	}
+});
+var TableCells = Extension.create({
+	name: "tableCells",
+	priority: 101,
+	addKeyboardShortcuts() {
+		return { Enter: ({ editor }) => {
+			const sel = editor.state.selection;
+			return sel instanceof TextSelection && isInCell(sel.$from) && !SLASH_KEY.getState(editor.state)?.active && editor.commands.setHardBreak();
+		} };
+	},
+	addProseMirrorPlugins() {
+		return [new Plugin({
+			key: new PluginKey("tableCells"),
+			props: { transformPasted: (slice, view) => isInCell(view.state.selection.$from) ? cellSlice(slice, view.state) : slice }
+		})];
+	}
+});
+var HostKeys = Extension.create({
+	name: "hostKeys",
+	priority: 1e3,
+	addOptions() {
+		return { keys: () => ({}) };
+	},
+	addKeyboardShortcuts() {
+		const out = {};
+		for (const [key, fn] of Object.entries(this.options.keys())) out[key] = fn;
+		return out;
+	}
+});
+// src/editor/fresh.ts
+var freshType = null;
+function markFresh(typeName) {
+	freshType = typeName;
+}
+function takeFresh(typeName) {
+	if (freshType !== typeName) return false;
+	freshType = null;
+	return true;
+}
+function insertFresh(editor, type, attrs = {}, range, content) {
+	markFresh(type);
+	try {
+		const chain = editor.chain().focus();
+		if (range) chain.deleteRange(range);
+		if (!(!!editor.schema.nodes[type] && chain.insertContent(content ? {
+			type,
+			attrs,
+			content
+		} : {
+			type,
+			attrs
+		}).run())) takeFresh(type);
+	} catch (e) {
+		takeFresh(type);
+		throw e;
+	}
+}
+// src/blocks/useBlockNode.ts
+var PORTAL_SELECTOR = "[data-block-portal], .wy-modal, [role=dialog], [role=menu], [role=listbox], .wy-slash";
+function useBlockNode(props, opts = {}) {
+	const editing = ref(false);
+	const selected = computed(() => props.selected);
+	const readonly = computed(() => !props.editor.isEditable);
+	const copyText = computed(() => {
+		const ctx = contextOf(props.editor);
+		if (ctx.config.format === "markdown") return ctx.markdown.serializeNode(props.node);
+		return fragmentHtml(Fragment.from(props.node), props.editor.schema);
+	});
+	function rootEl() {
+		const pos = props.getPos();
+		const dom = typeof pos === "number" ? props.editor.view.nodeDOM(pos) : null;
+		return dom instanceof HTMLElement ? dom : null;
+	}
+	function selectSelf() {
+		const pos = props.getPos();
+		if (typeof pos === "number") props.editor.commands.setNodeSelection(pos);
+	}
+	function onDocClick(e) {
+		const target = e.target;
+		const el = rootEl();
+		if (!target || !el || el.contains(target) || target.closest(PORTAL_SELECTOR)) return;
+		stopEdit();
+	}
+	function onKeydown(e) {
+		if (e.key !== "Escape" || !editing.value) return;
+		e.preventDefault();
+		e.stopPropagation();
+		stopEdit();
+		selectSelf();
+		props.editor.view.focus();
+	}
+	function startEdit() {
+		if (readonly.value || editing.value) return;
+		editing.value = true;
+		selectSelf();
+		document.addEventListener("click", onDocClick, true);
+	}
+	function stopEdit() {
+		if (!editing.value) return;
+		editing.value = false;
+		document.removeEventListener("click", onDocClick, true);
+	}
+	function finishEdit() {
+		stopEdit();
+		props.editor.commands.focus();
+	}
+	function onHeaderKey(e) {
+		if (e.key !== "Enter" && e.key !== "ArrowDown") return;
+		e.preventDefault();
+		const pos = props.getPos();
+		if (typeof pos !== "number") return;
+		const view = props.editor.view;
+		view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(pos + 2))));
+		view.focus();
+	}
+	const onEditEvent = () => startEdit();
+	let mounted = false;
+	onMounted(() => {
+		mounted = true;
+		const el = rootEl();
+		el?.addEventListener("keydown", onKeydown);
+		el?.addEventListener(BLOCK_EDIT_EVENT, onEditEvent);
+		if (opts.editOnInsert && takeFresh(props.node.type.name)) queueMicrotask(() => mounted && startEdit());
+	});
+	onBeforeUnmount(() => {
+		mounted = false;
+		stopEdit();
+		const el = rootEl();
+		el?.removeEventListener("keydown", onKeydown);
+		el?.removeEventListener(BLOCK_EDIT_EVENT, onEditEvent);
+	});
+	return {
+		selected,
+		editing,
+		startEdit,
+		stopEdit,
+		finishEdit,
+		update: (attrs) => props.updateAttributes(attrs),
+		remove() {
+			stopEdit();
+			props.deleteNode();
+		},
+		copyText,
+		readonly,
+		onKeydown,
+		onHeaderKey
+	};
+}
+// src/nodes/ColumnsView.vue?vue&type=script&setup=true&lang.ts
+var _hoisted_1$30 = ["title"];
+// src/nodes/ColumnsView.vue
+var ColumnsView_default = /* @__PURE__ */ defineComponent({
+	__name: "ColumnsView",
+	props: nodeViewProps,
+	setup(__props) {
+		const props = __props;
+		const t = contextOf(props.editor).t;
+		const { selected, remove, copyText, readonly } = useBlockNode(props);
+		const menu = ref(false);
+		const count = computed(() => props.node.childCount);
+		const sized = computed(() => {
+			let any = false;
+			props.node.forEach((c) => any ||= c.attrs.width !== null);
+			return any;
+		});
+		function at() {
+			const pos = props.getPos();
+			return typeof pos === "number" ? pos : null;
+		}
+		/** the column holding the caret, else the last one */
+		function currentColumn(pos) {
+			const $head = props.editor.state.selection.$head;
+			for (let d = $head.depth; d > 0; d--) if ($head.before(d) === pos) return $head.index(d);
+			return count.value - 1;
+		}
+		function addColumn() {
+			const pos = at();
+			if (pos === null) return;
+			const { schema, tr } = props.editor.state;
+			const end = pos + props.node.nodeSize - 1;
+			const n = count.value;
+			props.node.forEach((c, offset) => {
+				if (c.attrs.width) tr.setNodeMarkup(pos + 1 + offset, null, {
+					...c.attrs,
+					width: Math.round(c.attrs.width * n * 100 / (n + 1)) / 100
+				});
+			});
+			tr.insert(end, schema.nodes.column.create(null, schema.nodes.paragraph.create()));
+			tr.setSelection(TextSelection.near(tr.doc.resolve(end + 2)));
+			props.editor.view.dispatch(tr.scrollIntoView());
+			props.editor.view.focus();
+			menu.value = false;
+		}
+		/** the column's blocks move to its neighbour; the last remaining column unwraps */
+		function removeColumn() {
+			const pos = at();
+			if (pos === null) return;
+			const index = currentColumn(pos);
+			const columns = [];
+			props.node.forEach((c, offset) => columns.push({
+				node: c,
+				from: pos + 1 + offset
+			}));
+			const gone = columns[index];
+			const keep = columns[index === 0 ? 1 : index - 1];
+			const { tr, schema } = props.editor.state;
+			if (!keep) return;
+			const moved = [];
+			gone.node.forEach((b) => {
+				if (!(b.type.name === "paragraph" && b.childCount === 0)) moved.push(b);
+			});
+			const merged = keep.node.copy(index === 0 ? Fragment.from(moved).append(keep.node.content) : keep.node.content.append(Fragment.from(moved)));
+			const rest = columns.filter((c) => c !== gone).map((c) => c === keep ? merged : c.node);
+			const replacement = rest.length === 1 ? rest[0].content : Fragment.from(schema.nodes.columns.create(props.node.attrs, rest.map((c) => c.type.create({
+				...c.attrs,
+				width: null
+			}, c.content))));
+			tr.replaceWith(pos, pos + props.node.nodeSize, replacement);
+			tr.setSelection(TextSelection.near(tr.doc.resolve(pos + 1)));
+			props.editor.view.dispatch(tr.scrollIntoView());
+			props.editor.view.focus();
+			menu.value = false;
+		}
+		function equalWidths() {
+			const pos = at();
+			if (pos === null) return;
+			const tr = props.editor.state.tr;
+			props.node.forEach((c, offset) => tr.setNodeMarkup(pos + 1 + offset, null, {
+				...c.attrs,
+				width: null
+			}));
+			props.editor.view.dispatch(tr);
+			menu.value = false;
+		}
+		return (_ctx, _cache) => {
+			return openBlock(), createBlock(unref(NodeViewWrapper), {
+				as: "div",
+				class: "wy-node wy-node-columns"
+			}, {
+				default: withCtx(() => [createVNode(BlockFrame_default, {
+					label: unref(t)("columns.label"),
+					selected: unref(selected),
+					readonly: unref(readonly),
+					"copy-text": unref(copyText),
+					editable: false,
+					onDelete: unref(remove),
+					onMore: _cache[1] || (_cache[1] = ($event) => menu.value = !menu.value)
+				}, {
+					menu: withCtx(() => [createVNode(BlockMenu_default, {
+						open: menu.value,
+						convert: props,
+						onClose: _cache[0] || (_cache[0] = ($event) => menu.value = false)
+					}, {
+						default: withCtx(() => [
+							createElementVNode("button", {
+								type: "button",
+								class: "wy-menu-item",
+								role: "menuitem",
+								onClick: addColumn
+							}, [createVNode(unref(Plus), {
+								class: "wy-menu-icon",
+								size: 16
+							}), createTextVNode(toDisplayString(unref(t)("columns.add")), 1)]),
+							createElementVNode("button", {
+								type: "button",
+								class: "wy-menu-item",
+								role: "menuitem",
+								title: unref(t)("columns.removeHint"),
+								onClick: removeColumn
+							}, [createVNode(unref(Minus), {
+								class: "wy-menu-icon",
+								size: 16
+							}), createTextVNode(toDisplayString(unref(t)("columns.remove")), 1)], 8, _hoisted_1$30),
+							sized.value ? (openBlock(), createElementBlock("button", {
+								key: 0,
+								type: "button",
+								class: "wy-menu-item",
+								role: "menuitem",
+								onClick: equalWidths
+							}, [createVNode(unref(Columns2), {
+								class: "wy-menu-icon",
+								size: 16
+							}), createTextVNode(toDisplayString(unref(t)("columns.equal")), 1)])) : createCommentVNode("", true)
+						]),
+						_: 1
+					}, 8, ["open", "convert"])]),
+					default: withCtx(() => [createVNode(unref(NodeViewContent), {
+						class: "wy-columns",
+						style: normalizeStyle({ "--wy-columns": count.value })
+					}, null, 8, ["style"])]),
+					_: 1
+				}, 8, [
+					"label",
+					"selected",
+					"readonly",
+					"copy-text",
+					"onDelete"
+				])]),
+				_: 1
+			});
+		};
+	}
+});
+/** a column width in percent, at most two decimals; null shares the rest equally */
+function parseColumnWidth(v) {
+	const s = String(v ?? "").trim();
+	if (!/^\d+(?:\.\d+)?$/.test(s)) return null;
+	const n = Number(s);
+	return n > 0 && n <= 100 ? n : null;
+}
+function formatColumnWidth(w) {
+	return String(Math.round(w * 100) / 100);
+}
+/** each column's share in percent of the row; columns without a width split what the others leave */
+function columnShares(columns) {
+	const widths = [];
+	columns.forEach((c) => widths.push(parseColumnWidth(c.attrs.width)));
+	const fixed = widths.reduce((s, w) => s + (w ?? 0), 0);
+	const free = widths.filter((w) => w === null).length;
+	const rest = free ? Math.max(10, (100 - fixed) / free) : 0;
+	return widths.map((w) => w ?? rest);
+}
+var columnsExtension = {
+	name: "columns",
+	tiptap: [Node$1.create({
+		name: "columns",
+		group: "block",
+		content: "column+",
+		defining: true,
+		draggable: false,
+		parseHTML() {
+			return [{ tag: "div[data-type=\"columns\"]" }];
+		},
+		renderHTML({ HTMLAttributes, node }) {
+			return [
+				"div",
+				mergeAttributes({
+					"data-type": "columns",
+					class: "wy-columns",
+					style: `--wy-columns: ${node.childCount}`
+				}, HTMLAttributes),
+				0
+			];
+		}
+	}), Node$1.create({
+		name: "column",
+		content: "block+",
+		defining: true,
+		isolating: true,
+		draggable: false,
+		addAttributes() {
+			return { width: {
+				default: null,
+				parseHTML: (dom) => parseColumnWidth(dom.getAttribute("data-width")),
+				renderHTML: (a) => a.width ? {
+					"data-width": formatColumnWidth(a.width),
+					style: `flex-grow: ${formatColumnWidth(a.width)}`
+				} : {}
+			} };
+		},
+		parseHTML() {
+			return [{ tag: "div[data-type=\"column\"]" }];
+		},
+		renderHTML({ HTMLAttributes }) {
+			return [
+				"div",
+				mergeAttributes({
+					"data-type": "column",
+					class: "wy-column"
+				}, HTMLAttributes),
+				0
+			];
+		}
+	})],
+	nodeViews: {
+		columns: ColumnsView_default,
+		column: ColumnView_default
+	},
+	markdown: {
+		fences: [{
+			kind: "columns",
+			parse: (ctx) => ctx.sections("columns", "column", {})
+		}],
+		tokens: {
+			columns: { block: "columns" },
+			column: {
+				block: "column",
+				getAttrs: (tok) => ({ width: parseColumnWidth(tok.meta?.label) })
+			}
+		},
+		nodes: {
+			columns(state, node, _parent, _index, h) {
+				const sections = [];
+				node.forEach((c) => sections.push({
+					label: c.attrs.width ? formatColumnWidth(c.attrs.width) : "",
+					body: h.contentMarkdown(c)
+				}));
+				h.writeFence(state, node, "columns", joinSections(sections));
+			},
+			column() {}
+		}
+	},
+	slash: [
+		Columns2,
+		Columns3,
+		Columns4
+	].map((icon, i) => ({
+		id: `columns${i + 2}`,
+		group: "blocks",
+		rank: 12 + i,
+		label: "",
+		icon,
+		keywords: "columns layout side",
+		run: (c) => c.insertSections("columns", "column", i + 2)
+	})),
+	convert: {
+		sections: { columns: "column" },
+		targets: [{
+			id: "columns",
+			label: "",
+			icon: Columns2,
+			rank: 38,
+			convert: (blocks, ctx) => {
+				const s = ctx.schema;
+				if (blocks.length === 1 && blocks[0].type.name === "columns") return null;
+				return [s.nodes.columns.create(null, [s.nodes.column.create(null, [...blocks]), s.nodes.column.create(null, s.nodes.paragraph.create())])];
+			}
+		}]
+	}
+};
+// src/core/embeds.ts
+var EMBED_PROVIDERS = [
+	"youtube",
+	"vimeo",
+	"loom",
+	"figma",
+	"gist",
+	"maps",
+	"tweet",
+	"codepen",
+	"generic"
+];
+function parseUrl(raw) {
+	try {
+		const url = new URL(raw.trim());
+		return url.protocol === "https:" ? url : null;
+	} catch {
+		return null;
+	}
+}
+var host = (url) => url.hostname.toLowerCase().replace(/^(www|m)\./, "");
+/** `1h2m3s`, `90s` or `90` as seconds */
+function seconds(t) {
+	if (!t) return 0;
+	if (/^\d+$/.test(t)) return Number(t);
+	const m = /^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/.exec(t);
+	return m ? Number(m[1] ?? 0) * 3600 + Number(m[2] ?? 0) * 60 + Number(m[3] ?? 0) : 0;
+}
+function youtube(url) {
+	const h = host(url);
+	let id = null;
+	if (h === "youtu.be") id = url.pathname.slice(1).split("/")[0] ?? null;
+	else if (h === "youtube.com" || h === "youtube-nocookie.com" || h === "music.youtube.com") {
+		const parts = url.pathname.split("/").filter(Boolean);
+		if (parts[0] === "watch") id = url.searchParams.get("v");
+		else if (parts[0] === "embed" || parts[0] === "shorts" || parts[0] === "live" || parts[0] === "v") id = parts[1] ?? null;
+	}
+	if (!id || !/^[\w-]{6,}$/.test(id)) return null;
+	const start = seconds(url.searchParams.get("t") ?? url.searchParams.get("start"));
+	return `https://www.youtube-nocookie.com/embed/${id}${start ? `?start=${start}` : ""}`;
+}
+function vimeo(url) {
+	const h = host(url);
+	if (h !== "vimeo.com" && h !== "player.vimeo.com") return null;
+	const m = /^\/(?:video\/)?(\d+)(?:\/([\da-f]+))?/.exec(url.pathname);
+	if (!m) return null;
+	const hash = m[2] ?? url.searchParams.get("h");
+	return `https://player.vimeo.com/video/${m[1]}${hash ? `?h=${hash}` : ""}`;
+}
+function loom(url) {
+	const m = host(url) === "loom.com" ? /^\/(?:share|embed)\/([\da-f]+)/.exec(url.pathname) : null;
+	return m ? `https://www.loom.com/embed/${m[1]}` : null;
+}
+function figma(url) {
+	const h = host(url);
+	if (h === "embed.figma.com") return url.href;
+	if (h !== "figma.com" || !/^\/(file|design|proto|board|slides|deck)\//.test(url.pathname)) return null;
+	return `https://www.figma.com/embed?embed_host=share&url=${encodeURIComponent(url.href)}`;
+}
+function gist(url) {
+	const m = host(url) === "gist.github.com" ? /^\/([\w-]+)\/([\da-f]+)/.exec(url.pathname) : null;
+	return m ? `https://gist.github.com/${m[1]}/${m[2]}.pibb` : null;
+}
+function maps(url) {
+	const h = host(url);
+	if (!/^(maps\.)?google\.[a-z.]+$/.test(h) || h.startsWith("google.") && !url.pathname.startsWith("/maps")) return null;
+	if (url.pathname.startsWith("/maps/embed")) return url.href;
+	const q = url.searchParams.get("q") ?? url.searchParams.get("query");
+	const place = /\/place\/([^/]+)/.exec(url.pathname)?.[1];
+	const at = /\/@(-?[\d.]+),(-?[\d.]+),(\d+(?:\.\d+)?)z/.exec(url.pathname);
+	const params = new URLSearchParams();
+	if (q) params.set("q", q);
+	else if (place) params.set("q", decodeURIComponent(place.replace(/\+/g, " ")));
+	else if (at) params.set("q", `${at[1]},${at[2]}`);
+	else return null;
+	if (at) params.set("z", String(Math.round(Number(at[3]))));
+	params.set("output", "embed");
+	return `https://maps.google.com/maps?${params}`;
+}
+function tweet(url) {
+	const h = host(url);
+	if (h !== "twitter.com" && h !== "x.com" && h !== "mobile.twitter.com") return null;
+	const m = /^\/[\w]+\/status(?:es)?\/(\d+)/.exec(url.pathname);
+	return m ? `https://platform.twitter.com/embed/Tweet.html?id=${m[1]}&dnt=true` : null;
+}
+function codepen(url) {
+	const m = host(url) === "codepen.io" ? /^\/([\w-]+)\/(?:pen|embed|full|details)\/(\w+)/.exec(url.pathname) : null;
+	return m ? `https://codepen.io/${m[1]}/embed/${m[2]}?default-tab=result` : null;
+}
+var DETECTORS = [
+	["youtube", youtube],
+	["vimeo", vimeo],
+	["loom", loom],
+	["figma", figma],
+	["gist", gist],
+	["maps", maps],
+	["tweet", tweet],
+	["codepen", codepen]
+];
+/** null for anything but an https address */
+function embedFor(raw) {
+	const url = parseUrl(raw);
+	if (!url) return null;
+	for (const [provider, detect] of DETECTORS) {
+		const src = detect(url);
+		if (src) return {
+			provider,
+			src
+		};
+	}
+	return {
+		provider: "generic",
+		src: url.href
+	};
+}
+/** null keeps the provider's own shape (16:9 video or the default height) */
+var EMBED_HEIGHTS = {
+	youtube: null,
+	vimeo: null,
+	loom: null,
+	figma: 450,
+	gist: 320,
+	maps: 400,
+	tweet: 560,
+	codepen: 420,
+	generic: 420
+};
+var EMBED_MAX_HEIGHT = 1600;
+/** sandbox flags; a page of the host's own origin loses `allow-same-origin`, so it cannot reach the editor */
+function embedSandbox(src) {
+	const flags = [
+		"allow-scripts",
+		"allow-popups",
+		"allow-popups-to-escape-sandbox",
+		"allow-presentation",
+		"allow-forms"
+	];
+	let same = true;
+	try {
+		same = typeof location !== "undefined" && new URL(src).origin === location.origin;
+	} catch {}
+	if (!same) flags.push("allow-same-origin");
+	return flags.join(" ");
+}
+/** a lone URL as typed or pasted; http is allowed for links and bookmarks */
+function loneUrl(text) {
+	const v = text.trim();
+	if (!v || /\s/.test(v)) return null;
+	try {
+		const url = new URL(v);
+		return url.protocol === "https:" || url.protocol === "http:" ? v : null;
+	} catch {
+		return null;
+	}
+}
+// src/editor/navigate.ts
+/** the host's `openLink` first; otherwise internal pages open in this tab and outside links in a new one */
+function followLink(services, href, event, sameTab) {
+	if (!href) return;
+	event.preventDefault();
+	if (services.openLink?.(href, event)) return;
+	if (sameTab && !event.metaKey && !event.ctrlKey && !event.shiftKey && event.button !== 1) window.location.assign(href);
+	else window.open(href, "_blank", "noopener,noreferrer");
+}
+var RESOLVE_TTL = 6e4;
+var resolved = /* @__PURE__ */ new Map();
+/** `services.resolveLink`, shared by every block and chip of one address for a minute */
+function resolveOnce(services, href) {
+	const resolve = services.resolveLink;
+	if (!resolve || !href) return Promise.resolve(null);
+	const hit = resolved.get(href);
+	if (hit && Date.now() - hit.at < RESOLVE_TTL) return hit.result;
+	const result = resolve(href).catch(() => null);
+	resolved.set(href, {
+		at: Date.now(),
+		result
+	});
+	result.then((r) => r || resolved.delete(href));
+	return result;
+}
+// src/nodes/BookmarkView.vue?vue&type=script&setup=true&lang.ts
+var _hoisted_1$29 = [
+	"placeholder",
+	"aria-label",
+	"readonly",
+	"onKeydown"
+];
+var _hoisted_2$25 = ["disabled"];
+var _hoisted_3$25 = ["href"];
+var _hoisted_4$23 = { class: "wy-bookmark-text" };
+var _hoisted_5$20 = { class: "wy-bookmark-title" };
+var _hoisted_6$15 = {
+	key: 0,
+	class: "wy-bookmark-desc"
+};
+var _hoisted_7$12 = { class: "wy-bookmark-url" };
+var _hoisted_8$10 = ["src"];
+var _hoisted_9$8 = ["src"];
+var _hoisted_10$7 = ["disabled"];
+var _hoisted_11$6 = ["href"];
+// src/nodes/BookmarkView.vue
+var BookmarkView_default = /* @__PURE__ */ defineComponent({
+	__name: "BookmarkView",
+	props: nodeViewProps,
+	setup(__props) {
+		const props = __props;
+		const ctx = contextOf(props.editor);
+		const t = ctx.t;
+		const { selected, editing, startEdit, finishEdit, stopEdit, update, remove, copyText, readonly } = useBlockNode(props, { editOnInsert: true });
+		const menu = ref(false);
+		const loading = ref(false);
+		const input = ref(null);
+		const draft = ref("");
+		const failedImage = ref(false);
+		const failedIcon = ref(false);
+		const a = computed(() => props.node.attrs);
+		const title = computed(() => a.value.title || a.value.site || siteName(a.value.url) || a.value.url);
+		let abort = null;
+		watch(() => a.value.image, () => failedImage.value = false);
+		watch(() => a.value.icon, () => failedIcon.value = false);
+		watch(editing, async (on) => {
+			if (!on) return;
+			draft.value = a.value.url;
+			await nextTick();
+			input.value?.focus();
+			input.value?.select();
+		}, { immediate: true });
+		async function refresh(url = a.value.url) {
+			abort?.abort();
+			menu.value = false;
+			const fallback = { site: siteName(url) };
+			const preview = ctx.services.linkPreview;
+			if (!preview) {
+				update(fallback);
+				return;
+			}
+			const ctrl = abort = new AbortController();
+			loading.value = true;
+			try {
+				const p = await preview(url, ctrl.signal);
+				if (ctrl.signal.aborted || props.node.attrs.url !== url) return;
+				update({
+					title: p?.title ?? "",
+					description: p?.description ?? "",
+					image: p?.image ?? "",
+					icon: p?.icon ?? "",
+					site: p?.site || fallback.site
+				});
+			} catch {
+				if (!ctrl.signal.aborted) ctx.services.toast?.(t("bookmark.failed"), "error");
+			} finally {
+				if (!ctrl.signal.aborted) loading.value = false;
+			}
+		}
+		function submit() {
+			const url = normalizeHref(draft.value);
+			if (!url || !loneUrl(url)) return;
+			const changed = url !== a.value.url;
+			update({
+				url,
+				...changed ? {
+					title: "",
+					description: "",
+					image: "",
+					icon: "",
+					site: siteName(url)
+				} : {}
+			});
+			finishEdit();
+			if (changed) refresh(url);
+		}
+		function cancel() {
+			if (!a.value.url) remove();
+			else stopEdit();
+		}
+		function open(e) {
+			if (a.value.url) followLink(ctx.services, a.value.url, e, false);
+		}
+		onMounted(() => {
+			if (!readonly.value && a.value.url && !a.value.title && !a.value.site) refresh();
+		});
+		onBeforeUnmount(() => abort?.abort());
+		return (_ctx, _cache) => {
+			return openBlock(), createBlock(unref(NodeViewWrapper), {
+				as: "div",
+				class: "wy-node wy-node-bookmark"
+			}, {
+				default: withCtx(() => [createVNode(BlockFrame_default, {
+					label: unref(t)("bookmark.label"),
+					selected: unref(selected),
+					editing: unref(editing),
+					readonly: unref(readonly),
+					"copy-text": unref(copyText),
+					editable: false,
+					onDelete: unref(remove),
+					onMore: _cache[8] || (_cache[8] = ($event) => menu.value = !menu.value)
+				}, {
+					menu: withCtx(() => [createVNode(BlockMenu_default, {
+						open: menu.value,
+						onClose: _cache[7] || (_cache[7] = ($event) => menu.value = false)
+					}, {
+						default: withCtx(() => [
+							a.value.url && !unref(readonly) ? (openBlock(), createElementBlock("button", {
+								key: 0,
+								type: "button",
+								class: "wy-menu-item",
+								role: "menuitem",
+								onClick: _cache[4] || (_cache[4] = ($event) => (menu.value = false, unref(startEdit)()))
+							}, [createVNode(unref(Pencil), {
+								class: "wy-menu-icon",
+								size: 16
+							}), createTextVNode(toDisplayString(unref(t)("bookmark.edit")), 1)])) : createCommentVNode("", true),
+							a.value.url ? (openBlock(), createElementBlock("button", {
+								key: 1,
+								type: "button",
+								class: "wy-menu-item",
+								role: "menuitem",
+								disabled: loading.value,
+								onClick: _cache[5] || (_cache[5] = ($event) => refresh())
+							}, [createVNode(unref(RefreshCw), {
+								class: "wy-menu-icon",
+								size: 16
+							}), createTextVNode(toDisplayString(unref(t)("bookmark.refresh")), 1)], 8, _hoisted_10$7)) : createCommentVNode("", true),
+							a.value.url ? (openBlock(), createElementBlock("a", {
+								key: 2,
+								class: "wy-menu-item",
+								role: "menuitem",
+								href: a.value.url,
+								target: "_blank",
+								rel: "noopener noreferrer",
+								onClick: _cache[6] || (_cache[6] = ($event) => (menu.value = false, open($event)))
+							}, [createVNode(unref(ExternalLink), {
+								class: "wy-menu-icon",
+								size: 16
+							}), createTextVNode(toDisplayString(unref(t)("bookmark.open")), 1)], 8, _hoisted_11$6)) : createCommentVNode("", true)
+						]),
+						_: 1
+					}, 8, ["open"])]),
+					default: withCtx(() => [unref(editing) || !a.value.url ? (openBlock(), createElementBlock("form", {
+						key: 0,
+						class: "wy-url-form",
+						contenteditable: "false",
+						"data-block-portal": "",
+						onMousedown: _cache[1] || (_cache[1] = withModifiers(() => {}, ["stop"])),
+						onSubmit: withModifiers(submit, ["prevent"])
+					}, [withDirectives(createElementVNode("input", {
+						ref_key: "input",
+						ref: input,
+						"onUpdate:modelValue": _cache[0] || (_cache[0] = ($event) => draft.value = $event),
+						class: "wy-input",
+						type: "url",
+						inputmode: "url",
+						autocomplete: "off",
+						spellcheck: "false",
+						placeholder: unref(t)("bookmark.placeholder"),
+						"aria-label": unref(t)("bookmark.url"),
+						readonly: unref(readonly),
+						onKeydown: withKeys(withModifiers(cancel, ["prevent", "stop"]), ["esc"])
+					}, null, 40, _hoisted_1$29), [[vModelText, draft.value]]), createElementVNode("button", {
+						type: "submit",
+						class: "wy-btn is-primary",
+						disabled: !unref(loneUrl)(unref(normalizeHref)(draft.value))
+					}, toDisplayString(unref(t)("bookmark.create")), 9, _hoisted_2$25)], 32)) : (openBlock(), createElementBlock("a", {
+						key: 1,
+						class: normalizeClass(["wy-bookmark-card", { "is-loading": loading.value }]),
+						href: a.value.url,
+						target: "_blank",
+						rel: "noopener noreferrer",
+						contenteditable: "false",
+						draggable: "false",
+						onClick: open
+					}, [createElementVNode("span", _hoisted_4$23, [
+						createElementVNode("span", _hoisted_5$20, toDisplayString(loading.value && !a.value.title ? unref(t)("bookmark.loading") : title.value), 1),
+						a.value.description ? (openBlock(), createElementBlock("span", _hoisted_6$15, toDisplayString(a.value.description), 1)) : createCommentVNode("", true),
+						createElementVNode("span", _hoisted_7$12, [a.value.icon && !failedIcon.value ? (openBlock(), createElementBlock("img", {
+							key: 0,
+							class: "wy-bookmark-favicon",
+							src: a.value.icon,
+							alt: "",
+							onError: _cache[2] || (_cache[2] = ($event) => failedIcon.value = true)
+						}, null, 40, _hoisted_8$10)) : (openBlock(), createBlock(unref(Globe), {
+							key: 1,
+							size: 14,
+							"aria-hidden": "true"
+						})), createElementVNode("span", null, toDisplayString(a.value.url), 1)])
+					]), a.value.image && !failedImage.value ? (openBlock(), createElementBlock("img", {
+						key: 0,
+						class: "wy-bookmark-image",
+						src: a.value.image,
+						alt: "",
+						loading: "lazy",
+						onError: _cache[3] || (_cache[3] = ($event) => failedImage.value = true)
+					}, null, 40, _hoisted_9$8)) : createCommentVNode("", true)], 10, _hoisted_3$25))]),
+					_: 1
+				}, 8, [
+					"label",
+					"selected",
+					"editing",
+					"readonly",
+					"copy-text",
+					"onDelete"
+				])]),
+				_: 1
+			});
+		};
+	}
+});
+// src/builtins/fenceText.ts
+/** a fence info value on one line without `"` (the info syntax cannot quote it) or a backtick (it would end the fence) */
+function infoText(v) {
+	return String(v ?? "").replace(/\s+/g, " ").replace(/["`]/g, "'").trim();
+}
+/** an address in a fence info value: whitespace, quotes and backticks percent-encoded */
+function infoUrl(v) {
+	return String(v ?? "").trim().replace(/[\s"`]/g, (c) => encodeURIComponent(c));
+}
+function stringAttr(name) {
+	return {
+		default: "",
+		parseHTML: (dom) => dom.getAttribute(`data-${name}`) ?? "",
+		renderHTML: (a) => a[name] ? { [`data-${name}`]: String(a[name]) } : {}
+	};
+}
+// src/builtins/bookmark.ts
+var BOOKMARK_FIELDS = [
+	"url",
+	"title",
+	"description",
+	"image",
+	"icon",
+	"site"
+];
+var URL_FIELDS = {
+	url: true,
+	image: true,
+	icon: true
+};
+function siteName(url) {
+	try {
+		return new URL(url).hostname.replace(/^www\./, "");
+	} catch {
+		return "";
+	}
+}
+var bookmarkExtension = {
+	name: "bookmark",
+	tiptap: [Node$1.create({
+		name: "bookmark",
+		group: "block",
+		atom: true,
+		draggable: false,
+		selectable: true,
+		addAttributes() {
+			return Object.fromEntries(BOOKMARK_FIELDS.map((f) => [f, stringAttr(f)]));
+		},
+		parseHTML() {
+			return [{ tag: "div[data-type=\"bookmark\"]" }];
+		},
+		renderHTML({ HTMLAttributes, node }) {
+			const a = node.attrs;
+			const text = [
+				"span",
+				{ class: "wy-bookmark-text" },
+				[
+					"span",
+					{ class: "wy-bookmark-title" },
+					a.title || a.url
+				]
+			];
+			if (a.description) text.push([
+				"span",
+				{ class: "wy-bookmark-desc" },
+				a.description
+			]);
+			text.push([
+				"span",
+				{ class: "wy-bookmark-url" },
+				a.url
+			]);
+			const link = [
+				"a",
+				{
+					href: a.url,
+					target: "_blank",
+					rel: "noopener noreferrer",
+					class: "wy-bookmark-card"
+				},
+				text
+			];
+			if (a.image) link.push(["img", {
+				src: a.image,
+				alt: "",
+				class: "wy-bookmark-image",
+				loading: "lazy"
+			}]);
+			return [
+				"div",
+				mergeAttributes({
+					"data-type": "bookmark",
+					class: "wy-bookmark"
+				}, HTMLAttributes),
+				link
+			];
+		}
+	})],
+	nodeViews: { bookmark: BookmarkView_default },
+	markdown: {
+		fences: [{
+			kind: "bookmark",
+			parse: (ctx) => {
+				const a = ctx.info.attrs;
+				const body = ctx.body.trim();
+				ctx.atom("bookmark", {
+					...a,
+					url: a.url ?? (/^\S+$/.test(body) ? body : "")
+				});
+			}
+		}],
+		tokens: { bookmark: {
+			node: "bookmark",
+			getAttrs: (tok) => Object.fromEntries(BOOKMARK_FIELDS.map((f) => [f, String(tok.meta[f] ?? "")]))
+		} },
+		nodes: { bookmark(state, node, _parent, _index, h) {
+			const attrs = Object.fromEntries(BOOKMARK_FIELDS.map((f) => [f, URL_FIELDS[f] ? infoUrl(node.attrs[f]) : infoText(node.attrs[f])]));
+			h.writeFence(state, node, formatInfo("bookmark", attrs), "");
+		} }
+	},
+	slash: [{
+		id: "bookmark",
+		group: "media",
+		rank: 30,
+		label: "",
+		icon: Bookmark,
+		keywords: "link preview card url",
+		run: (c) => c.insert("bookmark", {})
+	}]
+};
+// src/nodes/EmbedView.vue?vue&type=script&setup=true&lang.ts
+var _hoisted_1$28 = [
+	"placeholder",
+	"aria-label",
+	"readonly",
+	"onKeydown"
+];
+var _hoisted_2$24 = ["disabled"];
+var _hoisted_3$24 = ["data-provider"];
+var _hoisted_4$22 = [
+	"src",
+	"sandbox",
+	"title"
+];
+var _hoisted_5$19 = ["aria-label"];
+var _hoisted_6$14 = ["aria-label"];
+var _hoisted_7$11 = {
+	key: 2,
+	class: "wy-embed-shield",
+	"aria-hidden": "true"
+};
+var _hoisted_8$9 = ["href"];
+var _hoisted_9$7 = ["href"];
+// src/nodes/EmbedView.vue
+var EmbedView_default = /* @__PURE__ */ defineComponent({
+	__name: "EmbedView",
+	props: nodeViewProps,
+	setup(__props) {
+		const props = __props;
+		const t = contextOf(props.editor).t;
+		const { selected, editing, startEdit, finishEdit, stopEdit, update, remove, copyText, readonly } = useBlockNode(props, { editOnInsert: true });
+		const menu = ref(false);
+		const input = ref(null);
+		const draft = ref("");
+		const url = computed(() => props.node.attrs.url ?? "");
+		const target = computed(() => embedFor(url.value));
+		const provider = computed(() => target.value?.provider ?? "generic");
+		const height = computed(() => props.node.attrs.height ?? EMBED_HEIGHTS[provider.value]);
+		const live = ref(null);
+		const shown = computed(() => live.value ?? height.value);
+		const interactive = computed(() => readonly.value || selected.value);
+		watch(editing, async (on) => {
+			if (!on) return;
+			draft.value = url.value;
+			await nextTick();
+			input.value?.focus();
+			input.value?.select();
+		}, { immediate: true });
+		function submit() {
+			const next = normalizeHref(draft.value);
+			if (!embedFor(next)) return;
+			update(embedAttrs(next, { height: next === url.value ? props.node.attrs.height : null }));
+			finishEdit();
+		}
+		function cancel() {
+			if (!url.value) remove();
+			else stopEdit();
+		}
+		function select() {
+			const pos = props.getPos();
+			if (typeof pos === "number") props.editor.commands.setNodeSelection(pos);
+		}
+		let startY = 0;
+		let startH = 0;
+		function onResizeDown(e) {
+			if (e.button !== 0) return;
+			e.preventDefault();
+			const frame = e.currentTarget.parentElement.querySelector(".wy-embed-frame");
+			startY = e.clientY;
+			startH = frame.getBoundingClientRect().height;
+			live.value = Math.round(startH);
+			e.currentTarget.setPointerCapture(e.pointerId);
+		}
+		function onResizeMove(e) {
+			if (live.value === null) return;
+			live.value = Math.round(Math.min(EMBED_MAX_HEIGHT, Math.max(120, startH + e.clientY - startY)));
+		}
+		function onResizeUp() {
+			if (live.value === null) return;
+			const h = live.value;
+			live.value = null;
+			if (h !== props.node.attrs.height) update({ height: h });
+		}
+		return (_ctx, _cache) => {
+			return openBlock(), createBlock(unref(NodeViewWrapper), {
+				as: "div",
+				class: "wy-node wy-node-embed"
+			}, {
+				default: withCtx(() => [createVNode(BlockFrame_default, {
+					label: unref(t)(`embed.providers.${provider.value}`),
+					selected: unref(selected),
+					editing: unref(editing),
+					readonly: unref(readonly),
+					"copy-text": unref(copyText),
+					editable: false,
+					onDelete: unref(remove),
+					onMore: _cache[7] || (_cache[7] = ($event) => menu.value = !menu.value)
+				}, {
+					menu: withCtx(() => [createVNode(BlockMenu_default, {
+						open: menu.value,
+						onClose: _cache[6] || (_cache[6] = ($event) => menu.value = false)
+					}, {
+						default: withCtx(() => [
+							url.value && !unref(readonly) ? (openBlock(), createElementBlock("button", {
+								key: 0,
+								type: "button",
+								class: "wy-menu-item",
+								role: "menuitem",
+								onClick: _cache[3] || (_cache[3] = ($event) => (menu.value = false, unref(startEdit)()))
+							}, [createVNode(unref(Pencil), {
+								class: "wy-menu-icon",
+								size: 16
+							}), createTextVNode(toDisplayString(unref(t)("embed.edit")), 1)])) : createCommentVNode("", true),
+							url.value ? (openBlock(), createElementBlock("a", {
+								key: 1,
+								class: "wy-menu-item",
+								role: "menuitem",
+								href: url.value,
+								target: "_blank",
+								rel: "noopener noreferrer",
+								onClick: _cache[4] || (_cache[4] = ($event) => menu.value = false)
+							}, [createVNode(unref(ExternalLink), {
+								class: "wy-menu-icon",
+								size: 16
+							}), createTextVNode(toDisplayString(unref(t)("embed.open")), 1)], 8, _hoisted_9$7)) : createCommentVNode("", true),
+							_ctx.node.attrs.height && !unref(readonly) ? (openBlock(), createElementBlock("button", {
+								key: 2,
+								type: "button",
+								class: "wy-menu-item",
+								role: "menuitem",
+								onClick: _cache[5] || (_cache[5] = ($event) => (unref(update)({ height: null }), menu.value = false))
+							}, toDisplayString(unref(t)("embed.defaultHeight")), 1)) : createCommentVNode("", true)
+						]),
+						_: 1
+					}, 8, ["open"])]),
+					default: withCtx(() => [unref(editing) || !url.value ? (openBlock(), createElementBlock("form", {
+						key: 0,
+						class: "wy-url-form",
+						contenteditable: "false",
+						"data-block-portal": "",
+						onMousedown: _cache[1] || (_cache[1] = withModifiers(() => {}, ["stop"])),
+						onSubmit: withModifiers(submit, ["prevent"])
+					}, [withDirectives(createElementVNode("input", {
+						ref_key: "input",
+						ref: input,
+						"onUpdate:modelValue": _cache[0] || (_cache[0] = ($event) => draft.value = $event),
+						class: "wy-input",
+						type: "url",
+						inputmode: "url",
+						autocomplete: "off",
+						spellcheck: "false",
+						placeholder: unref(t)("embed.placeholder"),
+						"aria-label": unref(t)("embed.url"),
+						readonly: unref(readonly),
+						onKeydown: withKeys(withModifiers(cancel, ["prevent", "stop"]), ["esc"])
+					}, null, 40, _hoisted_1$28), [[vModelText, draft.value]]), createElementVNode("button", {
+						type: "submit",
+						class: "wy-btn is-primary",
+						disabled: !unref(embedFor)(unref(normalizeHref)(draft.value))
+					}, toDisplayString(unref(t)("embed.create")), 9, _hoisted_2$24)], 32)) : target.value ? (openBlock(), createElementBlock("div", {
+						key: 1,
+						class: "wy-embed",
+						"data-provider": provider.value,
+						contenteditable: "false"
+					}, [
+						createElementVNode("iframe", {
+							class: normalizeClass(["wy-embed-frame", { "is-video": shown.value === null }]),
+							src: target.value.src,
+							style: normalizeStyle(shown.value !== null ? { height: `${shown.value}px` } : void 0),
+							sandbox: unref(embedSandbox)(target.value.src),
+							allow: "fullscreen; picture-in-picture; encrypted-media; clipboard-write",
+							referrerpolicy: "strict-origin-when-cross-origin",
+							loading: "lazy",
+							title: unref(t)(`embed.providers.${provider.value}`)
+						}, null, 14, _hoisted_4$22),
+						!interactive.value ? (openBlock(), createElementBlock("button", {
+							key: 0,
+							type: "button",
+							class: "wy-embed-overlay",
+							"aria-label": unref(t)("embed.interact"),
+							onMousedown: _cache[2] || (_cache[2] = withModifiers(() => {}, ["prevent"])),
+							onClick: select
+						}, null, 40, _hoisted_5$19)) : createCommentVNode("", true),
+						!unref(readonly) ? withDirectives((openBlock(), createElementBlock("div", {
+							key: 1,
+							class: "wy-embed-resize",
+							role: "separator",
+							"aria-orientation": "horizontal",
+							"aria-label": unref(t)("embed.resize"),
+							onPointerdown: onResizeDown,
+							onPointermove: onResizeMove,
+							onPointerup: onResizeUp,
+							onPointercancel: onResizeUp
+						}, null, 40, _hoisted_6$14)), [[unref(vTooltip), unref(t)("embed.resize")]]) : createCommentVNode("", true),
+						live.value !== null ? (openBlock(), createElementBlock("div", _hoisted_7$11)) : createCommentVNode("", true)
+					], 8, _hoisted_3$24)) : (openBlock(), createElementBlock("a", {
+						key: 2,
+						class: "wy-embed-fallback",
+						href: url.value,
+						target: "_blank",
+						rel: "noopener noreferrer",
+						contenteditable: "false"
+					}, toDisplayString(url.value), 9, _hoisted_8$9))]),
+					_: 1
+				}, 8, [
+					"label",
+					"selected",
+					"editing",
+					"readonly",
+					"copy-text",
+					"onDelete"
+				])]),
+				_: 1
+			});
+		};
+	}
+});
+// src/builtins/embed.ts
+function parseEmbedHeight(v) {
+	const s = String(v ?? "");
+	if (!/^\d+$/.test(s)) return null;
+	return Math.min(EMBED_MAX_HEIGHT, Math.max(120, Number(s)));
+}
+function provider(v, url) {
+	return EMBED_PROVIDERS.includes(v) ? v : embedFor(url)?.provider ?? "generic";
+}
+/** attributes of an embed of `url`; `src` is always derived again, so a stored document cannot point the iframe elsewhere */
+function embedAttrs(url, stored = {}) {
+	const target = embedFor(url);
+	return {
+		url,
+		src: target?.src ?? "",
+		provider: stored.provider === void 0 ? target?.provider ?? "generic" : provider(stored.provider, url),
+		height: parseEmbedHeight(stored.height)
+	};
+}
+var embedExtension = {
+	name: "embed",
+	tiptap: [Node$1.create({
+		name: "embed",
+		group: "block",
+		atom: true,
+		draggable: false,
+		selectable: true,
+		addAttributes() {
+			return {
+				url: {
+					default: "",
+					parseHTML: (dom) => dom.getAttribute("data-url") ?? "",
+					renderHTML: (a) => ({ "data-url": a.url })
+				},
+				src: {
+					default: "",
+					parseHTML: (dom) => embedFor(dom.getAttribute("data-url") ?? "")?.src ?? "",
+					renderHTML: () => ({})
+				},
+				provider: {
+					default: "generic",
+					parseHTML: (dom) => provider(dom.getAttribute("data-provider"), dom.getAttribute("data-url") ?? ""),
+					renderHTML: (a) => ({ "data-provider": a.provider })
+				},
+				height: {
+					default: null,
+					parseHTML: (dom) => parseEmbedHeight(dom.getAttribute("data-height")),
+					renderHTML: (a) => a.height ? { "data-height": String(a.height) } : {}
+				}
+			};
+		},
+		parseHTML() {
+			return [{ tag: "div[data-type=\"embed\"]" }];
+		},
+		renderHTML({ HTMLAttributes, node }) {
+			const { src, height } = node.attrs;
+			const attrs = mergeAttributes({
+				"data-type": "embed",
+				class: "wy-embed"
+			}, HTMLAttributes);
+			if (!src) return [
+				"div",
+				attrs,
+				[
+					"a",
+					{
+						href: node.attrs.url,
+						target: "_blank",
+						rel: "noopener noreferrer"
+					},
+					node.attrs.url
+				]
+			];
+			return [
+				"div",
+				attrs,
+				["iframe", {
+					src,
+					sandbox: embedSandbox(src),
+					allow: "fullscreen; picture-in-picture; encrypted-media; clipboard-write",
+					referrerpolicy: "strict-origin-when-cross-origin",
+					loading: "lazy",
+					style: height ? `height: ${height}px` : null
+				}]
+			];
+		}
+	})],
+	nodeViews: { embed: EmbedView_default },
+	markdown: {
+		fences: [{
+			kind: "embed",
+			parse: (ctx) => ctx.atom("embed", embedAttrs(ctx.info.attrs.url ?? ctx.body.trim(), {
+				provider: ctx.info.attrs.provider,
+				height: ctx.info.attrs.height
+			}))
+		}],
+		tokens: { embed: {
+			node: "embed",
+			getAttrs: (tok) => ({
+				url: tok.meta.url,
+				src: tok.meta.src,
+				provider: tok.meta.provider,
+				height: tok.meta.height
+			})
+		} },
+		nodes: { embed(state, node, _parent, _index, h) {
+			const height = node.attrs.height;
+			h.writeFence(state, node, formatInfo("embed", {
+				url: infoUrl(node.attrs.url),
+				provider: String(node.attrs.provider ?? ""),
+				height: height ? String(height) : ""
+			}), "");
+		} }
+	},
+	slash: [{
+		id: "embed",
+		group: "media",
+		rank: 40,
+		label: "",
+		icon: AppWindow,
+		keywords: "iframe youtube vimeo loom figma gist map tweet codepen video",
+		run: (c) => c.insert("embed", {})
+	}]
+};
+// src/components/PalettePicker.vue?vue&type=script&setup=true&lang.ts
+var _hoisted_1$27 = { class: "wy-palette" };
+var _hoisted_2$23 = { class: "wy-menu-heading" };
+var _hoisted_3$23 = ["aria-label"];
+var _hoisted_4$21 = [
+	"aria-label",
+	"aria-pressed",
+	"onClick"
+];
+var _hoisted_5$18 = {
+	key: 1,
+	"aria-hidden": "true"
+};
+// src/components/PalettePicker.vue
+var PalettePicker_default = /* @__PURE__ */ defineComponent({
+	__name: "PalettePicker",
+	props: {
+		value: {},
+		t: {},
+		text: {
+			type: Boolean,
+			default: true
+		}
+	},
+	emits: ["pick"],
+	setup(__props, { emit: __emit }) {
+		const props = __props;
+		const emit = __emit;
+		const rows = [{
+			heading: "palette.background",
+			tokens: PALETTE.map((p) => `${p}_bg`)
+		}, ...props.text ? [{
+			heading: "palette.text",
+			tokens: [...PALETTE]
+		}] : []];
+		const name = (token) => props.t(`palette.${token.replace(/_bg$/, "")}`);
+		return (_ctx, _cache) => {
+			return openBlock(), createElementBlock("div", _hoisted_1$27, [(openBlock(), createElementBlock(Fragment$1, null, renderList(rows, (row) => {
+				return openBlock(), createElementBlock(Fragment$1, { key: row.heading }, [createElementVNode("div", _hoisted_2$23, toDisplayString(__props.t(row.heading)), 1), createElementVNode("div", {
+					class: "wy-palette-row",
+					role: "group",
+					"aria-label": __props.t(row.heading)
+				}, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(row.tokens, (token) => {
+					return withDirectives((openBlock(), createElementBlock("button", {
+						key: token,
+						type: "button",
+						class: normalizeClass(["wy-swatch", token.endsWith("_bg") ? "is-bg" : "is-text"]),
+						style: normalizeStyle(token.endsWith("_bg") ? { background: unref(paletteCss)(token) } : { color: unref(paletteCss)(token) }),
+						"aria-label": name(token),
+						"aria-pressed": token === __props.value,
+						onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
+						onClick: ($event) => emit("pick", token)
+					}, [token === __props.value ? (openBlock(), createBlock(unref(Check), {
+						key: 0,
+						size: 14
+					})) : !token.endsWith("_bg") ? (openBlock(), createElementBlock("span", _hoisted_5$18, "A")) : createCommentVNode("", true)], 46, _hoisted_4$21)), [[unref(vTooltip), name(token)]]);
+				}), 128))], 8, _hoisted_3$23)], 64);
+			}), 64)), __props.value ? (openBlock(), createElementBlock("button", {
+				key: 0,
+				type: "button",
+				class: "wy-menu-item",
+				onMousedown: _cache[1] || (_cache[1] = withModifiers(() => {}, ["prevent"])),
+				onClick: _cache[2] || (_cache[2] = ($event) => emit("pick", null))
+			}, toDisplayString(__props.t("palette.default")), 33)) : createCommentVNode("", true)]);
+		};
+	}
+});
+// src/nodes/TocView.vue?vue&type=script&setup=true&lang.ts
+var _hoisted_1$26 = ["aria-label"];
+var _hoisted_2$22 = {
+	key: 0,
+	class: "wy-toc-empty"
+};
+var _hoisted_3$22 = ["href", "onClick"];
+// src/nodes/TocView.vue
+var TocView_default = /* @__PURE__ */ defineComponent({
+	__name: "TocView",
+	props: nodeViewProps,
+	setup(__props) {
+		const props = __props;
+		const t = contextOf(props.editor).t;
+		const { selected, update, remove, copyText, readonly } = useBlockNode(props);
+		const menu = ref(false);
+		const entries = shallowRef(tocEntries(props.editor.state.doc));
+		const top = computed(() => Math.min(...entries.value.map((e) => e.level), 6));
+		const color = computed(() => props.node.attrs.color ?? null);
+		const style = computed(() => {
+			const c = color.value;
+			if (!c) return void 0;
+			return c.endsWith("_bg") ? { background: paletteCss(c) } : { "--wy-toc-color": paletteCss(c) };
+		});
+		function refresh({ transaction }) {
+			if (transaction.docChanged) entries.value = tocEntries(props.editor.state.doc);
+		}
+		props.editor.on("transaction", refresh);
+		onBeforeUnmount(() => props.editor.off("transaction", refresh));
+		function go(e, ev) {
+			ev.preventDefault();
+			const dom = props.editor.view.nodeDOM(e.pos);
+			if (dom instanceof HTMLElement) dom.scrollIntoView({
+				behavior: "smooth",
+				block: "start"
+			});
+		}
+		return (_ctx, _cache) => {
+			return openBlock(), createBlock(unref(NodeViewWrapper), {
+				as: "div",
+				class: "wy-node wy-node-toc"
+			}, {
+				default: withCtx(() => [createVNode(BlockFrame_default, {
+					label: unref(t)("toc.label"),
+					selected: unref(selected),
+					readonly: unref(readonly),
+					"copy-text": unref(copyText),
+					editable: false,
+					onDelete: unref(remove),
+					onMore: _cache[3] || (_cache[3] = ($event) => menu.value = !menu.value)
+				}, {
+					menu: withCtx(() => [createVNode(BlockMenu_default, {
+						open: menu.value,
+						onClose: _cache[2] || (_cache[2] = ($event) => menu.value = false)
+					}, {
+						default: withCtx(() => [createVNode(PalettePicker_default, {
+							value: color.value,
+							t: unref(t),
+							onPick: _cache[1] || (_cache[1] = ($event) => unref(update)({ color: $event }))
+						}, null, 8, ["value", "t"])]),
+						_: 1
+					}, 8, ["open"])]),
+					default: withCtx(() => [createElementVNode("nav", {
+						class: normalizeClass(["wy-toc", { "has-bg": color.value?.endsWith("_bg") }]),
+						style: normalizeStyle(style.value),
+						"aria-label": unref(t)("toc.label"),
+						contenteditable: "false"
+					}, [!entries.value.length ? (openBlock(), createElementBlock("p", _hoisted_2$22, toDisplayString(unref(t)("toc.empty")), 1)) : createCommentVNode("", true), (openBlock(true), createElementBlock(Fragment$1, null, renderList(entries.value, (e) => {
+						return openBlock(), createElementBlock("a", {
+							key: e.pos,
+							class: "wy-toc-item",
+							href: `#${e.text}`,
+							style: normalizeStyle({ "--wy-toc-depth": e.level - top.value }),
+							onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
+							onClick: ($event) => go(e, $event)
+						}, toDisplayString(e.text), 45, _hoisted_3$22);
+					}), 128))], 14, _hoisted_1$26)]),
+					_: 1
+				}, 8, [
+					"label",
+					"selected",
+					"readonly",
+					"copy-text",
+					"onDelete"
+				])]),
+				_: 1
+			});
+		};
+	}
+});
+// src/builtins/toc.ts
+/** headings and toggle headings in document order */
+function tocEntries(doc) {
+	const out = [];
+	doc.descendants((node, pos) => {
+		if (node.type.name === "heading") {
+			if (node.textContent.trim()) out.push({
+				pos,
+				level: node.attrs.level,
+				text: node.textContent.trim()
+			});
+			return false;
+		}
+		if (node.type.name === "details" && node.attrs.heading && String(node.attrs.title ?? "").trim()) out.push({
+			pos,
+			level: node.attrs.heading,
+			text: String(node.attrs.title).trim()
+		});
+		return !node.isTextblock;
+	});
+	return out;
+}
+/** `{color=…}` on the line after an atom fence */
+function writeColorLine(state, node) {
+	const attrs = formatBlockAttrs([["color", node.attrs.color]]);
+	if (!attrs) return;
+	state.flushClose(1);
+	state.write(attrs);
+	state.closeBlock(node);
+}
+var tocExtension = {
+	name: "tableOfContents",
+	tiptap: [Node$1.create({
+		name: "tableOfContents",
+		group: "block",
+		atom: true,
+		draggable: false,
+		selectable: true,
+		addAttributes() {
+			return { color: paletteAttribute() };
+		},
+		parseHTML() {
+			return [{ tag: "nav[data-type=\"toc\"]" }];
+		},
+		renderHTML({ HTMLAttributes }) {
+			return ["nav", mergeAttributes({
+				"data-type": "toc",
+				class: "wy-toc"
+			}, HTMLAttributes)];
+		}
+	})],
+	nodeViews: { tableOfContents: TocView_default },
+	markdown: {
+		fences: [{
+			kind: "toc",
+			parse: (ctx) => ctx.atom("table_of_contents", {})
+		}],
+		tokens: { table_of_contents: {
+			node: "tableOfContents",
+			getAttrs: (tok) => ({ color: tok.meta.blockAttrs?.color ?? null })
+		} },
+		nodes: { tableOfContents(state, node, _parent, _index, h) {
+			h.writeFence(state, node, "toc", "");
+			writeColorLine(state, node);
+		} }
+	},
+	slash: [{
+		id: "tableOfContents",
+		group: "blocks",
+		rank: 40,
+		label: "",
+		icon: ListTree,
+		keywords: "toc contents outline headings",
+		run: (c) => c.insert("tableOfContents", {})
+	}]
+};
+// src/nodes/PageLinkView.vue?vue&type=script&setup=true&lang.ts
+var _hoisted_1$25 = ["href"];
+var _hoisted_2$21 = {
+	class: "wy-page-link-icon",
+	"aria-hidden": "true"
+};
+var _hoisted_3$21 = ["src"];
+var _hoisted_4$20 = { class: "wy-page-link-title" };
+// src/nodes/PageLinkView.vue
+var PageLinkView_default = /* @__PURE__ */ defineComponent({
+	__name: "PageLinkView",
+	props: nodeViewProps,
+	setup(__props) {
+		const props = __props;
+		const ctx = contextOf(props.editor);
+		const t = ctx.t;
+		const { selected, update, remove, copyText, readonly } = useBlockNode(props);
+		const menu = ref(false);
+		const resolved = ref(null);
+		const href = computed(() => props.node.attrs.href ?? "");
+		const title = computed(() => resolved.value?.title || props.node.attrs.title || href.value || t("pageLink.untitled"));
+		const icon = computed(() => resolved.value?.icon || props.node.attrs.icon || "");
+		const isImage = computed(() => /^(https?:|\/|data:image\/|blob:)/.test(icon.value));
+		const color = computed(() => props.node.attrs.color ?? null);
+		const style = computed(() => {
+			const c = color.value;
+			if (!c) return void 0;
+			return c.endsWith("_bg") ? { background: paletteCss(c) } : { color: paletteCss(c) };
+		});
+		watch(href, async (h) => {
+			resolved.value = null;
+			const r = await resolveOnce(ctx.services, h);
+			if (h === href.value) resolved.value = r;
+		}, { immediate: true });
+		function open(e) {
+			followLink(ctx.services, href.value, e, true);
+		}
+		return (_ctx, _cache) => {
+			return openBlock(), createBlock(unref(NodeViewWrapper), {
+				as: "div",
+				class: "wy-node wy-node-page-link"
+			}, {
+				default: withCtx(() => [createVNode(BlockFrame_default, {
+					label: unref(t)("pageLink.label"),
+					selected: unref(selected),
+					readonly: unref(readonly),
+					"copy-text": unref(copyText),
+					editable: false,
+					onDelete: unref(remove),
+					onMore: _cache[2] || (_cache[2] = ($event) => menu.value = !menu.value)
+				}, {
+					menu: withCtx(() => [createVNode(BlockMenu_default, {
+						open: menu.value,
+						onClose: _cache[1] || (_cache[1] = ($event) => menu.value = false)
+					}, {
+						default: withCtx(() => [createVNode(PalettePicker_default, {
+							value: color.value,
+							t: unref(t),
+							onPick: _cache[0] || (_cache[0] = ($event) => unref(update)({ color: $event }))
+						}, null, 8, ["value", "t"])]),
+						_: 1
+					}, 8, ["open"])]),
+					default: withCtx(() => [createElementVNode("a", {
+						class: normalizeClass(["wy-page-link", { "has-bg": color.value?.endsWith("_bg") }]),
+						href: href.value,
+						style: normalizeStyle(style.value),
+						contenteditable: "false",
+						draggable: "false",
+						onClick: open
+					}, [createElementVNode("span", _hoisted_2$21, [icon.value && isImage.value ? (openBlock(), createElementBlock("img", {
+						key: 0,
+						src: icon.value,
+						alt: ""
+					}, null, 8, _hoisted_3$21)) : icon.value ? (openBlock(), createElementBlock(Fragment$1, { key: 1 }, [createTextVNode(toDisplayString(icon.value), 1)], 64)) : (openBlock(), createBlock(unref(FileText), {
+						key: 2,
+						size: 18
+					}))]), createElementVNode("span", _hoisted_4$20, toDisplayString(title.value), 1)], 14, _hoisted_1$25)]),
+					_: 1
+				}, 8, [
+					"label",
+					"selected",
+					"readonly",
+					"copy-text",
+					"onDelete"
+				])]),
+				_: 1
+			});
+		};
+	}
+});
+// src/components/SuggestionList.vue?vue&type=script&setup=true&lang.ts
+var _hoisted_1$24 = ["aria-label", "aria-busy"];
+var _hoisted_2$20 = {
+	key: 0,
+	class: "wy-menu-heading",
+	role: "presentation"
+};
+var _hoisted_3$20 = [
+	"aria-selected",
+	"data-index",
+	"onMouseenter",
+	"onClick"
+];
+var _hoisted_4$19 = {
+	class: "wy-suggest-icon",
+	"aria-hidden": "true"
+};
+var _hoisted_5$17 = ["src"];
+var _hoisted_6$13 = { key: 2 };
+var _hoisted_7$10 = { class: "wy-suggest-text" };
+var _hoisted_8$8 = { class: "wy-suggest-title" };
+var _hoisted_9$6 = {
+	key: 0,
+	class: "wy-suggest-detail"
+};
+var _hoisted_10$6 = {
+	key: 0,
+	class: "wy-menu-hint"
+};
+// src/components/SuggestionList.vue
+var SuggestionList_default = /* @__PURE__ */ defineComponent({
+	__name: "SuggestionList",
+	props: {
+		items: {},
+		loading: {
+			type: Boolean,
+			default: false
+		},
+		empty: { default: "" },
+		label: { default: "" }
+	},
+	emits: ["pick"],
+	setup(__props, { expose: __expose, emit: __emit }) {
+		const props = __props;
+		const emit = __emit;
+		const active = ref(0);
+		const list = ref(null);
+		const rows = computed(() => props.items.map((item, index) => ({
+			item,
+			index,
+			heading: item.group && item.group !== props.items[index - 1]?.group ? item.group : ""
+		})));
+		watch(() => props.items, () => active.value = 0);
+		const isImage = (icon) => /^(https?:|\/|data:image\/|blob:)/.test(icon);
+		async function reveal() {
+			await nextTick();
+			list.value?.querySelector(`[data-index="${active.value}"]`)?.scrollIntoView({ block: "nearest" });
+		}
+		function onKeyDown(e) {
+			const n = props.items.length;
+			if (!n) return false;
+			if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+				active.value = (active.value + (e.key === "ArrowDown" ? 1 : n - 1)) % n;
+				reveal();
+				return true;
+			}
+			if (e.key === "Enter" || e.key === "Tab") {
+				const item = props.items[active.value];
+				if (item) emit("pick", item);
+				return true;
+			}
+			return false;
+		}
+		__expose({ onKeyDown });
+		return (_ctx, _cache) => {
+			return openBlock(), createElementBlock("div", {
+				ref_key: "list",
+				ref: list,
+				class: "wy-suggest",
+				role: "listbox",
+				"aria-label": __props.label || void 0,
+				"aria-busy": __props.loading || void 0
+			}, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(rows.value, ({ item, index, heading }) => {
+				return openBlock(), createElementBlock(Fragment$1, { key: item.key }, [heading ? (openBlock(), createElementBlock("div", _hoisted_2$20, toDisplayString(heading), 1)) : createCommentVNode("", true), createElementVNode("button", {
+					type: "button",
+					role: "option",
+					class: normalizeClass(["wy-menu-item wy-suggest-item", { "is-active": index === active.value }]),
+					"aria-selected": index === active.value,
+					"data-index": index,
+					onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
+					onMouseenter: ($event) => active.value = index,
+					onClick: ($event) => emit("pick", item)
+				}, [createElementVNode("span", _hoisted_4$19, [item.icon && typeof item.icon !== "string" ? (openBlock(), createBlock(resolveDynamicComponent(item.icon), {
+					key: 0,
+					size: 18
+				})) : item.icon && isImage(item.icon) ? (openBlock(), createElementBlock("img", {
+					key: 1,
+					src: item.icon,
+					alt: ""
+				}, null, 8, _hoisted_5$17)) : item.icon ? (openBlock(), createElementBlock("span", _hoisted_6$13, toDisplayString(item.icon), 1)) : createCommentVNode("", true)]), createElementVNode("span", _hoisted_7$10, [createElementVNode("span", _hoisted_8$8, toDisplayString(item.title), 1), item.detail ? (openBlock(), createElementBlock("span", _hoisted_9$6, toDisplayString(item.detail), 1)) : createCommentVNode("", true)])], 42, _hoisted_3$20)], 64);
+			}), 128)), !__props.items.length && __props.empty ? (openBlock(), createElementBlock("p", _hoisted_10$6, toDisplayString(__props.empty), 1)) : createCommentVNode("", true)], 8, _hoisted_1$24);
+		};
+	}
+});
+// src/components/PageSearch.vue?vue&type=script&setup=true&lang.ts
+var _hoisted_1$23 = ["placeholder", "aria-label"];
+// src/components/PageSearch.vue
+var PageSearch_default = /* @__PURE__ */ defineComponent({
+	__name: "PageSearch",
+	props: {
+		search: { type: Function },
+		placeholder: {},
+		empty: {},
+		searching: {},
+		label: {}
+	},
+	emits: ["pick", "close"],
+	setup(__props, { emit: __emit }) {
+		const props = __props;
+		const emit = __emit;
+		const root = ref(null);
+		const input = ref(null);
+		const list = ref(null);
+		const query = ref("");
+		const items = ref([]);
+		const loading = ref(false);
+		let timer = 0;
+		let abort = null;
+		function run() {
+			window.clearTimeout(timer);
+			abort?.abort();
+			loading.value = true;
+			timer = window.setTimeout(async () => {
+				const ctrl = abort = new AbortController();
+				try {
+					const found = await props.search(query.value.trim(), ctrl.signal);
+					if (!ctrl.signal.aborted) items.value = found;
+				} catch {
+					if (!ctrl.signal.aborted) items.value = [];
+				} finally {
+					if (!ctrl.signal.aborted) loading.value = false;
+				}
+			}, 150);
+		}
+		function onKey(e) {
+			if (e.key === "Escape") {
+				e.preventDefault();
+				e.stopPropagation();
+				emit("close");
+				return;
+			}
+			if (list.value?.onKeyDown(e)) e.preventDefault();
+		}
+		function onDocDown(e) {
+			if (root.value && !root.value.contains(e.target)) emit("close");
+		}
+		onMounted(async () => {
+			document.addEventListener("mousedown", onDocDown, true);
+			run();
+			await nextTick();
+			input.value?.focus();
+		});
+		onBeforeUnmount(() => {
+			window.clearTimeout(timer);
+			abort?.abort();
+			document.removeEventListener("mousedown", onDocDown, true);
+		});
+		return (_ctx, _cache) => {
+			return openBlock(), createElementBlock("div", {
+				ref_key: "root",
+				ref: root,
+				class: "wy-menu wy-page-search",
+				contenteditable: "false"
+			}, [withDirectives(createElementVNode("input", {
+				ref_key: "input",
+				ref: input,
+				"onUpdate:modelValue": _cache[0] || (_cache[0] = ($event) => query.value = $event),
+				class: "wy-input is-sm",
+				type: "search",
+				autocomplete: "off",
+				spellcheck: "false",
+				placeholder: __props.placeholder,
+				"aria-label": __props.label,
+				onInput: run,
+				onKeydown: onKey
+			}, null, 40, _hoisted_1$23), [[vModelText, query.value]]), createVNode(SuggestionList_default, {
+				ref_key: "list",
+				ref: list,
+				items: items.value,
+				loading: loading.value,
+				empty: loading.value ? __props.searching : __props.empty,
+				label: __props.label,
+				onPick: _cache[1] || (_cache[1] = ($event) => emit("pick", $event))
+			}, null, 8, [
+				"items",
+				"loading",
+				"empty",
+				"label"
+			])], 512);
+		};
+	}
+});
+// src/core/mentions.ts
+var DATE_RE = /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2})?)?$/;
+var ID_RE = /^[^\s()\\]+$/;
+function isMentionDate(v) {
+	return typeof v === "string" && DATE_RE.test(v);
+}
+/** the target in `@[label](<target>)`: `user:<id>`, `page:<id>`, `date:<start>` or `date:<start>/<end>` */
+function mentionTarget(a) {
+	if (a.kind === "date") {
+		if (!isMentionDate(a.start)) return null;
+		return `date:${a.start}${isMentionDate(a.end) ? `/${a.end}` : ""}`;
+	}
+	return (a.kind === "user" || a.kind === "page") && ID_RE.test(a.id) ? `${a.kind}:${a.id}` : null;
+}
+function parseMentionTarget(target) {
+	const m = /^(user|page|date):(.+)$/.exec(target);
+	if (!m) return null;
+	const kind = m[1];
+	const value = m[2];
+	if (kind !== "date") return ID_RE.test(value) ? {
+		kind,
+		id: value,
+		start: null,
+		end: null
+	} : null;
+	const [start, end, extra] = value.split("/");
+	if (extra !== void 0 || !isMentionDate(start) || end !== void 0 && !isMentionDate(end)) return null;
+	return {
+		kind,
+		id: "",
+		start,
+		end: end ?? null
+	};
+}
+function escapeMentionLabel(label) {
+	return label.replace(/[\\[\]]/g, "\\$&").replace(/\s*\n\s*/g, " ");
+}
+function mentionMarkdown(a) {
+	const target = mentionTarget(a);
+	return target ? `@[${escapeMentionLabel(a.label)}](${target})` : null;
+}
+/** inline rule for `@[label](kind:value)`; must run before `link` */
+function mentionRule(state, silent) {
+	const src = state.src;
+	const at = state.pos;
+	if (src.charCodeAt(at) !== 64 || src.charCodeAt(at + 1) !== 91) return false;
+	let label = "";
+	let i = at + 2;
+	for (; i < state.posMax; i++) {
+		const ch = src[i];
+		if (ch === "\\" && i + 1 < state.posMax) {
+			label += src[++i];
+			continue;
+		}
+		if (ch === "]" || ch === "\n") break;
+		if (ch === "[") return false;
+		label += ch;
+	}
+	if (src[i] !== "]" || src[i + 1] !== "(") return false;
+	const close = src.indexOf(")", i + 2);
+	if (close < 0 || close > state.posMax) return false;
+	const parsed = parseMentionTarget(src.slice(i + 2, close));
+	if (!parsed) return false;
+	if (!silent) state.push("mention", "span", 0).meta = {
+		...parsed,
+		label
+	};
+	state.pos = close + 1;
+	return true;
+}
+function parseDate(v) {
+	const [d, t] = v.split("T");
+	const [y, m, day] = d.split("-").map(Number);
+	const [hh, mm] = (t ?? "0:0").split(":").map(Number);
+	return {
+		date: new Date(y, m - 1, day, hh, mm),
+		time: t !== void 0
+	};
+}
+/** "May 1, 2024", "May 1, 2024 10:00" or a range of them in the editor's locale */
+function dateLabel(start, end, locale) {
+	const fmt = (v) => {
+		const { date, time } = parseDate(v);
+		return new Intl.DateTimeFormat(locale, time ? {
+			dateStyle: "medium",
+			timeStyle: "short"
+		} : { dateStyle: "medium" }).format(date);
+	};
+	return end ? `${fmt(start)} → ${fmt(end)}` : fmt(start);
+}
+function isoDate(d) {
+	const pad = (n) => String(n).padStart(2, "0");
+	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+/** `/p/{id}` style template with the id filled in */
+function pageHref(template, id) {
+	return template.replace("{id}", encodeURIComponent(id));
+}
+// src/editor/mentionItems.ts
+var MENTION_ICONS = {
+	user: User,
+	page: FileText,
+	date: CalendarDays
+};
+function mentionEntry(s, ctx) {
+	return {
+		key: `${s.kind}:${s.id || s.start || s.label}`,
+		title: s.label,
+		detail: s.detail,
+		icon: s.icon || MENTION_ICONS[s.kind],
+		group: ctx.t(`mention.groups.${s.kind}`),
+		suggestion: s
+	};
+}
+/** today, tomorrow, yesterday and an ISO date typed as the query */
+function dateSuggestions(query, ctx) {
+	const q = query.trim().toLowerCase();
+	const day = (offset) => {
+		const d = /* @__PURE__ */ new Date();
+		d.setDate(d.getDate() + offset);
+		return isoDate(d);
+	};
+	const out = [
+		{
+			name: ctx.t("mention.today"),
+			start: day(0)
+		},
+		{
+			name: ctx.t("mention.tomorrow"),
+			start: day(1)
+		},
+		{
+			name: ctx.t("mention.yesterday"),
+			start: day(-1)
+		}
+	].filter((n) => !q || n.name.toLowerCase().startsWith(q)).map((n) => ({
+		kind: "date",
+		id: "",
+		label: dateLabel(n.start, null, ctx.locale),
+		detail: n.name,
+		start: n.start
+	}));
+	if (/^\d{4}-\d{2}-\d{2}$/.test(q) && !Number.isNaN(Date.parse(q))) out.unshift({
+		kind: "date",
+		id: "",
+		label: dateLabel(q, null, ctx.locale),
+		start: q
+	});
+	return out;
+}
+/** host results (users and pages) after the matching dates; aborted searches resolve to [] */
+async function searchMentions(services, query, kind, signal, ctx) {
+	const dates = kind === void 0 || kind === "date" ? dateSuggestions(query, ctx) : [];
+	if (kind === "date" || !services.searchMentions) return dates;
+	try {
+		const hits = (await services.searchMentions(query, kind, signal)).filter((s) => !kind || s.kind === kind).slice(0, 12);
+		return signal.aborted ? [] : [
+			...hits.filter((s) => s.kind === "user"),
+			...hits.filter((s) => s.kind === "page"),
+			...dates
+		];
+	} catch {
+		return signal.aborted ? [] : dates;
+	}
+}
+// src/editor/popup.ts
+/** a component floating at a caret rectangle, mounted in <body> like the slash menu */
+function openPopup(editor, component, props, rect, placement = "bottom-start") {
+	const renderer = new VueRenderer(component, {
+		props,
+		editor
+	});
+	const el = renderer.element;
+	el.style.position = "fixed";
+	el.style.zIndex = "1000";
+	el.setAttribute("data-block-portal", "");
+	el.classList.add("wy-menu");
+	document.body.appendChild(el);
+	const floating = floatNear({ getBoundingClientRect: () => rect() ?? new DOMRect() }, el, {
+		placement,
+		offset: 6,
+		padding: 8,
+		apply: (x, y) => {
+			el.style.left = `${x}px`;
+			el.style.top = `${y}px`;
+		},
+		room: (h) => el.style.setProperty("--wy-menu-room", `${Math.max(160, h)}px`)
+	});
+	let open = true;
+	return {
+		element: el,
+		get ref() {
+			return renderer.ref;
+		},
+		update(next) {
+			if (!open) return;
+			renderer.updateProps(next);
+			floating.update();
+		},
+		reposition: () => floating.update(),
+		close() {
+			if (!open) return;
+			open = false;
+			floating.stop();
+			renderer.destroy();
+			el.remove();
+		}
+	};
+}
+/** the caret rectangle of a document position */
+function caretRect(editor, pos) {
+	return () => {
+		if (editor.isDestroyed) return null;
+		const at = Math.min(pos, editor.state.doc.content.size);
+		try {
+			const c = editor.view.coordsAtPos(at);
+			return new DOMRect(c.left, c.top, 0, c.bottom - c.top);
+		} catch {
+			return null;
+		}
+	};
+}
+// src/editor/pageSearch.ts
+var current = null;
+/** "link to page": search pages and insert a pageLink block at `at` */
+function openPageSearch(editor, at) {
+	current?.close();
+	const ctx = contextOf(editor);
+	const close = () => {
+		current?.close();
+		current = null;
+	};
+	const pick = (entry) => {
+		const s = entry.suggestion;
+		close();
+		const href = s.href ?? pageHref(ctx.config.base.pageHref, s.id);
+		const pos = Math.min(at, editor.state.doc.content.size);
+		editor.chain().focus().setTextSelection(pos).run();
+		insertFresh(editor, "pageLink", {
+			href,
+			title: s.label,
+			icon: s.icon && !/^(https?:|\/|data:|blob:)/.test(s.icon) ? s.icon : ""
+		});
+	};
+	current = openPopup(editor, PageSearch_default, {
+		search: async (q, signal) => (await searchMentions(ctx.services, q, "page", signal, ctx)).map((s) => mentionEntry(s, ctx)),
+		placeholder: ctx.t("pageLink.searchPlaceholder"),
+		empty: ctx.t("mention.empty"),
+		searching: ctx.t("mention.searching"),
+		label: ctx.t("pageLink.search"),
+		onPick: pick,
+		onClose: () => {
+			close();
+			editor.commands.focus();
+		}
+	}, caretRect(editor, at));
+}
+var pageLinkExtension = {
+	name: "pageLink",
+	tiptap: [Node$1.create({
+		name: "pageLink",
+		group: "block",
+		atom: true,
+		draggable: false,
+		selectable: true,
+		addAttributes() {
+			return {
+				href: stringAttr("href"),
+				title: stringAttr("title"),
+				icon: stringAttr("icon"),
+				color: paletteAttribute()
+			};
+		},
+		parseHTML() {
+			return [{ tag: "div[data-type=\"page-link\"]" }];
+		},
+		renderHTML({ HTMLAttributes, node }) {
+			const { href, title, icon } = node.attrs;
+			const link = [
+				"a",
+				{
+					href,
+					class: "wy-page-link-anchor"
+				},
+				[
+					"span",
+					{
+						class: "wy-page-link-icon",
+						"aria-hidden": "true"
+					},
+					icon || "📄"
+				],
+				[
+					"span",
+					{ class: "wy-page-link-title" },
+					title || href
+				]
+			];
+			return [
+				"div",
+				mergeAttributes({
+					"data-type": "page-link",
+					class: "wy-page-link"
+				}, HTMLAttributes),
+				link
+			];
+		}
+	})],
+	nodeViews: { pageLink: PageLinkView_default },
+	markdown: {
+		fences: [{
+			kind: "page",
+			parse: (ctx) => {
+				const a = ctx.info.attrs;
+				ctx.atom("page_link", {
+					href: a.href ?? "",
+					title: a.title ?? "",
+					icon: a.icon ?? ""
+				});
+			}
+		}],
+		tokens: { page_link: {
+			node: "pageLink",
+			getAttrs: (tok) => ({
+				href: tok.meta.href,
+				title: tok.meta.title,
+				icon: tok.meta.icon,
+				color: tok.meta.blockAttrs?.color ?? null
+			})
+		} },
+		nodes: { pageLink(state, node, _parent, _index, h) {
+			h.writeFence(state, node, formatInfo("page", {
+				href: infoUrl(node.attrs.href),
+				title: infoText(node.attrs.title),
+				icon: infoText(node.attrs.icon).replace(/\s/g, "")
+			}), "");
+			writeColorLine(state, node);
+		} }
+	},
+	slash: [{
+		id: "pageLink",
+		group: "blocks",
+		rank: 45,
+		label: "",
+		icon: FileSymlink,
+		keywords: "link to page subpage mention",
+		enabled: (editor) => !!editor.storage.wysiwyg?.context?.services.searchMentions,
+		run: (c) => {
+			const at = c.range?.from ?? c.editor.state.selection.from;
+			c.clear();
+			openPageSearch(c.editor, at);
+		}
+	}]
+};
+// src/components/AnchoredPopover.vue
+var AnchoredPopover_default = /* @__PURE__ */ defineComponent({
+	inheritAttrs: false,
+	__name: "AnchoredPopover",
+	props: {
+		anchor: {},
+		side: { default: "bottom" },
+		align: { default: "start" }
+	},
+	emits: ["escape"],
+	setup(__props, { expose: __expose, emit: __emit }) {
+		const props = __props;
+		const emit = __emit;
+		const root = ref(null);
+		const pos = ref({
+			x: -9999,
+			y: -9999
+		});
+		const room = ref(9999);
+		let floating = null;
+		function place() {
+			floating?.update();
+		}
+		function bind() {
+			floating?.stop();
+			floating = null;
+			if (!root.value || !props.anchor) return;
+			floating = floatNear(props.anchor, root.value, {
+				placement: props.align === "center" ? props.side : `${props.side}-${props.align}`,
+				offset: 4,
+				padding: 8,
+				apply: (x, y) => pos.value = {
+					x,
+					y
+				},
+				room: (h) => room.value = h
+			});
+		}
+		watch(() => props.anchor, bind);
+		onMounted(bind);
+		onBeforeUnmount(() => floating?.stop());
+		__expose({
+			place,
+			el: root
+		});
+		return (_ctx, _cache) => {
+			return openBlock(), createBlock(Teleport, { to: "body" }, [createElementVNode("div", mergeProps({
+				ref_key: "root",
+				ref: root
+			}, _ctx.$attrs, {
+				class: "wy-floating",
+				style: {
+					left: `${pos.value.x}px`,
+					top: `${pos.value.y}px`,
+					"--wy-popover-room": `${room.value}px`
+				},
+				contenteditable: "false",
+				"data-block-portal": "",
+				onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["stop"])),
+				onKeydown: _cache[1] || (_cache[1] = (e) => e.key === "Escape" && emit("escape", e))
+			}), [renderSlot(_ctx.$slots, "default")], 16)]);
+		};
+	}
+});
+// src/nodes/MentionView.vue?vue&type=script&setup=true&lang.ts
+var _hoisted_1$22 = ["href"];
+var _hoisted_2$19 = {
+	class: "wy-mention-icon",
+	"aria-hidden": "true"
+};
+var _hoisted_3$19 = ["title"];
+var _hoisted_4$18 = { class: "wy-field" };
+var _hoisted_5$16 = { class: "wy-label" };
+var _hoisted_6$12 = ["value"];
+var _hoisted_7$9 = { class: "wy-check" };
+var _hoisted_8$7 = ["checked"];
+var _hoisted_9$5 = ["value", "aria-label"];
+var _hoisted_10$5 = { class: "wy-check" };
+var _hoisted_11$5 = ["checked"];
+var _hoisted_12$5 = [
+	"value",
+	"min",
+	"aria-label"
+];
+// src/nodes/MentionView.vue
+var MentionView_default = /* @__PURE__ */ defineComponent({
+	__name: "MentionView",
+	props: nodeViewProps,
+	setup(__props) {
+		const props = __props;
+		const ctx = contextOf(props.editor);
+		const t = ctx.t;
+		const { selected, editing, startEdit, finishEdit, update, readonly, onKeydown } = useBlockNode(props);
+		const anchor = ref(null);
+		const a = computed(() => props.node.attrs);
+		const href = computed(() => a.value.kind === "page" && a.value.id ? pageHref(ctx.config.base.pageHref, a.value.id) : "");
+		const resolved = ref(null);
+		const text = computed(() => a.value.kind === "page" && resolved.value?.title || mentionText(a.value, ctx.locale));
+		const icon = computed(() => /^(https?:|\/|data:|blob:)/.test(resolved.value?.icon ?? "") ? "" : resolved.value?.icon || "");
+		watch(href, async (h) => {
+			resolved.value = null;
+			const r = await resolveOnce(ctx.services, h);
+			if (h === href.value) resolved.value = r;
+		}, { immediate: true });
+		const startDate = computed(() => (a.value.start ?? "").slice(0, 10));
+		const startTime = computed(() => (a.value.start ?? "").slice(11, 16));
+		const endDate = computed(() => (a.value.end ?? "").slice(0, 10));
+		const withTime = computed(() => (a.value.start ?? "").includes("T"));
+		/** date attributes and a fresh label in the editor's locale */
+		function setDate(next) {
+			const date = next.date ?? startDate.value;
+			if (!isMentionDate(date)) return;
+			const time = next.time === void 0 ? startTime.value : next.time;
+			const start = time ? `${date}T${time}` : date;
+			const endDay = next.end === void 0 ? endDate.value : next.end;
+			const end = endDay && isMentionDate(endDay) ? time ? `${endDay}T${time}` : endDay : null;
+			update({
+				start,
+				end,
+				label: dateLabel(start, end, ctx.locale)
+			});
+		}
+		function onClick(e) {
+			if (a.value.kind === "page" && href.value) followLink(ctx.services, href.value, e, true);
+			else if (a.value.kind === "date" && !readonly.value) startEdit();
+		}
+		function onKey(e) {
+			if (e.key === "Enter") {
+				e.preventDefault();
+				finishEdit();
+			}
+		}
+		return (_ctx, _cache) => {
+			return openBlock(), createBlock(unref(NodeViewWrapper), {
+				as: "span",
+				class: normalizeClass(["wy-inline-atom wy-mention-atom", {
+					"is-selected": unref(selected),
+					"is-editing": unref(editing)
+				}])
+			}, {
+				default: withCtx(() => [a.value.kind === "page" ? (openBlock(), createElementBlock("a", {
+					key: 0,
+					ref_key: "anchor",
+					ref: anchor,
+					class: "wy-mention is-page",
+					href: href.value || void 0,
+					draggable: "false",
+					onClick
+				}, [createElementVNode("span", _hoisted_2$19, [icon.value ? (openBlock(), createElementBlock(Fragment$1, { key: 0 }, [createTextVNode(toDisplayString(icon.value), 1)], 64)) : (openBlock(), createBlock(unref(FileText), {
+					key: 1,
+					size: 14
+				}))]), createTextVNode(toDisplayString(text.value), 1)], 8, _hoisted_1$22)) : (openBlock(), createElementBlock("span", {
+					key: 1,
+					ref_key: "anchor",
+					ref: anchor,
+					class: normalizeClass(["wy-mention", `is-${a.value.kind}`]),
+					title: a.value.kind === "date" && !unref(readonly) ? unref(t)("mention.editDate") : void 0,
+					onClick
+				}, [a.value.kind === "date" ? (openBlock(), createBlock(unref(CalendarDays), {
+					key: 0,
+					class: "wy-mention-icon",
+					size: 14,
+					"aria-hidden": "true"
+				})) : createCommentVNode("", true), createTextVNode(toDisplayString(text.value), 1)], 10, _hoisted_3$19)), unref(editing) && a.value.kind === "date" ? (openBlock(), createBlock(AnchoredPopover_default, {
+					key: 2,
+					anchor: anchor.value,
+					class: "wy-popover wy-date-picker",
+					onEscape: unref(onKeydown)
+				}, {
+					default: withCtx(() => [
+						createElementVNode("label", _hoisted_4$18, [createElementVNode("span", _hoisted_5$16, toDisplayString(unref(t)("mention.date")), 1), createElementVNode("input", {
+							class: "wy-input is-sm",
+							type: "date",
+							value: startDate.value,
+							onChange: _cache[0] || (_cache[0] = ($event) => setDate({ date: $event.target.value })),
+							onKeydown: onKey
+						}, null, 40, _hoisted_6$12)]),
+						createElementVNode("label", _hoisted_7$9, [createElementVNode("input", {
+							type: "checkbox",
+							checked: withTime.value,
+							onChange: _cache[1] || (_cache[1] = ($event) => setDate({ time: $event.target.checked ? "09:00" : null }))
+						}, null, 40, _hoisted_8$7), createTextVNode(" " + toDisplayString(unref(t)("mention.includeTime")), 1)]),
+						withTime.value ? (openBlock(), createElementBlock("input", {
+							key: 0,
+							class: "wy-input is-sm",
+							type: "time",
+							value: startTime.value,
+							"aria-label": unref(t)("mention.time"),
+							onChange: _cache[2] || (_cache[2] = ($event) => setDate({ time: $event.target.value || null })),
+							onKeydown: onKey
+						}, null, 40, _hoisted_9$5)) : createCommentVNode("", true),
+						createElementVNode("label", _hoisted_10$5, [createElementVNode("input", {
+							type: "checkbox",
+							checked: !!endDate.value,
+							onChange: _cache[3] || (_cache[3] = ($event) => setDate({ end: $event.target.checked ? startDate.value : null }))
+						}, null, 40, _hoisted_11$5), createTextVNode(" " + toDisplayString(unref(t)("mention.endDate")), 1)]),
+						endDate.value ? (openBlock(), createElementBlock("input", {
+							key: 1,
+							class: "wy-input is-sm",
+							type: "date",
+							value: endDate.value,
+							min: startDate.value,
+							"aria-label": unref(t)("mention.endDate"),
+							onChange: _cache[4] || (_cache[4] = ($event) => setDate({ end: $event.target.value || null })),
+							onKeydown: onKey
+						}, null, 40, _hoisted_12$5)) : createCommentVNode("", true)
+					]),
+					_: 1
+				}, 8, ["anchor", "onEscape"])) : createCommentVNode("", true)]),
+				_: 1
+			}, 8, ["class"]);
+		};
+	}
+});
+// src/builtins/mention.ts
+var KINDS = [
+	"user",
+	"page",
+	"date"
+];
+function attr(name, fallback) {
+	return {
+		default: fallback,
+		parseHTML: (dom) => dom.getAttribute(`data-${name}`) ?? fallback,
+		renderHTML: (a) => a[name] ? { [`data-${name}`]: String(a[name]) } : {}
+	};
+}
+function mentionText(a, locale) {
+	if (a.kind === "date" && isMentionDate(a.start)) return a.label || dateLabel(a.start, isMentionDate(a.end) ? a.end : null, locale);
+	return a.kind === "user" ? `@${a.label || a.id}` : a.label || a.id;
+}
+var Mention = Node$1.create({
+	name: "mention",
+	group: "inline",
+	inline: true,
+	atom: true,
+	selectable: true,
+	addOptions() {
+		return { pageHref: "/p/{id}" };
+	},
+	addAttributes() {
+		return {
+			kind: {
+				default: "user",
+				parseHTML: (dom) => KINDS.find((k) => k === dom.getAttribute("data-kind")) ?? "user",
+				renderHTML: (a) => ({ "data-kind": a.kind })
+			},
+			id: attr("id", ""),
+			label: {
+				default: "",
+				parseHTML: (dom) => dom.getAttribute("data-label") ?? dom.textContent?.replace(/^@/, "") ?? "",
+				renderHTML: (a) => ({ "data-label": a.label })
+			},
+			start: attr("start", null),
+			end: attr("end", null)
+		};
+	},
+	parseHTML() {
+		return [{ tag: "span[data-type=\"mention\"][data-kind]" }, { tag: "a[data-type=\"mention\"][data-kind]" }];
+	},
+	renderHTML({ HTMLAttributes, node }) {
+		const a = node.attrs;
+		const attrs = mergeAttributes({
+			"data-type": "mention",
+			class: `wy-mention is-${a.kind}`
+		}, HTMLAttributes);
+		const text = mentionText(a, "en");
+		if (a.kind === "page" && a.id) return [
+			"a",
+			mergeAttributes(attrs, { href: pageHref(this.options.pageHref, a.id) }),
+			text
+		];
+		return [
+			"span",
+			attrs,
+			text
+		];
+	},
+	renderText({ node }) {
+		return mentionText(node.attrs, "en");
+	}
+});
+var MENTION_KEY = new PluginKey("wysiwygMention");
+var MentionSuggest = Extension.create({
+	name: "mentionSuggest",
+	addProseMirrorPlugins() {
+		let abort = null;
+		return [Suggestion({
+			editor: this.editor,
+			char: "@",
+			pluginKey: MENTION_KEY,
+			allowSpaces: false,
+			allow: ({ state, range }) => !state.doc.resolve(range.from).parent.type.spec.code && !!state.schema.nodes.mention,
+			items: async ({ query, editor }) => {
+				abort?.abort();
+				const ctrl = abort = new AbortController();
+				const ctx = contextOf(editor);
+				const pause = Promise.withResolvers();
+				setTimeout(pause.resolve, ctx.services.searchMentions ? 120 : 0);
+				await pause.promise;
+				if (ctrl.signal.aborted) return [];
+				return (await searchMentions(ctx.services, query, void 0, ctrl.signal, ctx)).map((s) => mentionEntry(s, ctx));
+			},
+			command: ({ editor, range, props }) => {
+				const s = props.suggestion;
+				const attrs = {
+					kind: s.kind,
+					id: s.id,
+					label: s.label,
+					start: s.start ?? null,
+					end: s.end ?? null
+				};
+				editor.chain().focus().insertContentAt(range, [{
+					type: "mention",
+					attrs
+				}, {
+					type: "text",
+					text: " "
+				}]).run();
+			},
+			render: () => {
+				let popup = null;
+				const props = (p) => {
+					const ctx = contextOf(p.editor);
+					return {
+						items: p.items,
+						empty: ctx.services.searchMentions ? ctx.t("mention.empty") : "",
+						label: ctx.t("mention.label"),
+						onPick: p.command
+					};
+				};
+				return {
+					onStart(p) {
+						popup = openPopup(p.editor, SuggestionList_default, props(p), () => p.clientRect?.() ?? null);
+					},
+					onUpdate(p) {
+						popup?.update(props(p));
+					},
+					onKeyDown(p) {
+						if (p.event.key === "Escape") {
+							p.event.stopPropagation();
+							popup?.close();
+							popup = null;
+							return true;
+						}
+						return (popup?.ref)?.onKeyDown?.(p.event) ?? false;
+					},
+					onExit() {
+						abort?.abort();
+						popup?.close();
+						popup = null;
+					}
+				};
+			}
+		})];
+	}
+});
+function mentionExtension(base) {
+	return {
+		name: "mention",
+		tiptap: [Mention.configure({ pageHref: base.pageHref }), MentionSuggest],
+		nodeViews: { mention: MentionView_default },
+		markdown: {
+			plugins: [(md) => md.inline.ruler.before("link", "mention", mentionRule)],
+			tokens: { mention: {
+				node: "mention",
+				getAttrs: (tok) => ({ ...tok.meta })
+			} },
+			nodes: { mention(state, node) {
+				const md = mentionMarkdown(node.attrs);
+				if (md) state.write(md);
+				else state.text(String(node.attrs.label ?? ""));
+			} }
+		}
+	};
+}
+// src/builtins/index.ts
+function builtinExtensions(base) {
+	const out = [];
+	if (base.math) out.push(mathExtension);
+	if (base.details) out.push(detailsExtension);
+	if (base.footnotes) out.push(footnotesExtension);
+	if (base.columns) out.push(columnsExtension);
+	if (base.bookmarks) out.push(bookmarkExtension);
+	if (base.embeds) out.push(embedExtension);
+	if (base.toc) out.push(tocExtension);
+	if (base.pageLinks) out.push(pageLinkExtension);
+	if (base.mentions) out.push(mentionExtension(base));
+	return out;
+}
+// src/schema/index.ts
+var ALL_LEVELS = [
+	1,
+	2,
+	3,
+	4,
+	5,
+	6
+];
+function resolveBase(format, base = {}) {
+	const html = format === "html";
+	const callouts = base.callouts ?? true;
+	const code = base.codeBlocks ?? true;
+	return {
+		headings: base.headings === false ? [] : base.headings ?? (html ? [
+			1,
+			2,
+			3
+		] : ALL_LEVELS),
+		underline: base.underline ?? html,
+		highlight: base.highlight ?? true,
+		color: base.color ?? html,
+		textAlign: base.textAlign ?? html,
+		lists: base.lists ?? true,
+		listStyles: base.listStyles ?? !html,
+		taskLists: base.taskLists ?? true,
+		blockquote: base.blockquote ?? true,
+		callouts: callouts === true ? [...html ? HTML_CALLOUTS : MARKDOWN_CALLOUTS] : callouts === false ? [] : callouts,
+		dividers: base.dividers ?? true,
+		codeBlocks: code === true ? [...CODE_LANGUAGES] : code === false ? false : code,
+		tables: base.tables ?? true,
+		images: base.images ?? true,
+		files: base.files ?? true,
+		links: base.links ?? true,
+		downscale: base.downscale ?? 2560,
+		math: base.math ?? false,
+		details: base.details ?? false,
+		footnotes: base.footnotes ?? false,
+		columns: base.columns ?? false,
+		bookmarks: base.bookmarks ?? false,
+		embeds: base.embeds ?? false,
+		toc: base.toc ?? false,
+		pageLinks: base.pageLinks ?? false,
+		mentions: base.mentions ?? false,
+		diagrams: base.diagrams === true ? ["mermaid", "plantuml"] : base.diagrams || [],
+		plantumlServer: (base.plantumlServer ?? "https://www.plantuml.com/plantuml").replace(/\/+$/, ""),
+		pageHref: base.pageHref ?? "/p/{id}"
+	};
+}
+/** shared default, so callers without extensions hit the same cache entry */
+var NO_EXTENSIONS = [];
+var configs = /* @__PURE__ */ new WeakMap();
+function resolveConfig(format, base, extensions = NO_EXTENSIONS) {
+	let byKey = configs.get(extensions);
+	if (!byKey) configs.set(extensions, byKey = /* @__PURE__ */ new Map());
+	const key = `${format}:${JSON.stringify(base ?? {})}`;
+	const hit = byKey.get(key);
+	if (hit) return hit;
+	const resolved = resolveBase(format, base);
+	const config = {
+		format,
+		base: resolved,
+		extensions: [...builtinExtensions(resolved), ...extensions.filter((e) => !e.formats || e.formats.includes(format))]
+	};
+	byKey.set(key, config);
+	return config;
+}
+function coreExtensions(config, inline, history) {
+	const b = config.base;
+	const lists = b.lists && !inline;
+	const listItems = lists || !inline && b.taskLists;
+	const out = [Bold];
+	if (!inline && (b.blockquote || b.callouts.length > 0)) out.push(Blockquote);
+	if (listItems) out.push(BulletList);
+	out.push(Code);
+	if (!inline) out.push(Document, Dropcursor.configure({
+		color: "var(--vc-accent)",
+		width: 2
+	}), Gapcursor, HardBreak);
+	if (!inline && b.headings.length) out.push(Heading.configure({ levels: b.headings }));
+	if (history) out.push(UndoRedo.configure({ newGroupDelay: 500 }));
+	out.push(Italic);
+	if (listItems) out.push(ListItem);
+	if (!inline) out.push(ListKeymap);
+	if (b.links) out.push(Link.configure({
+		openOnClick: false,
+		autolink: true,
+		linkOnPaste: true,
+		defaultProtocol: "https",
+		HTMLAttributes: {
+			target: "_blank",
+			rel: "noopener noreferrer"
+		}
+	}));
+	if (lists) out.push(OrderedList);
+	out.push(Paragraph, Strike, Text);
+	if (b.underline) out.push(Underline);
+	if (!inline) out.push(TrailingNode);
+	return out;
+}
+/**
+* not cached: `history: false` leaves the local undo history out for a collaborative editor, whose
+* collaboration extension owns it. the history adds no schema, so `schemaFor` is the same either way.
+*/
+function schemaExtensions(config, inline = false, history = true) {
+	const b = config.base;
+	const html = config.format === "html";
+	const out = [];
+	if (inline) out.push(InlineDocument);
+	out.push(...coreExtensions(config, inline, history));
+	if (b.highlight) out.push(Highlight.configure({ multicolor: html }));
+	if (b.color) out.push(TextStyle, Color);
+	if (b.textAlign && !inline) out.push(TextAlign.configure({ types: ["heading", "paragraph"] }));
+	if (b.links && b.files) out.push(FileChips);
+	if (!inline) {
+		if (b.dividers) out.push(Divider);
+		if (b.listStyles && b.lists) out.push(ListStyles);
+		if (b.codeBlocks) out.push(GenericCodeBlock);
+		if (b.images) out.push(InlineImage, Figure);
+		if (b.tables) out.push(Table.configure({ resizable: true }), TableRow, InlineTableHeader, InlineTableCell);
+		if (b.taskLists) out.push(TaskList, TaskItem.configure({ nested: true }));
+		if (b.callouts.length) out.push(Callout);
+	}
+	for (const ext of config.extensions) out.push(...ext.tiptap ?? []);
+	return out;
+}
+var schemas = /* @__PURE__ */ new WeakMap();
+function schemaFor(config, inline = false) {
+	let entry = schemas.get(config);
+	if (!entry) schemas.set(config, entry = {});
+	const key = inline ? "inline" : "block";
+	return entry[key] ??= getSchema(schemaExtensions(config, inline, false));
+}
+// src/markdown/rules.ts
+function imageAttrsRule(state, silent) {
+	if (silent || state.src.charCodeAt(state.pos) !== 123 || state.pending) return false;
+	const prev = state.tokens[state.tokens.length - 1];
+	if (!prev || prev.type !== "image") return false;
+	const m = /^\{([^{}\n]*)\}/.exec(state.src.slice(state.pos, state.posMax));
+	if (!m) return false;
+	const attrs = parseImageAttrs(m[1]);
+	if (!attrs) return false;
+	prev.meta = {
+		...prev.meta,
+		...attrs
+	};
+	state.pos += m[0].length;
+	return true;
+}
+function figureRule(state) {
+	const tokens = state.tokens;
+	for (let i = 0; i + 2 < tokens.length; i++) {
+		const inline = tokens[i + 1];
+		if (tokens[i].type !== "paragraph_open" || inline.type !== "inline" || tokens[i + 2].type !== "paragraph_close") continue;
+		const prev = i > 0 ? tokens[i - 1].type : "";
+		if (prev === "list_item_open" || prev === "task_item_open") continue;
+		const image = inline.children?.length === 1 ? inline.children[0] : null;
+		if (!image || image.type !== "image") continue;
+		const attrs = image.meta ?? {
+			width: null,
+			align: null
+		};
+		const fig = new state.Token("figure", "figure", 0);
+		fig.block = true;
+		fig.map = tokens[i].map;
+		fig.meta = {
+			image,
+			caption: String(image.attrGet("title") ?? ""),
+			width: attrs.width,
+			align: attrs.align
+		};
+		tokens.splice(i, 3, fig);
+	}
+}
+var CELL_BREAK = /<br\s*\/?>/gi;
+/** an all-empty header row is dropped (that is how a headerless table is written); `\<br>` stays text; must run before `text_join` */
+function tableCellsRule(state) {
+	const tokens = state.tokens;
+	let inCell = false;
+	for (let i = 0; i < tokens.length; i++) {
+		const t = tokens[i];
+		if (t.type === "th_open" || t.type === "td_open") inCell = true;
+		else if (t.type === "th_close" || t.type === "td_close") inCell = false;
+		else if (t.type === "inline" && inCell && t.children) t.children = splitCellBreaks(state, t.children);
+		else if (t.type === "thead_open" && dropEmptyHead(tokens, i)) i--;
+	}
+}
+function splitCellBreaks(state, children) {
+	const out = [];
+	for (const child of children) {
+		const parts = child.type === "text" ? child.content.split(CELL_BREAK) : [];
+		if (parts.length < 2) {
+			out.push(child);
+			continue;
+		}
+		parts.forEach((part, k) => {
+			if (k > 0) out.push(new state.Token("hardbreak", "br", 0));
+			if (!part) return;
+			const text = new state.Token("text", "", 0);
+			text.content = part;
+			out.push(text);
+		});
+	}
+	return out;
+}
+function dropEmptyHead(tokens, i) {
+	let end = i;
+	while (end < tokens.length && tokens[end].type !== "thead_close") end++;
+	if (tokens[end + 1]?.type !== "tbody_open") return false;
+	for (let k = i; k < end; k++) if (tokens[k].type === "inline" && tokens[k].content.trim()) return false;
+	tokens.splice(i, end - i + 1);
+	return true;
+}
+var CALLOUT_RE = /^\[!([A-Za-z]+)\][ \t]*([^\n]*)(?:\n|$)/;
+function calloutAt(tokens, i, kinds) {
+	const inline = tokens[i + 2];
+	if (tokens[i]?.type !== "blockquote_open" || tokens[i + 1]?.type !== "paragraph_open" || inline?.type !== "inline") return null;
+	const m = CALLOUT_RE.exec(inline.content);
+	const type = m?.[1].toLowerCase() ?? "";
+	if (!m || !kinds.includes(type)) return null;
+	let depth = 0;
+	for (let j = i; j < tokens.length; j++) {
+		const t = tokens[j].type;
+		if (t === "blockquote_open") depth++;
+		else if (t === "blockquote_close" && --depth === 0) return {
+			type,
+			title: m[2].trim(),
+			inline,
+			rest: inline.content.slice(m[0].length),
+			close: j
+		};
+	}
+	return null;
+}
+function retagCallouts(tokens, kinds) {
+	for (let i = 0; i < tokens.length; i++) {
+		const callout = calloutAt(tokens, i, kinds);
+		if (!callout) continue;
+		tokens[i].type = "callout_open";
+		tokens[i].meta = {
+			...tokens[i].meta,
+			type: callout.type,
+			title: callout.title
+		};
+		tokens[callout.close].type = "callout_close";
+		if (callout.rest.trim() === "") tokens.splice(i + 1, 3);
+		else {
+			callout.inline.content = callout.rest;
+			callout.inline.children = [];
+		}
+	}
+}
+var TASK_RE = /^\[([ xX])\][ \t]+/;
+function retagTaskLists(tokens) {
+	for (let i = 0; i < tokens.length; i++) {
+		if (tokens[i].type !== "bullet_list_open") continue;
+		const items = [];
+		let ok = true;
+		let depth = 0;
+		let j = i;
+		for (; j < tokens.length; j++) {
+			const t = tokens[j];
+			if (t.type === "bullet_list_open" || t.type === "ordered_list_open") depth++;
+			else if (t.type === "bullet_list_close" || t.type === "ordered_list_close") {
+				if (--depth === 0) break;
+			} else if (t.type === "list_item_open" && depth === 1) {
+				const para = tokens[j + 1];
+				const inline = tokens[j + 2];
+				const m = para?.type === "paragraph_open" && inline?.type === "inline" ? TASK_RE.exec(inline.content) : null;
+				if (!m) {
+					ok = false;
+					break;
+				}
+				items.push({
+					open: t,
+					inline,
+					checked: m[1] !== " "
+				});
+			}
+		}
+		if (!ok || items.length === 0) continue;
+		tokens[i].type = "task_list_open";
+		tokens[j].type = "task_list_close";
+		depth = 0;
+		for (let k = i; k <= j; k++) {
+			const t = tokens[k];
+			if (t.type === "task_list_open" || t.type === "bullet_list_open" || t.type === "ordered_list_open") depth++;
+			else if (t.type === "task_list_close" || t.type === "bullet_list_close" || t.type === "ordered_list_close") depth--;
+			else if (depth === 1 && t.type === "list_item_open") t.type = "task_item_open";
+			else if (depth === 1 && t.type === "list_item_close") t.type = "task_item_close";
+		}
+		for (const it of items) {
+			it.open.meta = { checked: it.checked };
+			it.inline.content = it.inline.content.replace(TASK_RE, "");
+			it.inline.children = [];
+		}
+	}
+}
+function wrapTableCells(state, tokens) {
+	for (let i = 0; i < tokens.length; i++) {
+		const t = tokens[i];
+		if (t.type !== "th_open" && t.type !== "td_open" || tokens[i + 1]?.type !== "inline") continue;
+		tokens.splice(i + 1, 0, new state.Token("paragraph_open", "p", 1));
+		tokens.splice(i + 3, 0, new state.Token("paragraph_close", "p", -1));
+		i += 3;
+	}
+}
+function atomToken(node) {
+	return `${node}__fence`;
+}
+/** runs on the block stream before the inline rule so nested container bodies are retagged too and their inline content is parsed once by the outer core chain */
+function retagTokens(state, tokens, opts) {
+	retagFences(state, tokens, opts);
+	if (opts.callouts.length) retagCallouts(tokens, opts.callouts);
+	if (opts.taskLists) retagTaskLists(tokens);
+	if (opts.tables) wrapTableCells(state, tokens);
+	for (const hook of opts.hooks) hook(tokens, { Token: state.Token });
+}
+function spliceContainer(state, tokens, i, name, meta, body, opts) {
+	const open = new state.Token(`${name}_open`, "div", 1);
+	open.block = true;
+	open.meta = meta;
+	const close = new state.Token(`${name}_close`, "div", -1);
+	close.block = true;
+	const inner = [];
+	state.md.block.parse(body.replace(/\n$/, ""), state.md, state.env, inner);
+	if (inner.length === 0) {
+		const text = new state.Token("inline", "", 0);
+		text.content = "";
+		text.children = [];
+		inner.push(new state.Token("paragraph_open", "p", 1), text, new state.Token("paragraph_close", "p", -1));
+	}
+	retagTokens(state, inner, opts);
+	tokens.splice(i, 1, open, ...inner, close);
+	return inner.length + 1;
+}
+function spliceSections(state, tokens, i, name, child, meta, body, opts) {
+	const sections = splitSections(body.replace(/\n$/, ""));
+	if (sections.length === 0) sections.push({
+		label: "",
+		body: ""
+	});
+	const inner = sections.map(() => tokens[i]);
+	for (let k = sections.length - 1; k >= 0; k--) spliceContainer(state, inner, k, child, { label: sections[k].label }, sections[k].body, opts);
+	const open = new state.Token(`${name}_open`, "div", 1);
+	open.block = true;
+	open.meta = meta;
+	const close = new state.Token(`${name}_close`, "div", -1);
+	close.block = true;
+	tokens.splice(i, 1, open, ...inner, close);
+	return inner.length + 1;
+}
+function findRule(rules, info) {
+	for (let k = rules.length - 1; k >= 0; k--) {
+		const r = rules[k];
+		if (r.kind === info.kind && (!r.match || r.match(info))) return r;
+	}
+	return null;
+}
+function retagFences(state, tokens, opts) {
+	if (!opts.fences.length) return;
+	for (let i = 0; i < tokens.length; i++) {
+		const t = tokens[i];
+		if (t.type !== "fence") continue;
+		const info = parseInfo(t.info.trim());
+		const rule = findRule(opts.fences, info);
+		if (!rule) continue;
+		if (rule.parse) {
+			let advance = 0;
+			const own = t.content.replace(/\n$/, "");
+			const ctx = {
+				info,
+				body: own,
+				token: t,
+				container: (name, meta, body = own) => void (advance = spliceContainer(state, tokens, i, name, meta, body, opts)),
+				sections: (name, child, meta, body = own) => void (advance = spliceSections(state, tokens, i, name, child, meta, body, opts)),
+				atom: (name, meta) => {
+					t.type = name;
+					t.meta = {
+						...t.meta,
+						...meta
+					};
+				}
+			};
+			rule.parse(ctx);
+			i += advance;
+			continue;
+		}
+		if (!rule.node) continue;
+		if (rule.ensureId && !info.attrs.id) info.attrs = {
+			id: newBlockId(),
+			...info.attrs
+		};
+		t.meta = {
+			...t.meta,
+			kind: info.kind,
+			attrs: info.attrs
+		};
+		t.type = atomToken(rule.node);
+	}
+}
+// src/markdown/index.ts
+function cellAttrs(tok) {
+	const m = /text-align:\s*(left|center|right)/.exec(String(tok.attrGet("style") ?? ""));
+	return { align: m ? m[1] : null };
+}
+function imageAttrs(meta) {
+	return {
+		width: meta?.width ?? null,
+		align: meta?.align ?? null
+	};
+}
+function baseTokens(config) {
+	const levels = config.base.headings;
+	const top = levels.length ? Math.max(...levels) : 6;
+	return {
+		blockquote: { block: "blockquote" },
+		paragraph: { block: "paragraph" },
+		list_item: { block: "listItem" },
+		bullet_list: {
+			block: "bulletList",
+			getAttrs: (tok) => ({
+				listStyle: tok.meta?.list?.style ?? null,
+				marker: tok.meta?.list?.marker ?? null
+			})
+		},
+		ordered_list: {
+			block: "orderedList",
+			getAttrs: (tok) => ({
+				start: +(tok.attrGet("start") ?? 1) || 1,
+				listStyle: tok.meta?.list?.style ?? null
+			})
+		},
+		task_list: { block: "taskList" },
+		task_item: {
+			block: "taskItem",
+			getAttrs: (tok) => ({ checked: !!tok.meta?.checked })
+		},
+		heading: {
+			block: "heading",
+			getAttrs: (tok) => ({ level: Math.min(+tok.tag.slice(1), top) })
+		},
+		code_block: {
+			block: "codeBlock",
+			noCloseToken: true,
+			getAttrs: () => ({
+				language: null,
+				meta: ""
+			})
+		},
+		fence: {
+			block: "codeBlock",
+			noCloseToken: true,
+			getAttrs: (tok) => {
+				const info = tok.info.trim();
+				const sp = info.search(/\s/);
+				return {
+					language: (sp < 0 ? info : info.slice(0, sp)) || null,
+					meta: sp < 0 ? "" : info.slice(sp + 1).trim()
+				};
+			}
+		},
+		hr: {
+			node: "horizontalRule",
+			getAttrs: (tok) => ({
+				...DEFAULT_DIVIDER,
+				...tok.meta?.divider
+			})
+		},
+		image: {
+			node: "image",
+			getAttrs: (tok) => ({
+				src: tok.attrGet("src"),
+				title: tok.attrGet("title") || null,
+				alt: tok.children?.map((c) => c.content).join("") || null,
+				...imageAttrs(tok.meta)
+			})
+		},
+		figure: {
+			node: "figure",
+			getAttrs: (tok) => {
+				const meta = tok.meta;
+				return {
+					src: meta.image.attrGet("src"),
+					alt: meta.image.children?.map((c) => c.content).join("") || null,
+					caption: meta.caption || null,
+					...imageAttrs(meta)
+				};
+			}
+		},
+		hardbreak: { node: "hardBreak" },
+		em: { mark: "italic" },
+		strong: { mark: "bold" },
+		s: { mark: "strike" },
+		mark: { mark: "highlight" },
+		link: {
+			mark: "link",
+			getAttrs: (tok) => ({
+				href: tok.attrGet("href"),
+				title: tok.attrGet("title") || null
+			})
+		},
+		code_inline: {
+			mark: "code",
+			noCloseToken: true
+		},
+		table: { block: "table" },
+		thead: { ignore: true },
+		tbody: { ignore: true },
+		tr: { block: "tableRow" },
+		th: {
+			block: "tableHeader",
+			getAttrs: cellAttrs
+		},
+		td: {
+			block: "tableCell",
+			getAttrs: cellAttrs
+		},
+		callout: {
+			block: "callout",
+			getAttrs: (tok) => ({
+				type: tok.meta.type,
+				title: tok.meta.title,
+				icon: tok.meta.blockAttrs?.icon ?? "",
+				color: tok.meta.blockAttrs?.color ?? null
+			})
+		}
+	};
+}
+function backticksFor(node, side) {
+	const ticks = /`+/g;
+	let m;
+	let len = 0;
+	if (node.isText) while (m = ticks.exec(node.text)) len = Math.max(len, m[0].length);
+	let result = len > 0 && side > 0 ? " `" : "`";
+	for (let i = 0; i < len; i++) result += "`";
+	if (len > 0 && side < 0) result += " ";
+	return result;
+}
+var ALIGN_RULES = {
+	left: ":--- |",
+	center: ":---: |",
+	right: "---: |"
+};
+function buildConverter(config) {
+	const b = config.base;
+	const exts = config.extensions;
+	const fences = exts.flatMap((e) => e.markdown?.fences ?? []);
+	const retag = {
+		callouts: b.callouts,
+		taskLists: b.taskLists,
+		tables: b.tables,
+		fences,
+		hooks: exts.flatMap((e) => e.markdown?.retag ? [e.markdown.retag] : [])
+	};
+	function markdownIt(schema, inline) {
+		const md = markdownit({
+			html: false,
+			linkify: false,
+			typographer: false,
+			breaks: false
+		});
+		if (b.highlight) md.use(mark);
+		if (!b.images) md.disable("image");
+		else md.inline.ruler.after("image", "image_attrs", imageAttrsRule);
+		if (b.images && schema.nodes.figure) md.core.ruler.after("inline", "figures", figureRule);
+		if (b.tables) md.core.ruler.before("text_join", "table_cells", tableCellsRule);
+		else md.disable("table");
+		if (b.listStyles || b.dividers) md.use(blockAttrsPlugin);
+		md.use(blockColorPlugin);
+		if (!b.dividers) md.disable("hr");
+		if (!b.headings.length) md.disable(["heading", "lheading"]);
+		if (!b.blockquote && !b.callouts.length) md.disable("blockquote");
+		if (!b.lists && !b.taskLists) md.disable("list");
+		if (!b.codeBlocks) md.disable(fences.length ? ["code"] : ["code", "fence"]);
+		if (!b.links) md.disable([
+			"link",
+			"autolink",
+			"reference"
+		]);
+		md.core.ruler.after("block", "pm_retag", (state) => retagTokens(state, state.tokens, retag));
+		for (const e of exts) for (const plugin of e.markdown?.plugins ?? []) plugin(md, {
+			schema,
+			inline
+		});
+		return md;
+	}
+	const specs = baseTokens(config);
+	for (const r of fences) if (!r.parse && r.node) specs[atomToken(r.node)] = {
+		node: r.node,
+		getAttrs: (tok) => ({
+			attrs: tok.meta.attrs,
+			body: tok.content.replace(/\n$/, "")
+		})
+	};
+	for (const e of exts) Object.assign(specs, e.markdown?.tokens);
+	const normalizers = exts.flatMap((e) => e.markdown?.normalize ? [e.markdown.normalize] : []);
+	function specsFor(schema) {
+		const out = {};
+		for (const [token, spec] of Object.entries(specs)) {
+			const name = spec.block ?? spec.node ?? spec.mark;
+			if (!name || schema.nodes[name] || schema.marks[name]) out[token] = spec;
+		}
+		return out;
+	}
+	const parsers = /* @__PURE__ */ new WeakMap();
+	const inlineParsers = /* @__PURE__ */ new WeakMap();
+	function parse(md, schema = blockSchema) {
+		let p = parsers.get(schema);
+		if (!p) parsers.set(schema, p = new MarkdownParser(schema, markdownIt(schema, false), specsFor(schema)));
+		let doc = p.parse(md.replace(/\r\n?/g, "\n"));
+		for (const n of normalizers) try {
+			doc = n(doc);
+		} catch (e) {
+			console.error("vue-wysiwyg-component: markdown normalize hook failed", e);
+		}
+		return doc;
+	}
+	function parseInline(md, schema = inlineSchema) {
+		let p = inlineParsers.get(schema);
+		if (!p) {
+			const it = markdownIt(schema, true);
+			p = new MarkdownParser(schema, { parse(src, env) {
+				const inline = it.parseInline(src, env)[0];
+				if (!inline) return [];
+				const Tok = inline.constructor;
+				return [
+					new Tok("paragraph_open", "p", 1),
+					inline,
+					new Tok("paragraph_close", "p", -1)
+				];
+			} }, specsFor(schema));
+			inlineParsers.set(schema, p);
+		}
+		return p.parse(md.replace(/\s*\n\s*/g, " ").trim());
+	}
+	let inAutolink = false;
+	function isPlainURL(link, parent, index) {
+		if (link.attrs.title || !/^\w+:/.test(String(link.attrs.href))) return false;
+		const content = parent.child(index);
+		if (!content.isText || content.text !== link.attrs.href || content.marks[content.marks.length - 1] !== link) return false;
+		return index === parent.childCount - 1 || !link.isInSet(parent.child(index + 1).marks);
+	}
+	const marks = {
+		italic: {
+			open: "*",
+			close: "*",
+			mixable: true,
+			expelEnclosingWhitespace: true
+		},
+		bold: {
+			open: "**",
+			close: "**",
+			mixable: true,
+			expelEnclosingWhitespace: true
+		},
+		strike: {
+			open: "~~",
+			close: "~~",
+			mixable: true,
+			expelEnclosingWhitespace: true
+		},
+		highlight: {
+			open: "==",
+			close: "==",
+			mixable: true,
+			expelEnclosingWhitespace: true
+		},
+		link: {
+			open(_state, mark, parent, index) {
+				inAutolink = isPlainURL(mark, parent, index);
+				return inAutolink ? "<" : "[";
+			},
+			close(_state, mark) {
+				const auto = inAutolink;
+				inAutolink = false;
+				if (auto) return ">";
+				const title = mark.attrs.title ? ` "${String(mark.attrs.title).replace(/"/g, String.raw`\"`)}"` : "";
+				return `](${String(mark.attrs.href ?? "").replace(/[()"]/g, String.raw`\$&`)}${title})`;
+			},
+			mixable: true
+		},
+		code: {
+			open: (_state, _mark, parent, index) => backticksFor(parent.child(index), -1),
+			close: (_state, _mark, parent, index) => backticksFor(parent.child(index - 1), 1),
+			escape: false
+		}
+	};
+	for (const e of exts) Object.assign(marks, e.markdown?.marks);
+	const escapes = [...b.highlight ? ["=(?==)"] : [], ...exts.flatMap((e) => e.markdown?.escape ? [e.markdown.escape] : [])];
+	const options = {
+		hardBreakNodeName: "hardBreak",
+		escapeExtraCharacters: escapes.length ? new RegExp(escapes.join("|"), "g") : void 0,
+		strict: false
+	};
+	function writeFence(state, node, info, body) {
+		const fence = fenceFor(body);
+		state.write(fence + info + "\n");
+		if (body) {
+			state.text(body, false);
+			state.write("\n");
+		}
+		state.write(fence);
+		state.closeBlock(node);
+	}
+	function contentMarkdown(node) {
+		return fragmentMarkdown(converter, node.content, node.type.schema);
+	}
+	function sectionsMarkdown(node) {
+		const sections = [];
+		node.forEach((child) => sections.push({
+			label: String(child.attrs.label ?? ""),
+			body: contentMarkdown(child)
+		}));
+		return joinSections(sections);
+	}
+	function inlineMarkdown(content) {
+		const schema = content.firstChild?.type.schema;
+		if (!schema || !content.size) return "";
+		return serializeInline(schema.topNodeType.create(null, schema.nodes.paragraph.create(null, content)));
+	}
+	const helpers = {
+		writeFence,
+		contentMarkdown,
+		sectionsMarkdown,
+		inlineMarkdown
+	};
+	function imageSyntax(state, node) {
+		const caption = String(node.attrs.caption ?? node.attrs.title ?? "");
+		const title = caption ? ` "${caption.replace(/"/g, String.raw`\"`)}"` : "";
+		return `![${state.esc(node.attrs.alt || "")}](${String(node.attrs.src).replace(/[()]/g, String.raw`\$&`)}${title})${formatImageAttrs(node.attrs)}`;
+	}
+	function writeListAttrs(state, node) {
+		const attrs = formatListAttrs({
+			style: node.attrs.listStyle,
+			marker: node.attrs.marker
+		});
+		if (!attrs) return;
+		state.flushClose(1);
+		state.write(attrs);
+		state.closeBlock(node.lastChild);
+	}
+	let cellSerializer = null;
+	function cellText(cell) {
+		cellSerializer ??= new MarkdownSerializer({
+			...nodes,
+			hardBreak(state) {
+				state.write("<br>");
+			},
+			text(state, node) {
+				state.text(node.text.replace(/<(br\s*\/?>)/gi, "\0$1"), !inAutolink);
+			}
+		}, marks, options);
+		const doc = cell.type.schema.topNodeType.create(null, cell.content);
+		return cellSerializer.serialize(doc, { tightLists: true }).split(/\n+/).map((l) => l.trim()).filter(Boolean).join(" ").replace(/\u0000/g, String.raw`\<`).replace(/\|/g, String.raw`\|`);
+	}
+	function serializeTable(state, node) {
+		const rows = [];
+		node.forEach((row) => {
+			const cells = [];
+			row.forEach((cell) => cells.push(cellText(cell)));
+			rows.push(cells);
+		});
+		const first = node.firstChild;
+		const cols = Math.max(1, ...rows.map((r) => r.length));
+		let header = true;
+		first?.forEach((cell) => {
+			if (cell.type.name !== "tableHeader") header = false;
+		});
+		const aligns = Array.from({ length: cols }, (_, i) => first && i < first.childCount ? first.child(i).attrs.align : null);
+		const line = (cells) => "| " + Array.from({ length: cols }, (_, i) => cells[i] ?? "").join(" | ") + " |";
+		const body = header ? rows.slice(1) : rows;
+		state.write(line(header ? rows[0] : []) + "\n");
+		state.write("|" + aligns.map((a) => " " + (ALIGN_RULES[a ?? ""] ?? "--- |")).join("") + (body.length ? "\n" : ""));
+		state.write(body.map(line).join("\n"));
+		state.closeBlock(node);
+	}
+	const nodes = {
+		blockquote(state, node) {
+			state.wrapBlock("> ", null, node, () => state.renderContent(node));
+		},
+		callout(state, node) {
+			const title = String(node.attrs.title ?? "").trim();
+			state.write(`> [!${String(node.attrs.type).toUpperCase()}]${title ? " " + title : ""}\n`);
+			state.wrapBlock("> ", null, node, () => state.renderContent(node));
+			const attrs = formatBlockAttrs([["icon", node.attrs.icon], ["color", node.attrs.color]]);
+			if (!attrs) return;
+			state.flushClose(1);
+			state.write(attrs);
+			state.closeBlock(node);
+		},
+		codeBlock(state, node) {
+			const lang = String(node.attrs.language ?? "");
+			const meta = String(node.attrs.meta ?? "");
+			writeFence(state, node, lang ? lang + (meta ? " " + meta : "") : "", node.textContent);
+		},
+		heading(state, node) {
+			state.write(state.repeat("#", node.attrs.level) + " ");
+			state.renderInline(node, false);
+			state.closeBlock(node);
+		},
+		horizontalRule(state, node) {
+			state.write("---");
+			const attrs = formatDividerAttrs(node.attrs);
+			if (attrs) {
+				state.ensureNewLine();
+				state.write(attrs);
+			}
+			state.closeBlock(node);
+		},
+		bulletList(state, node) {
+			state.renderList(node, "  ", () => "- ");
+			writeListAttrs(state, node);
+		},
+		orderedList(state, node) {
+			const start = node.attrs.start || 1;
+			const maxW = String(start + node.childCount - 1).length;
+			const space = state.repeat(" ", maxW + 2);
+			state.renderList(node, space, (i) => {
+				const n = String(start + i);
+				return state.repeat(" ", maxW - n.length) + n + ". ";
+			});
+			writeListAttrs(state, node);
+		},
+		listItem(state, node) {
+			state.renderContent(node);
+		},
+		taskList(state, node) {
+			state.renderList(node, "  ", () => "- ");
+		},
+		taskItem(state, node) {
+			state.write(node.attrs.checked ? "[x] " : "[ ] ");
+			state.renderContent(node);
+		},
+		paragraph(state, node) {
+			state.renderInline(node);
+			state.closeBlock(node);
+		},
+		image(state, node) {
+			state.write(imageSyntax(state, node));
+		},
+		figure(state, node) {
+			state.write(imageSyntax(state, node));
+			state.closeBlock(node);
+		},
+		hardBreak(state, node, parent, index) {
+			for (let i = index + 1; i < parent.childCount; i++) if (parent.child(i).type !== node.type) {
+				state.write("  \n");
+				return;
+			}
+		},
+		text(state, node) {
+			state.text(node.text, !inAutolink);
+		},
+		table: serializeTable,
+		tableRow() {},
+		tableCell() {},
+		tableHeader() {}
+	};
+	for (const r of fences) {
+		if (r.parse || !r.node) continue;
+		const kind = r.kind;
+		nodes[r.node] = (state, node) => writeFence(state, node, formatInfo(kind, node.attrs.attrs ?? {}), String(node.attrs.body ?? ""));
+	}
+	for (const e of exts) for (const [name, fn] of Object.entries(e.markdown?.nodes ?? {})) nodes[name] = (state, node, parent, index) => fn(state, node, parent, index, helpers);
+	const serializer = new MarkdownSerializer(nodes, marks, options);
+	function serialize(doc) {
+		return serializer.serialize(doc, { tightLists: true }).trimEnd() + "\n";
+	}
+	function serializeInline(doc) {
+		return serializer.serialize(doc, { tightLists: true }).replace(/\s*\n\s*/g, " ").trim();
+	}
+	function serializeNode(node) {
+		const schema = node.type.schema;
+		return serialize(schema.topNodeType.create(null, node.isBlock ? [node] : [schema.nodes.paragraph.create(null, [node])])).trimEnd();
+	}
+	const blockSchema = schemaFor(config);
+	const inlineSchema = schemaFor(config, true);
+	const converter = {
+		config,
+		schema: blockSchema,
+		inlineSchema,
+		parse,
+		parseInline,
+		serialize,
+		serializeInline,
+		serializeNode,
+		slice: (md, schema = blockSchema) => Slice.maxOpen(parse(md, schema).content),
+		toHtml(md) {
+			const doc = parse(md);
+			return fragmentHtml(doc.content, doc.type.schema);
+		}
+	};
+	return converter;
+}
+function fragmentHtml(content, schema) {
+	const div = document.createElement("div");
+	div.appendChild(DOMSerializer.fromSchema(schema).serializeFragment(content, { document }));
+	return div.innerHTML;
+}
+function fragmentMarkdown(markdown, content, schema) {
+	return markdown.serialize(schema.topNodeType.create(null, content)).trimEnd();
+}
+var converters = /* @__PURE__ */ new WeakMap();
+function markdownFor(config) {
+	let c = converters.get(config);
+	if (!c) converters.set(config, c = buildConverter(config));
+	return c;
+}
+function createMarkdown(extensions = NO_EXTENSIONS, options = {}) {
+	return markdownFor(resolveConfig("markdown", options.base, extensions));
+}
+// src/i18n/index.ts
+var MESSAGES = {
+	en: {
+		editor: {
+			placeholder: "Write, or type / for blocks",
+			parseFailed: "The content could not be shown visually. It opened in source mode.",
+			uploading: "Uploading {n} file(s)",
+			uploadingProgress: "Uploading {n} file(s), {percent} %",
+			uploadFailed: "Upload failed: {name}",
+			copied: "Copied",
+			inlineOnly: "Table cells hold text only"
+		},
+		toolbar: {
+			label: "Formatting",
+			undo: "Undo",
+			redo: "Redo",
+			textStyle: "Text style",
+			paragraph: "Text",
+			heading: "Heading {n}",
+			codeBlock: "Code",
+			bold: "Bold",
+			italic: "Italic",
+			underline: "Underline",
+			strike: "Strikethrough",
+			code: "Inline code",
+			highlight: "Highlight",
+			color: "Colour",
+			link: "Link",
+			bulletList: "Bulleted list",
+			orderedList: "Numbered list",
+			taskList: "Checklist",
+			listStyle: "List style",
+			quote: "Quote",
+			callout: "Callout",
+			insert: "Insert",
+			image: "Image",
+			file: "File",
+			align: "Alignment",
+			alignLeft: "Left",
+			alignCenter: "Center",
+			alignRight: "Right",
+			alignJustify: "Justify",
+			focus: "Focus mode",
+			exitFocus: "Leave focus mode",
+			source: "Markdown source",
+			visual: "Visual editor",
+			more: "More"
+		},
+		listStyle: {
+			numbering: "Numbering",
+			bullets: "Bullets",
+			custom: "Own character",
+			apply: "Apply",
+			customHint: "One or two characters, no spaces or quotes.",
+			styles: {
+				decimal: "1, 2, 3",
+				"lower-alpha": "a, b, c",
+				"upper-alpha": "A, B, C",
+				"lower-roman": "i, ii, iii",
+				"upper-roman": "I, II, III",
+				disc: "Dot",
+				circle: "Circle",
+				square: "Square",
+				dash: "Dash",
+				arrow: "Arrow"
+			}
+		},
+		colors: {
+			text: "Text colour",
+			background: "Highlight",
+			default: "Default",
+			none: "No highlight",
+			gray: "Gray",
+			red: "Red",
+			orange: "Orange",
+			yellow: "Yellow",
+			green: "Green",
+			blue: "Blue",
+			purple: "Purple",
+			pink: "Pink"
+		},
+		bubble: {
+			label: "Selection",
+			askAi: "Ask AI"
+		},
+		slash: {
+			title: "Blocks",
+			empty: "Nothing found",
+			groups: {
+				text: "Text",
+				lists: "Lists",
+				blocks: "Blocks",
+				media: "Media"
+			},
+			items: {
+				paragraph: {
+					label: "Text",
+					description: "Plain paragraph"
+				},
+				heading1: {
+					label: "Heading 1",
+					description: "Title of the page"
+				},
+				heading2: {
+					label: "Heading 2",
+					description: "Section heading"
+				},
+				heading3: {
+					label: "Heading 3",
+					description: "Subsection heading"
+				},
+				heading4: {
+					label: "Heading 4",
+					description: "Small heading"
+				},
+				heading5: {
+					label: "Heading 5",
+					description: "Smaller heading"
+				},
+				heading6: {
+					label: "Heading 6",
+					description: "Smallest heading"
+				},
+				quote: {
+					label: "Quote",
+					description: "Quoted text"
+				},
+				callout: {
+					label: "Callout",
+					description: "Box for a note, tip or warning"
+				},
+				codeBlock: {
+					label: "Code",
+					description: "Code with syntax highlighting"
+				},
+				hr: {
+					label: "Divider",
+					description: "Line between sections"
+				},
+				bulletList: {
+					label: "Bulleted list",
+					description: "List with bullets"
+				},
+				orderedList: {
+					label: "Numbered list",
+					description: "List with numbers"
+				},
+				taskList: {
+					label: "Checklist",
+					description: "List with checkboxes"
+				},
+				table: {
+					label: "Table",
+					description: "Rows and columns"
+				},
+				image: {
+					label: "Image",
+					description: "Upload or pick a picture"
+				},
+				file: {
+					label: "File",
+					description: "Attach a file as a link"
+				},
+				mathInline: {
+					label: "Inline formula",
+					description: "LaTeX in the text"
+				},
+				mathBlock: {
+					label: "Formula",
+					description: "LaTeX on its own line"
+				},
+				details: {
+					label: "Collapsible",
+					description: "Section readers open on click"
+				},
+				toggleHeading1: {
+					label: "Toggle heading 1",
+					description: "Large heading that folds its content"
+				},
+				toggleHeading2: {
+					label: "Toggle heading 2",
+					description: "Medium heading that folds its content"
+				},
+				toggleHeading3: {
+					label: "Toggle heading 3",
+					description: "Small heading that folds its content"
+				},
+				columns2: {
+					label: "2 columns",
+					description: "Blocks side by side"
+				},
+				columns3: {
+					label: "3 columns",
+					description: "Three blocks side by side"
+				},
+				columns4: {
+					label: "4 columns",
+					description: "Four blocks side by side"
+				},
+				bookmark: {
+					label: "Bookmark",
+					description: "Link with a preview card"
+				},
+				embed: {
+					label: "Embed",
+					description: "Video, map, design or page"
+				},
+				tableOfContents: {
+					label: "Table of contents",
+					description: "Links to the headings"
+				},
+				pageLink: {
+					label: "Link to page",
+					description: "Block that opens another page"
+				}
+			}
+		},
+		convert: {
+			title: "Turn into",
+			targets: {
+				paragraph: "Text",
+				unwrap: "Unwrap",
+				columns: "Columns"
+			}
+		},
+		blockMenu: {
+			label: "Block",
+			duplicate: "Duplicate",
+			copy: "Copy as markdown",
+			delete: "Delete"
+		},
+		gutter: {
+			drag: "Drag to move, click for options",
+			add: "Add a block below"
+		},
+		table: {
+			menu: "Table",
+			column: "Column {n}",
+			row: "Row {n}",
+			dragHint: "Drag to move, click for options",
+			insertLeft: "Insert left",
+			insertRight: "Insert right",
+			insertAbove: "Insert above",
+			insertBelow: "Insert below",
+			align: "Align",
+			alignLeft: "Left",
+			alignCenter: "Center",
+			alignRight: "Right",
+			headerRow: "Header row",
+			headerColumn: "Header column",
+			deleteColumn: "Delete column",
+			deleteRow: "Delete row",
+			deleteTable: "Delete table",
+			addColumn: "Add column",
+			addRow: "Add row"
+		},
+		link: {
+			title: "Link",
+			url: "Address",
+			urlPlaceholder: "https://",
+			text: "Text",
+			textPlaceholder: "Shown text",
+			search: "Search",
+			searchPlaceholder: "Search pages",
+			noResults: "Nothing found",
+			apply: "Apply",
+			remove: "Remove link",
+			open: "Open link"
+		},
+		field: {
+			tools: "Formatting",
+			expand: "Open the full editor",
+			expandTitle: "Edit",
+			close: "Close"
+		},
+		draft: {
+			idle: "Unsaved changes",
+			saving: "Saving",
+			saved: "Saved",
+			offline: "Offline",
+			error: "Not saved"
+		},
+		block: {
+			edit: "Edit",
+			copy: "Copy as markdown",
+			delete: "Delete",
+			more: "More"
+		},
+		code: {
+			label: "Code",
+			language: "Language",
+			languagePlaceholder: "e.g. python"
+		},
+		callout: {
+			label: "Callout",
+			changeType: "Change the type",
+			title: "Title",
+			addTitle: "Add a title",
+			changeIcon: "Change the icon",
+			icon: "Icon",
+			ownIcon: "Emoji or text",
+			useIcon: "Use",
+			defaultIcon: "Default icon",
+			kinds: "Kind",
+			types: {
+				note: "Note",
+				info: "Info",
+				tip: "Tip",
+				success: "Success",
+				important: "Important",
+				warning: "Warning",
+				caution: "Caution",
+				danger: "Danger",
+				question: "Question",
+				example: "Example",
+				details: "Details"
+			}
+		},
+		image: {
+			label: "Image",
+			video: "Video",
+			audio: "Audio",
+			alt: "Description",
+			altPlaceholder: "What the picture shows",
+			altHelp: "Read by screen readers and shown when the image cannot load.",
+			title: "Title",
+			caption: "Caption",
+			captionPlaceholder: "Caption (optional)",
+			width: "Width",
+			resize: "Drag to resize",
+			replace: "Image",
+			replaceFile: "Replace the file",
+			originalSize: "Original size",
+			toFigure: "Own block",
+			align: {
+				left: "Left",
+				center: "Center",
+				right: "Right",
+				"float-left": "Wrap on the left",
+				"float-right": "Wrap on the right"
+			}
+		},
+		divider: {
+			label: "Divider",
+			line: "Line",
+			width: "Width",
+			widthPx: "{n} px",
+			color: "Colour",
+			defaultColor: "Default",
+			customColor: "Own colour",
+			design: "Ornament",
+			customChar: "Own ornament",
+			charInvalid: "One or two characters, no spaces or quotes.",
+			styles: {
+				solid: "Solid",
+				dashed: "Dashed",
+				dotted: "Dotted",
+				double: "Double"
+			},
+			designs: {
+				none: "None",
+				star: "Star",
+				diamond: "Diamond",
+				dots: "Dots",
+				fleuron: "Fleuron"
+			},
+			colors: {
+				red: "Red",
+				orange: "Orange",
+				amber: "Amber",
+				green: "Green",
+				teal: "Teal",
+				blue: "Blue",
+				violet: "Violet",
+				pink: "Pink"
+			}
+		},
+		math: {
+			label: "Formula",
+			edit: "Edit the formula",
+			empty: "Empty formula",
+			placeholder: "LaTeX, e.g. \\frac{a}{b}",
+			tex: "LaTeX"
+		},
+		details: {
+			label: "Collapsible",
+			title: "Title",
+			titlePlaceholder: "Title readers click to open",
+			toggleDefault: "Open for readers",
+			openByDefault: "Open for readers",
+			closedByDefault: "Closed for readers",
+			headingLabel: "Toggle heading {n}"
+		},
+		footnote: { label: "Footnote" },
+		source: { label: "Markdown source" },
+		columns: {
+			label: "Columns",
+			add: "Add column",
+			remove: "Remove column",
+			removeHint: "Its blocks move to the column next to it.",
+			equal: "Equal widths",
+			resize: "Drag to resize"
+		},
+		bookmark: {
+			edit: "Change link",
+			label: "Bookmark",
+			url: "Link",
+			placeholder: "Paste a link",
+			create: "Create bookmark",
+			loading: "Loading preview",
+			failed: "The preview could not be loaded.",
+			refresh: "Refresh preview",
+			open: "Open link"
+		},
+		embed: {
+			edit: "Change link",
+			url: "Link",
+			placeholder: "Paste a link to embed",
+			create: "Embed",
+			open: "Open original",
+			interact: "Click to interact",
+			resize: "Drag to resize",
+			defaultHeight: "Default height",
+			providers: {
+				youtube: "YouTube",
+				vimeo: "Vimeo",
+				loom: "Loom",
+				figma: "Figma",
+				gist: "Gist",
+				maps: "Google Maps",
+				tweet: "Post on X",
+				codepen: "CodePen",
+				generic: "Embed"
+			}
+		},
+		toc: {
+			label: "Table of contents",
+			empty: "No headings yet"
+		},
+		pageLink: {
+			label: "Page",
+			untitled: "Untitled",
+			search: "Link to page",
+			searchPlaceholder: "Search pages"
+		},
+		mention: {
+			label: "Mention",
+			empty: "Nothing found",
+			searching: "Searching",
+			groups: {
+				user: "People",
+				page: "Pages",
+				date: "Dates"
+			},
+			today: "Today",
+			tomorrow: "Tomorrow",
+			yesterday: "Yesterday",
+			date: "Date",
+			time: "Time",
+			includeTime: "Include time",
+			endDate: "End date",
+			editDate: "Change the date"
+		},
+		paste: {
+			label: "Paste as",
+			link: "Keep as link",
+			bookmark: "Bookmark",
+			embed: "Embed"
+		},
+		diagram: {
+			alt: "Diagram",
+			loading: "Drawing the diagram",
+			empty: "Empty diagram",
+			failed: "The diagram could not be drawn."
+		},
+		palette: {
+			background: "Background",
+			text: "Text color",
+			default: "Default color",
+			gray: "Gray",
+			brown: "Brown",
+			orange: "Orange",
+			yellow: "Yellow",
+			green: "Green",
+			blue: "Blue",
+			purple: "Purple",
+			pink: "Pink",
+			red: "Red"
+		},
+		dialog: {
+			close: "Close",
+			cancel: "Cancel"
+		}
+	},
+	sk: {
+		editor: {
+			placeholder: "Píšte text alebo napíšte / pre vloženie bloku",
+			parseFailed: "Obsah sa nepodarilo zobraziť vizuálne, otvoril sa zdrojový text.",
+			uploading: "Nahráva sa súborov: {n}",
+			uploadingProgress: "Nahráva sa súborov: {n} ({percent} %)",
+			uploadFailed: "Súbor {name} sa nepodarilo nahrať.",
+			copied: "Skopírované",
+			inlineOnly: "V bunke tabuľky môže byť len text"
+		},
+		toolbar: {
+			label: "Nástroje editora",
+			undo: "Späť",
+			redo: "Znova",
+			textStyle: "Štýl textu",
+			paragraph: "Odsek",
+			heading: "Nadpis {n}",
+			codeBlock: "Blok kódu",
+			bold: "Tučné",
+			italic: "Kurzíva",
+			underline: "Podčiarknuté",
+			strike: "Prečiarknuté",
+			code: "Kód v texte",
+			highlight: "Zvýraznenie",
+			color: "Farba",
+			link: "Odkaz",
+			bulletList: "Odrážky",
+			orderedList: "Číslovaný zoznam",
+			taskList: "Zoznam úloh",
+			listStyle: "Štýl zoznamu",
+			quote: "Citát",
+			callout: "Upozornenie",
+			insert: "Vložiť",
+			image: "Obrázok",
+			file: "Súbor",
+			align: "Zarovnanie",
+			alignLeft: "Doľava",
+			alignCenter: "Na stred",
+			alignRight: "Doprava",
+			alignJustify: "Do bloku",
+			focus: "Sústrediť sa",
+			exitFocus: "Ukončiť sústredenie",
+			source: "Zdrojový text (Markdown)",
+			visual: "Vizuálny editor",
+			more: "Ďalšie"
+		},
+		listStyle: {
+			numbering: "Číslovanie",
+			bullets: "Odrážky",
+			custom: "Vlastný znak",
+			apply: "Použiť",
+			customHint: "Jeden alebo dva znaky bez medzier a úvodzoviek.",
+			styles: {
+				decimal: "Čísla",
+				"lower-alpha": "Malé písmená",
+				"upper-alpha": "Veľké písmená",
+				"lower-roman": "Malé rímske číslice",
+				"upper-roman": "Veľké rímske číslice",
+				disc: "Plný krúžok",
+				circle: "Prázdny krúžok",
+				square: "Štvorček",
+				dash: "Pomlčka",
+				arrow: "Šípka"
+			}
+		},
+		colors: {
+			text: "Farba textu",
+			background: "Zvýraznenie",
+			default: "Predvolená",
+			none: "Bez zvýraznenia",
+			gray: "Sivá",
+			red: "Červená",
+			orange: "Oranžová",
+			yellow: "Žltá",
+			green: "Zelená",
+			blue: "Modrá",
+			purple: "Fialová",
+			pink: "Ružová"
+		},
+		bubble: {
+			label: "Formátovanie výberu",
+			askAi: "Opýtať sa AI"
+		},
+		slash: {
+			title: "Vložiť blok",
+			empty: "Žiadny blok nezodpovedá hľadaniu",
+			groups: {
+				text: "Text",
+				lists: "Zoznamy",
+				blocks: "Bloky",
+				media: "Médiá"
+			},
+			items: {
+				paragraph: {
+					label: "Odsek",
+					description: "Obyčajný text"
+				},
+				heading1: {
+					label: "Nadpis 1",
+					description: "Najvyššia úroveň, nad kapitolami"
+				},
+				heading2: {
+					label: "Nadpis 2",
+					description: "Hlavná sekcia"
+				},
+				heading3: {
+					label: "Nadpis 3",
+					description: "Podsekcia"
+				},
+				heading4: {
+					label: "Nadpis 4",
+					description: "Menší nadpis"
+				},
+				heading5: {
+					label: "Nadpis 5",
+					description: "Drobný nadpis"
+				},
+				heading6: {
+					label: "Nadpis 6",
+					description: "Najmenší nadpis"
+				},
+				quote: {
+					label: "Citát",
+					description: "Odsadený citát"
+				},
+				callout: {
+					label: "Upozornenie",
+					description: "Zvýraznený box: poznámka, tip, varovanie"
+				},
+				codeBlock: {
+					label: "Blok kódu",
+					description: "Kód so zvýraznením syntaxe"
+				},
+				hr: {
+					label: "Oddeľovač",
+					description: "Vodorovná čiara"
+				},
+				bulletList: {
+					label: "Odrážky",
+					description: "Jednoduchý zoznam"
+				},
+				orderedList: {
+					label: "Číslovaný zoznam",
+					description: "Zoznam s poradím"
+				},
+				taskList: {
+					label: "Zoznam úloh",
+					description: "Zoznam so zaškrtávacími políčkami"
+				},
+				table: {
+					label: "Tabuľka",
+					description: "Tabuľka 3 x 3 s hlavičkou"
+				},
+				image: {
+					label: "Obrázok",
+					description: "Nahrať alebo vybrať obrázok"
+				},
+				file: {
+					label: "Súbor",
+					description: "Priložiť súbor ako odkaz"
+				},
+				mathInline: {
+					label: "Vzorec v texte",
+					description: "Matematika (LaTeX) v riadku"
+				},
+				mathBlock: {
+					label: "Vzorec",
+					description: "Matematika (LaTeX) ako samostatný blok"
+				},
+				details: {
+					label: "Zbaliť obsah",
+					description: "Skrytý text, napríklad riešenie"
+				},
+				toggleHeading1: {
+					label: "Rozbaľovací nadpis 1",
+					description: "Veľký nadpis, ktorý skryje obsah"
+				},
+				toggleHeading2: {
+					label: "Rozbaľovací nadpis 2",
+					description: "Stredný nadpis, ktorý skryje obsah"
+				},
+				toggleHeading3: {
+					label: "Rozbaľovací nadpis 3",
+					description: "Malý nadpis, ktorý skryje obsah"
+				},
+				columns2: {
+					label: "2 stĺpce",
+					description: "Bloky vedľa seba"
+				},
+				columns3: {
+					label: "3 stĺpce",
+					description: "Tri bloky vedľa seba"
+				},
+				columns4: {
+					label: "4 stĺpce",
+					description: "Štyri bloky vedľa seba"
+				},
+				bookmark: {
+					label: "Záložka",
+					description: "Odkaz s náhľadom"
+				},
+				embed: {
+					label: "Vložiť obsah",
+					description: "Video, mapa, návrh alebo stránka"
+				},
+				tableOfContents: {
+					label: "Obsah",
+					description: "Odkazy na nadpisy"
+				},
+				pageLink: {
+					label: "Odkaz na stránku",
+					description: "Blok, ktorý otvorí inú stránku"
+				}
+			}
+		},
+		convert: {
+			title: "Previesť na",
+			targets: {
+				paragraph: "Text",
+				unwrap: "Zrušiť obal",
+				columns: "Stĺpce"
+			}
+		},
+		blockMenu: {
+			label: "Ponuka bloku",
+			duplicate: "Duplikovať",
+			copy: "Kopírovať ako markdown",
+			delete: "Odstrániť"
+		},
+		gutter: {
+			drag: "Potiahnutím presuniete, kliknutím otvoríte ponuku bloku",
+			add: "Vložiť blok pod"
+		},
+		table: {
+			menu: "Tabuľka",
+			column: "Stĺpec {n}",
+			row: "Riadok {n}",
+			dragHint: "Kliknutím otvoríte ponuku, potiahnutím presuniete.",
+			insertLeft: "Vložiť stĺpec vľavo",
+			insertRight: "Vložiť stĺpec vpravo",
+			insertAbove: "Vložiť riadok nad",
+			insertBelow: "Vložiť riadok pod",
+			align: "Zarovnanie stĺpca",
+			alignLeft: "Doľava",
+			alignCenter: "Na stred",
+			alignRight: "Doprava",
+			headerRow: "Hlavičkový riadok",
+			headerColumn: "Hlavičkový stĺpec",
+			deleteColumn: "Odstrániť stĺpec",
+			deleteRow: "Odstrániť riadok",
+			deleteTable: "Odstrániť tabuľku",
+			addColumn: "Pridať stĺpec",
+			addRow: "Pridať riadok"
+		},
+		link: {
+			title: "Odkaz",
+			url: "Adresa",
+			urlPlaceholder: "https://",
+			text: "Text odkazu",
+			textPlaceholder: "Zobrazený text",
+			search: "Hľadať",
+			searchPlaceholder: "Začnite písať názov",
+			noResults: "Nič sa nenašlo",
+			apply: "Použiť",
+			remove: "Odstrániť odkaz",
+			open: "Otvoriť odkaz"
+		},
+		field: {
+			tools: "Formátovanie",
+			expand: "Otvoriť v editore",
+			expandTitle: "Úprava textu",
+			close: "Zavrieť"
+		},
+		draft: {
+			idle: "Neuložené zmeny",
+			saving: "Ukladá sa",
+			saved: "Koncept uložený",
+			offline: "Offline, koncept sa neuložil",
+			error: "Koncept sa nepodarilo uložiť"
+		},
+		block: {
+			edit: "Upraviť",
+			copy: "Kopírovať ako markdown",
+			delete: "Odstrániť",
+			more: "Ďalšie"
+		},
+		code: {
+			label: "Kód",
+			language: "Jazyk",
+			languagePlaceholder: "napr. python"
+		},
+		callout: {
+			label: "Upozornenie",
+			changeType: "Zmeniť typ",
+			title: "Nadpis",
+			addTitle: "Pridať nadpis",
+			changeIcon: "Zmeniť ikonu",
+			icon: "Ikona",
+			ownIcon: "Emoji alebo text",
+			useIcon: "Použiť",
+			defaultIcon: "Predvolená ikona",
+			kinds: "Typ",
+			types: {
+				note: "Poznámka",
+				info: "Informácia",
+				tip: "Tip",
+				success: "Úspech",
+				important: "Dôležité",
+				warning: "Varovanie",
+				caution: "Pozor",
+				danger: "Nebezpečenstvo",
+				question: "Otázka",
+				example: "Príklad",
+				details: "Podrobnosti"
+			}
+		},
+		image: {
+			label: "Obrázok",
+			video: "Video",
+			audio: "Zvuk",
+			alt: "Popis",
+			altPlaceholder: "Čo je na obrázku",
+			altHelp: "Prečíta ho čítačka obrazovky a ukáže sa, keď sa obrázok nenačíta.",
+			title: "Titulok",
+			caption: "Popisok",
+			captionPlaceholder: "Popisok (nepovinný)",
+			width: "Šírka",
+			resize: "Potiahnutím zmeníte veľkosť",
+			replace: "Obrázok",
+			replaceFile: "Nahradiť súbor",
+			originalSize: "Pôvodná veľkosť",
+			toFigure: "Samostatný blok",
+			align: {
+				left: "Vľavo",
+				center: "Na stred",
+				right: "Vpravo",
+				"float-left": "Obtekať zľava",
+				"float-right": "Obtekať sprava"
+			}
+		},
+		divider: {
+			label: "Oddeľovač",
+			line: "Čiara",
+			width: "Hrúbka",
+			widthPx: "{n} px",
+			color: "Farba",
+			defaultColor: "Predvolená",
+			customColor: "Vlastná farba",
+			design: "Ozdoba",
+			customChar: "Vlastná ozdoba",
+			charInvalid: "Jeden alebo dva znaky bez medzier a úvodzoviek.",
+			styles: {
+				solid: "Plná",
+				dashed: "Čiarkovaná",
+				dotted: "Bodkovaná",
+				double: "Dvojitá"
+			},
+			designs: {
+				none: "Žiadna",
+				star: "Hviezda",
+				diamond: "Kosoštvorec",
+				dots: "Bodky",
+				fleuron: "Kvet"
+			},
+			colors: {
+				red: "Červená",
+				orange: "Oranžová",
+				amber: "Jantárová",
+				green: "Zelená",
+				teal: "Tyrkysová",
+				blue: "Modrá",
+				violet: "Fialová",
+				pink: "Ružová"
+			}
+		},
+		math: {
+			label: "Vzorec",
+			edit: "Upraviť vzorec",
+			empty: "Prázdny vzorec",
+			placeholder: "LaTeX, napr. \\frac{a}{b}",
+			tex: "LaTeX"
+		},
+		details: {
+			label: "Zbaliť obsah",
+			title: "Nadpis",
+			titlePlaceholder: "Nadpis, na ktorý čitateľ klikne",
+			toggleDefault: "Otvorené pre čitateľov",
+			openByDefault: "Čitatelia ho uvidia otvorené",
+			closedByDefault: "Čitatelia ho uvidia zbalené",
+			headingLabel: "Rozbaľovací nadpis {n}"
+		},
+		footnote: { label: "Poznámka pod čiarou" },
+		source: { label: "Zdrojový text (Markdown)" },
+		columns: {
+			label: "Stĺpce",
+			add: "Pridať stĺpec",
+			remove: "Odstrániť stĺpec",
+			removeHint: "Jeho bloky sa presunú do susedného stĺpca.",
+			equal: "Rovnaké šírky",
+			resize: "Potiahnutím zmeníte šírku"
+		},
+		bookmark: {
+			edit: "Zmeniť odkaz",
+			label: "Záložka",
+			url: "Odkaz",
+			placeholder: "Vložte odkaz",
+			create: "Vytvoriť záložku",
+			loading: "Načítava sa náhľad",
+			failed: "Náhľad sa nepodarilo načítať.",
+			refresh: "Obnoviť náhľad",
+			open: "Otvoriť odkaz"
+		},
+		embed: {
+			edit: "Zmeniť odkaz",
+			url: "Odkaz",
+			placeholder: "Vložte odkaz na obsah",
+			create: "Vložiť",
+			open: "Otvoriť originál",
+			interact: "Kliknutím ovládate obsah",
+			resize: "Potiahnutím zmeníte výšku",
+			defaultHeight: "Predvolená výška",
+			providers: {
+				youtube: "YouTube",
+				vimeo: "Vimeo",
+				loom: "Loom",
+				figma: "Figma",
+				gist: "Gist",
+				maps: "Mapy Google",
+				tweet: "Príspevok na X",
+				codepen: "CodePen",
+				generic: "Vložený obsah"
+			}
+		},
+		toc: {
+			label: "Obsah",
+			empty: "Zatiaľ bez nadpisov"
+		},
+		pageLink: {
+			label: "Stránka",
+			untitled: "Bez názvu",
+			search: "Odkaz na stránku",
+			searchPlaceholder: "Hľadať stránky"
+		},
+		mention: {
+			label: "Zmienka",
+			empty: "Nič sa nenašlo",
+			searching: "Hľadá sa",
+			groups: {
+				user: "Ľudia",
+				page: "Stránky",
+				date: "Dátumy"
+			},
+			today: "Dnes",
+			tomorrow: "Zajtra",
+			yesterday: "Včera",
+			date: "Dátum",
+			time: "Čas",
+			includeTime: "Aj s časom",
+			endDate: "Dátum konca",
+			editDate: "Zmeniť dátum"
+		},
+		paste: {
+			label: "Vložiť ako",
+			link: "Ponechať odkaz",
+			bookmark: "Záložka",
+			embed: "Vložený obsah"
+		},
+		diagram: {
+			alt: "Diagram",
+			loading: "Kreslí sa diagram",
+			empty: "Prázdny diagram",
+			failed: "Diagram sa nepodarilo nakresliť."
+		},
+		palette: {
+			background: "Pozadie",
+			text: "Farba textu",
+			default: "Predvolená farba",
+			gray: "Sivá",
+			brown: "Hnedá",
+			orange: "Oranžová",
+			yellow: "Žltá",
+			green: "Zelená",
+			blue: "Modrá",
+			purple: "Fialová",
+			pink: "Ružová",
+			red: "Červená"
+		},
+		dialog: {
+			close: "Zavrieť",
+			cancel: "Zrušiť"
+		}
+	}
+};
+function lookup(tree, path) {
+	let cur = tree;
+	for (const p of path) {
+		if (!cur || typeof cur !== "object") return void 0;
+		cur = Reflect.get(cur, p);
+	}
+	return typeof cur === "string" ? cur : void 0;
+}
+function hasMessage(trees, key) {
+	const path = key.split(".");
+	return trees.some((t) => lookup(t, path) !== void 0);
+}
+function createTranslator(trees) {
+	return (key, params) => {
+		const path = key.split(".");
+		let text;
+		for (const t of trees) {
+			text = lookup(t, path);
+			if (text !== void 0) break;
+		}
+		if (text === void 0) return key;
+		return params ? text.replace(/\{(\w+)\}/g, (m, k) => k in params ? String(params[k]) : m) : text;
+	};
+}
+// src/core/math.ts
+var katex = shallowRef(null);
+var loader = null;
+var loading = null;
+var cache = /* @__PURE__ */ new Map();
+function setKatexLoader(load) {
+	if (load && !loader) loader = load;
+}
+/** the package's own katex, its stylesheet and the mhchem `\ce` macros */
+async function bundledKatex() {
+	const [k] = await Promise.all([import("katex"), import("katex/dist/katex.min.css")]);
+	await import("katex/contrib/mhchem");
+	return k.default;
+}
+function load() {
+	if (loading) return;
+	loading = (loader ?? bundledKatex)().then((m) => {
+		katex.value = "renderToString" in m ? m : m.default;
+	}, (e) => console.error("vue-wysiwyg-component: KaTeX failed to load", e));
+}
+function renderMath(tex, display) {
+	const k = katex.value;
+	if (!k) {
+		load();
+		return `<code class="wy-math-source">${escapeHtml(tex)}</code>`;
+	}
+	const key = `${display ? "D" : "I"}${tex}`;
+	const hit = cache.get(key);
+	if (hit !== void 0) return hit;
+	let html;
+	try {
+		html = k.renderToString(tex, {
+			displayMode: display,
+			throwOnError: false,
+			strict: "ignore",
+			output: "htmlAndMathml"
+		});
+	} catch {
+		html = `<code class="wy-math-error">${escapeHtml(tex)}</code>`;
+	}
+	cache.set(key, html);
+	if (cache.size > 200) cache.delete(cache.keys().next().value);
+	return html;
+}
+// src/editor/catalog.ts
+var HEADING_ICONS = [
+	Heading1,
+	Heading2,
+	Heading3,
+	Heading4,
+	Heading5,
+	Heading6
+];
+var BASE_GROUPS = [
+	{
+		id: "text",
+		label: "",
+		rank: 10
+	},
+	{
+		id: "lists",
+		label: "",
+		rank: 20
+	},
+	{
+		id: "blocks",
+		label: "",
+		rank: 30
+	},
+	{
+		id: "media",
+		label: "",
+		rank: 40
+	}
+];
+function chainAt(editor, range) {
+	const c = editor.chain().focus();
+	return range ? c.deleteRange(range) : c;
+}
+function slashContext(editor, range, services) {
+	let at = range;
+	return {
+		editor,
+		services,
+		get range() {
+			return at;
+		},
+		insert: (type, attrs = {}, content) => insertFresh(editor, type, attrs, at, content),
+		insertSections(type, child, count = 2) {
+			const section = {
+				type: child,
+				content: [{ type: "paragraph" }]
+			};
+			chainAt(editor, at).insertContent({
+				type,
+				content: Array.from({ length: count }, () => section)
+			}).command(({ tr }) => {
+				const $head = tr.selection.$head;
+				for (let d = $head.depth; d > 0; d--) {
+					if ($head.node(d).type.name !== type) continue;
+					tr.setSelection(TextSelection.near(tr.doc.resolve($head.start(d) + 1)));
+					break;
+				}
+				return true;
+			}).run();
+		},
+		clear() {
+			if (at) editor.chain().focus().deleteRange(at).run();
+			at = void 0;
+		},
+		chain: () => chainAt(editor, at)
+	};
+}
+function builtinItems(config, files, services) {
+	const b = config.base;
+	const canUpload = !!services.upload;
+	const items = b.headings.map((level) => ({
+		id: `heading${level}`,
+		group: "text",
+		rank: level,
+		label: "",
+		icon: HEADING_ICONS[level - 1],
+		run: (c) => c.chain().setHeading({ level }).run()
+	}));
+	if (b.blockquote) items.push({
+		id: "quote",
+		group: "text",
+		rank: 20,
+		label: "",
+		icon: Quote,
+		run: (c) => c.chain().toggleBlockquote().run()
+	});
+	if (b.callouts.length) items.push({
+		id: "callout",
+		group: "text",
+		rank: 30,
+		label: "",
+		icon: MessageSquareQuote,
+		run: (c) => c.chain().wrapIn("callout", {
+			type: b.callouts[0],
+			title: ""
+		}).run()
+	});
+	if (b.codeBlocks) items.push({
+		id: "codeBlock",
+		group: "text",
+		rank: 50,
+		label: "",
+		icon: FileCode2,
+		run: (c) => c.chain().setCodeBlock().run()
+	});
+	if (b.dividers) items.push({
+		id: "hr",
+		group: "text",
+		rank: 60,
+		label: "",
+		icon: Minus,
+		run: (c) => c.chain().setHorizontalRule().run()
+	});
+	if (b.lists) {
+		items.push({
+			id: "bulletList",
+			group: "lists",
+			rank: 10,
+			label: "",
+			icon: List,
+			run: (c) => c.chain().toggleBulletList().run()
+		});
+		items.push({
+			id: "orderedList",
+			group: "lists",
+			rank: 20,
+			label: "",
+			icon: ListOrdered,
+			run: (c) => c.chain().toggleOrderedList().run()
+		});
+	}
+	if (b.taskLists) items.push({
+		id: "taskList",
+		group: "lists",
+		rank: 30,
+		label: "",
+		icon: ListTodo,
+		run: (c) => c.chain().toggleTaskList().run()
+	});
+	if (b.tables) items.push({
+		id: "table",
+		group: "blocks",
+		rank: 10,
+		label: "",
+		icon: Columns3,
+		run: (c) => c.chain().insertTable({
+			rows: 3,
+			cols: 3,
+			withHeaderRow: true
+		}).run()
+	});
+	if (b.images && canUpload) items.push({
+		id: "image",
+		group: "media",
+		rank: 10,
+		label: "",
+		icon: Image$1,
+		inline: true,
+		run: (c) => {
+			c.clear();
+			files.pick("image");
+		}
+	});
+	if (b.files && canUpload) items.push({
+		id: "file",
+		group: "media",
+		rank: 20,
+		label: "",
+		icon: Paperclip,
+		inline: true,
+		run: (c) => {
+			c.clear();
+			files.pick("file");
+		}
+	});
+	return items;
+}
+function slashCatalog(config, files, services, text) {
+	const groups = [...BASE_GROUPS, ...config.extensions.flatMap((e) => e.slashGroups ?? [])];
+	const rankOf = (id) => groups.find((g) => g.id === id)?.rank ?? 1e3;
+	const defs = [...builtinItems(config, files, services), ...config.extensions.flatMap((e) => e.slash ?? [])];
+	defs.sort((a, b) => rankOf(a.group) - rankOf(b.group) || (a.rank ?? 100) - (b.rank ?? 100));
+	return defs.map((d) => {
+		const label = text(d.label, `slash.items.${d.id}.label`) || d.id;
+		const description = text(d.description, `slash.items.${d.id}.description`);
+		return {
+			id: d.id,
+			group: d.group,
+			label,
+			description,
+			icon: d.icon,
+			keywords: `${d.id} ${label} ${description} ${d.keywords ?? ""}`.toLowerCase(),
+			inline: !!d.inline,
+			enabled: (editor) => d.enabled?.(editor) ?? true,
+			run: (editor, range) => d.run(slashContext(editor, range, services))
+		};
+	});
+}
+function groupLabel(config, id, text) {
+	return text([...BASE_GROUPS, ...config.extensions.flatMap((e) => e.slashGroups ?? [])].find((g) => g.id === id)?.label, `slash.groups.${id}`) || id;
+}
+/** items whose label matches come first, group by group, so "/columns" offers the columns before the table */
+function filterItems(items, query) {
+	const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+	if (!words.length) return items;
+	const hits = items.filter((i) => words.every((w) => i.keywords.includes(w)));
+	const labelled = (i) => words.every((w) => i.label.toLowerCase().includes(w));
+	const strong = new Set(hits.filter(labelled).map((i) => i.group));
+	const first = /* @__PURE__ */ new Map();
+	hits.forEach((i, n) => first.has(i.group) || first.set(i.group, n));
+	const keyed = hits.map((item, n) => ({
+		item,
+		group: (strong.has(item.group) ? 0 : hits.length) + first.get(item.group),
+		label: labelled(item) ? 0 : 1,
+		n
+	}));
+	keyed.sort((a, b) => a.group - b.group || a.label - b.label || a.n - b.n);
+	return keyed.map((x) => x.item);
+}
 // src/editor/debounce.ts
 function debounced(fn, delay, maxWait) {
 	let timer;
@@ -4526,404 +7953,127 @@ var ServerHistory = Extension.create({
 		};
 	}
 });
-// src/components/tooltip.ts
-var DELAY = 450;
-var apple = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
-function formatKeys(keys) {
-	const parts = keys.split("-").map((k) => {
-		const low = k.toLowerCase();
-		if (low === "mod") return apple ? "⌘" : "Ctrl";
-		if (low === "shift") return apple ? "⇧" : "Shift";
-		if (low === "alt") return apple ? "⌥" : "Alt";
-		if (low === "enter") return apple ? "↩" : "Enter";
-		return k.length === 1 ? k.toUpperCase() : k;
-	});
-	return apple ? parts.join("") : parts.join("+");
-}
-var tip = null;
-var current = null;
-var timer = 0;
-var stop = null;
-var values = /* @__PURE__ */ new WeakMap();
-function element() {
-	if (!tip) {
-		tip = document.createElement("div");
-		tip.className = "wy-tooltip";
-		tip.setAttribute("role", "tooltip");
-		tip.hidden = true;
-		document.body.appendChild(tip);
-	}
-	return tip;
-}
-function hide() {
-	window.clearTimeout(timer);
-	stop?.();
-	stop = null;
-	current = null;
-	if (tip) tip.hidden = true;
-}
-function show(el) {
-	const value = values.get(el);
-	const text = typeof value === "string" ? value : value?.text;
-	if (!text || !el.isConnected) return;
-	const t = element();
-	t.textContent = text;
-	const keys = typeof value === "object" && value?.keys ? formatKeys(value.keys) : "";
-	if (keys) {
-		const k = document.createElement("kbd");
-		k.textContent = keys;
-		t.append(" ", k);
-	}
-	t.hidden = false;
-	current = el;
-	stop?.();
-	stop = floatNear(el, t, {
-		placement: "top",
-		offset: 6,
-		padding: 6,
-		apply: (x, y) => {
-			t.style.left = `${x}px`;
-			t.style.top = `${y}px`;
-		}
-	}).stop;
-}
-function onEnter(e) {
-	const el = e.currentTarget;
-	if (e instanceof PointerEvent && e.pointerType === "touch") return;
-	window.clearTimeout(timer);
-	timer = window.setTimeout(() => show(el), current ? 0 : DELAY);
-}
-function onFocus(e) {
-	const el = e.currentTarget;
-	if (el.matches(":focus-visible")) show(el);
-}
-var vTooltip = {
-	mounted(el, binding) {
-		values.set(el, binding.value);
-		const text = typeof binding.value === "string" ? binding.value : binding.value?.text;
-		if (text && !el.getAttribute("aria-label") && !el.textContent?.trim()) el.setAttribute("aria-label", text);
-		el.addEventListener("pointerenter", onEnter);
-		el.addEventListener("pointerleave", hide);
-		el.addEventListener("pointerdown", hide);
-		el.addEventListener("focus", onFocus);
-		el.addEventListener("blur", hide);
-	},
-	updated(el, binding) {
-		values.set(el, binding.value);
-		if (current === el && JSON.stringify(binding.value) !== JSON.stringify(binding.oldValue)) {
-			hide();
-			show(el);
-		}
-	},
-	beforeUnmount(el) {
-		if (current === el) hide();
-		el.removeEventListener("pointerenter", onEnter);
-		el.removeEventListener("pointerleave", hide);
-		el.removeEventListener("pointerdown", hide);
-		el.removeEventListener("focus", onFocus);
-		el.removeEventListener("blur", hide);
-	}
-};
-// src/blocks/BlockFrame.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$22 = {
-	key: 0,
-	class: "wy-block-tools",
-	contenteditable: "false"
-};
-var _hoisted_2$17 = { class: "wy-block-label" };
-var _hoisted_3$17 = ["aria-label"];
-var _hoisted_4$16 = ["aria-label"];
-var _hoisted_5$14 = ["aria-label"];
-var _hoisted_6$11 = ["aria-label"];
-var _hoisted_7$9 = { class: "wy-block-body" };
-// src/blocks/BlockFrame.vue
-var BlockFrame_default = /* @__PURE__ */ defineComponent({
-	__name: "BlockFrame",
+// src/components/EmojiPicker.vue?vue&type=script&setup=true&lang.ts
+var _hoisted_1$21 = { class: "wy-emoji-picker" };
+var _hoisted_2$18 = ["aria-label"];
+var _hoisted_3$18 = [
+	"aria-selected",
+	"aria-label",
+	"onClick"
+];
+var _hoisted_4$17 = ["placeholder", "aria-label"];
+var _hoisted_5$15 = ["disabled"];
+// src/components/EmojiPicker.vue
+var EmojiPicker_default = /* @__PURE__ */ defineComponent({
+	__name: "EmojiPicker",
 	props: {
-		label: {},
-		selected: {
-			type: Boolean,
-			default: false
-		},
-		editing: {
-			type: Boolean,
-			default: false
-		},
-		readonly: {
-			type: Boolean,
-			default: false
-		},
-		copyText: { default: "" },
-		editable: {
-			type: Boolean,
-			default: true
-		},
-		deletable: {
-			type: Boolean,
-			default: true
-		}
+		value: {},
+		t: { type: Function }
 	},
-	emits: [
-		"edit",
-		"delete",
-		"more"
-	],
-	setup(__props, { emit: __emit }) {
-		const props = __props;
-		const emit = __emit;
-		const ctx = inject(EDITOR_CONTEXT, null);
-		const t = (key, fallback) => ctx?.t(key) ?? fallback;
-		async function copy() {
-			if (!props.copyText) return;
-			try {
-				await navigator.clipboard.writeText(props.copyText);
-				ctx?.services.toast?.(t("editor.copied", "Copied"), "success");
-			} catch {}
-		}
-		return (_ctx, _cache) => {
-			return openBlock(), createElementBlock("div", { class: normalizeClass(["wy-block-frame", {
-				"is-selected": __props.selected,
-				"is-editing": __props.editing,
-				"is-readonly": __props.readonly,
-				"is-editable": __props.editable && !__props.readonly
-			}]) }, [
-				!__props.readonly ? (openBlock(), createElementBlock("div", _hoisted_1$22, [
-					createElementVNode("span", _hoisted_2$17, toDisplayString(__props.label), 1),
-					__props.editable && !__props.editing ? withDirectives((openBlock(), createElementBlock("button", {
-						key: 0,
-						type: "button",
-						class: "wy-icon-btn",
-						"aria-label": t("block.edit", "Edit"),
-						onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
-						onClick: _cache[1] || (_cache[1] = ($event) => emit("edit"))
-					}, [createVNode(unref(Pencil), { size: 14 })], 40, _hoisted_3$17)), [[unref(vTooltip), t("block.edit", "Edit")]]) : createCommentVNode("", true),
-					__props.copyText ? withDirectives((openBlock(), createElementBlock("button", {
-						key: 1,
-						type: "button",
-						class: "wy-icon-btn",
-						"aria-label": t("block.copy", "Copy"),
-						onMousedown: _cache[2] || (_cache[2] = withModifiers(() => {}, ["prevent"])),
-						onClick: copy
-					}, [createVNode(unref(Copy), { size: 14 })], 40, _hoisted_4$16)), [[unref(vTooltip), t("block.copy", "Copy")]]) : createCommentVNode("", true),
-					__props.deletable ? withDirectives((openBlock(), createElementBlock("button", {
-						key: 2,
-						type: "button",
-						class: "wy-icon-btn is-danger",
-						"aria-label": t("block.delete", "Delete"),
-						onMousedown: _cache[3] || (_cache[3] = withModifiers(() => {}, ["prevent"])),
-						onClick: _cache[4] || (_cache[4] = ($event) => emit("delete"))
-					}, [createVNode(unref(Trash2), { size: 14 })], 40, _hoisted_5$14)), [[unref(vTooltip), t("block.delete", "Delete")]]) : createCommentVNode("", true),
-					_ctx.$slots.menu ? withDirectives((openBlock(), createElementBlock("button", {
-						key: 3,
-						type: "button",
-						class: "wy-icon-btn",
-						"data-block-more": "",
-						"aria-label": t("block.more", "More"),
-						onMousedown: _cache[5] || (_cache[5] = withModifiers(() => {}, ["prevent"])),
-						onClick: _cache[6] || (_cache[6] = ($event) => emit("more", $event))
-					}, [createVNode(unref(Ellipsis), { size: 14 })], 40, _hoisted_6$11)), [[unref(vTooltip), t("block.more", "More")]]) : createCommentVNode("", true)
-				])) : createCommentVNode("", true),
-				createElementVNode("div", _hoisted_7$9, [renderSlot(_ctx.$slots, "default")]),
-				renderSlot(_ctx.$slots, "menu")
-			], 2);
-		};
-	}
-});
-// src/components/ConvertItems.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$21 = ["data-convert", "onClick"];
-// src/components/ConvertItems.vue
-var ConvertItems_default = /* @__PURE__ */ defineComponent({
-	__name: "ConvertItems",
-	props: { targets: {} },
 	emits: ["pick"],
 	setup(__props, { emit: __emit }) {
-		const emit = __emit;
-		const ctx = useEditorContext();
-		function label(target) {
-			return ctx.text(target.label, `convert.targets.${target.id}`) || ctx.text("", `slash.items.${target.id}.label`) || target.id;
-		}
-		return (_ctx, _cache) => {
-			return openBlock(true), createElementBlock(Fragment$1, null, renderList(__props.targets, (target) => {
-				return openBlock(), createElementBlock("button", {
-					key: target.id,
-					type: "button",
-					role: "menuitem",
-					class: "wy-menu-item",
-					"data-convert": target.id,
-					onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
-					onClick: ($event) => emit("pick", target.id)
-				}, [target.icon ? (openBlock(), createBlock(resolveDynamicComponent(target.icon), {
-					key: 0,
-					class: "wy-menu-icon",
-					size: 16,
-					"aria-hidden": "true"
-				})) : createCommentVNode("", true), createElementVNode("span", null, toDisplayString(label(target)), 1)], 40, _hoisted_1$21);
-			}), 128);
-		};
-	}
-});
-// src/blocks/BlockMenu.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$20 = { class: "wy-menu-heading" };
-// src/blocks/BlockMenu.vue
-var BlockMenu_default = /* @__PURE__ */ defineComponent({
-	__name: "BlockMenu",
-	props: {
-		open: { type: Boolean },
-		convert: {}
-	},
-	emits: ["close"],
-	setup(__props, { emit: __emit }) {
 		const props = __props;
 		const emit = __emit;
-		const root = ref(null);
-		function run() {
-			const pos = props.convert?.getPos();
-			return props.convert && pos !== void 0 ? nodeRun(props.convert.editor.state, pos) : null;
+		const EMOJIS = [
+			"💡",
+			"📌",
+			"📝",
+			"✅",
+			"❌",
+			"⚠️",
+			"❗",
+			"❓",
+			"ℹ️",
+			"🔥",
+			"🚀",
+			"🎯",
+			"📣",
+			"🔒",
+			"🔑",
+			"🛠️",
+			"⚙️",
+			"📎",
+			"📅",
+			"⏰",
+			"💬",
+			"👉",
+			"⭐",
+			"🧪",
+			"🐛",
+			"📦",
+			"🔗",
+			"📖",
+			"🧭",
+			"🏁",
+			"❤️",
+			"👍",
+			"👀",
+			"🎉",
+			"🧠",
+			"💰",
+			"🌱",
+			"☕",
+			"🗂️",
+			"📊",
+			"🛡️",
+			"🔍",
+			"🚧",
+			"📢",
+			"🤝",
+			"🏆",
+			"🧩",
+			"✏️"
+		];
+		const own = ref(EMOJIS.includes(props.value) ? "" : props.value);
+		function applyOwn() {
+			const v = own.value.trim();
+			if (validIcon(v)) emit("pick", v);
 		}
-		const targets = computed(() => {
-			const c = props.convert;
-			if (!props.open || !c?.node || !c.editor.isEditable) return [];
-			const r = run();
-			return r ? runTargets(contextOf(c.editor).convert, c.editor.state, r) : [];
-		});
-		const title = computed(() => props.convert ? contextOf(props.convert.editor).t("convert.title") : "");
-		function pick(target) {
-			const editor = props.convert?.editor;
-			const r = run();
-			const tr = editor && r && convertRun(contextOf(editor).convert, editor.state, r, target);
-			emit("close");
-			if (!editor || !tr) return;
-			editor.view.dispatch(tr);
-			editor.view.focus();
-		}
-		function onDocDown(e) {
-			const target = e.target;
-			if (!root.value || root.value.contains(target)) return;
-			if (target.closest?.("[data-block-more]")?.closest(".wy-block-frame") === root.value.parentElement) return;
-			emit("close");
-		}
-		function onKey(e) {
-			if (e.key !== "Escape") return;
-			e.stopPropagation();
-			emit("close");
-		}
-		function listen(on) {
-			const fn = on ? document.addEventListener.bind(document) : document.removeEventListener.bind(document);
-			fn("mousedown", onDocDown, true);
-			fn("keydown", onKey, true);
-		}
-		watch(() => props.open, listen, { immediate: true });
-		onBeforeUnmount(() => listen(false));
 		return (_ctx, _cache) => {
-			return __props.open ? (openBlock(), createElementBlock("div", {
-				key: 0,
-				ref_key: "root",
-				ref: root,
-				class: "wy-menu wy-block-menu",
-				role: "menu",
-				contenteditable: "false",
-				"data-block-portal": "",
-				onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["stop"]))
-			}, [renderSlot(_ctx.$slots, "default"), targets.value.length ? (openBlock(), createElementBlock(Fragment$1, { key: 0 }, [createElementVNode("div", _hoisted_1$20, toDisplayString(title.value), 1), createVNode(ConvertItems_default, {
-				targets: targets.value,
-				onPick: pick
-			}, null, 8, ["targets"])], 64)) : createCommentVNode("", true)], 544)) : createCommentVNode("", true);
+			return openBlock(), createElementBlock("div", _hoisted_1$21, [
+				createElementVNode("div", {
+					class: "wy-emoji-grid",
+					role: "listbox",
+					"aria-label": __props.t("callout.icon")
+				}, [(openBlock(), createElementBlock(Fragment$1, null, renderList(EMOJIS, (e) => {
+					return createElementVNode("button", {
+						key: e,
+						type: "button",
+						role: "option",
+						class: "wy-emoji",
+						"aria-selected": e === __props.value,
+						"aria-label": e,
+						onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
+						onClick: ($event) => emit("pick", e)
+					}, toDisplayString(e), 41, _hoisted_3$18);
+				}), 64))], 8, _hoisted_2$18),
+				createElementVNode("form", {
+					class: "wy-emoji-own",
+					onSubmit: withModifiers(applyOwn, ["prevent"])
+				}, [withDirectives(createElementVNode("input", {
+					"onUpdate:modelValue": _cache[1] || (_cache[1] = ($event) => own.value = $event),
+					class: "wy-input is-sm",
+					maxlength: "32",
+					placeholder: __props.t("callout.ownIcon"),
+					"aria-label": __props.t("callout.ownIcon")
+				}, null, 8, _hoisted_4$17), [[vModelText, own.value]]), createElementVNode("button", {
+					type: "submit",
+					class: "wy-btn is-sm",
+					disabled: !unref(validIcon)(own.value.trim())
+				}, toDisplayString(__props.t("callout.useIcon")), 9, _hoisted_5$15)], 32),
+				__props.value ? (openBlock(), createElementBlock("button", {
+					key: 0,
+					type: "button",
+					class: "wy-menu-item",
+					onMousedown: _cache[2] || (_cache[2] = withModifiers(() => {}, ["prevent"])),
+					onClick: _cache[3] || (_cache[3] = ($event) => emit("pick", ""))
+				}, toDisplayString(__props.t("callout.defaultIcon")), 33)) : createCommentVNode("", true)
+			]);
 		};
 	}
 });
-// src/blocks/useBlockNode.ts
-var PORTAL_SELECTOR = "[data-block-portal], .wy-modal, [role=dialog], [role=menu], [role=listbox], .wy-slash";
-function useBlockNode(props, opts = {}) {
-	const editing = ref(false);
-	const selected = computed(() => props.selected);
-	const readonly = computed(() => !props.editor.isEditable);
-	const copyText = computed(() => {
-		const ctx = contextOf(props.editor);
-		if (ctx.config.format === "markdown") return ctx.markdown.serializeNode(props.node);
-		return fragmentHtml(Fragment.from(props.node), props.editor.schema);
-	});
-	function rootEl() {
-		const pos = props.getPos();
-		const dom = typeof pos === "number" ? props.editor.view.nodeDOM(pos) : null;
-		return dom instanceof HTMLElement ? dom : null;
-	}
-	function selectSelf() {
-		const pos = props.getPos();
-		if (typeof pos === "number") props.editor.commands.setNodeSelection(pos);
-	}
-	function onDocClick(e) {
-		const target = e.target;
-		const el = rootEl();
-		if (!target || !el || el.contains(target) || target.closest(PORTAL_SELECTOR)) return;
-		stopEdit();
-	}
-	function onKeydown(e) {
-		if (e.key !== "Escape" || !editing.value) return;
-		e.preventDefault();
-		e.stopPropagation();
-		stopEdit();
-		selectSelf();
-		props.editor.view.focus();
-	}
-	function startEdit() {
-		if (readonly.value || editing.value) return;
-		editing.value = true;
-		selectSelf();
-		document.addEventListener("click", onDocClick, true);
-	}
-	function stopEdit() {
-		if (!editing.value) return;
-		editing.value = false;
-		document.removeEventListener("click", onDocClick, true);
-	}
-	function finishEdit() {
-		stopEdit();
-		props.editor.commands.focus();
-	}
-	function onHeaderKey(e) {
-		if (e.key !== "Enter" && e.key !== "ArrowDown") return;
-		e.preventDefault();
-		const pos = props.getPos();
-		if (typeof pos !== "number") return;
-		const view = props.editor.view;
-		view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(pos + 2))));
-		view.focus();
-	}
-	const onEditEvent = () => startEdit();
-	let mounted = false;
-	onMounted(() => {
-		mounted = true;
-		const el = rootEl();
-		el?.addEventListener("keydown", onKeydown);
-		el?.addEventListener(BLOCK_EDIT_EVENT, onEditEvent);
-		if (opts.editOnInsert && takeFresh(props.node.type.name)) queueMicrotask(() => mounted && startEdit());
-	});
-	onBeforeUnmount(() => {
-		mounted = false;
-		stopEdit();
-		const el = rootEl();
-		el?.removeEventListener("keydown", onKeydown);
-		el?.removeEventListener(BLOCK_EDIT_EVENT, onEditEvent);
-	});
-	return {
-		selected,
-		editing,
-		startEdit,
-		stopEdit,
-		finishEdit,
-		update: (attrs) => props.updateAttributes(attrs),
-		remove() {
-			stopEdit();
-			props.deleteNode();
-		},
-		copyText,
-		readonly,
-		onKeydown,
-		onHeaderKey
-	};
-}
 // src/nodes/CalloutIcon.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$19 = ["width", "height"];
+var _hoisted_1$20 = ["width", "height"];
 // src/nodes/CalloutIcon.vue
 var CalloutIcon_default = /* @__PURE__ */ defineComponent({
 	__name: "CalloutIcon",
@@ -4945,31 +8095,39 @@ var CalloutIcon_default = /* @__PURE__ */ defineComponent({
 				"aria-hidden": "true"
 			}, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(CALLOUT_ICONS)[__props.type] ?? unref(CALLOUT_ICONS).note, ([tag, attrs], i) => {
 				return openBlock(), createBlock(resolveDynamicComponent(tag), mergeProps({ key: i }, { ref_for: true }, attrs), null, 16);
-			}), 128))], 8, _hoisted_1$19);
+			}), 128))], 8, _hoisted_1$20);
 		};
 	}
 });
 // src/nodes/CalloutView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$18 = ["data-variant"];
-var _hoisted_2$16 = {
+var _hoisted_1$19 = ["data-variant", "data-color"];
+var _hoisted_2$17 = {
 	class: "wy-callout-title",
 	contenteditable: "false"
 };
-var _hoisted_3$16 = ["aria-label", "disabled"];
-var _hoisted_4$15 = [
+var _hoisted_3$17 = [
+	"aria-label",
+	"aria-expanded",
+	"disabled"
+];
+var _hoisted_4$16 = {
+	key: 0,
+	class: "wy-callout-emoji"
+};
+var _hoisted_5$14 = [
 	"value",
 	"placeholder",
 	"size",
 	"aria-label",
 	"readonly"
 ];
-var _hoisted_5$13 = { class: "wy-menu-heading" };
-var _hoisted_6$10 = [
+var _hoisted_6$11 = { class: "wy-menu-heading" };
+var _hoisted_7$8 = [
 	"data-variant",
 	"aria-pressed",
 	"onClick"
 ];
-var _hoisted_7$8 = ["data-variant"];
+var _hoisted_8$6 = ["data-variant"];
 // src/nodes/CalloutView.vue
 var CalloutView_default = /* @__PURE__ */ defineComponent({
 	__name: "CalloutView",
@@ -4981,7 +8139,11 @@ var CalloutView_default = /* @__PURE__ */ defineComponent({
 		const kinds = ctx.config.base.callouts;
 		const { selected, remove, update, copyText, readonly, onHeaderKey } = useBlockNode(props);
 		const menu = ref(false);
+		const picker = ref(false);
+		const iconButton = ref(null);
 		const type = computed(() => props.node.attrs.type || kinds[0] || "note");
+		const icon = computed(() => props.node.attrs.icon || "");
+		const color = computed(() => props.node.attrs.color ?? null);
 		const kindLabel = (k) => ctx.has(`callout.types.${k}`) ? t(`callout.types.${k}`) : k;
 		const titleInput = ref(null);
 		const titleFocused = ref(false);
@@ -4990,6 +8152,20 @@ var CalloutView_default = /* @__PURE__ */ defineComponent({
 			update({ type: next });
 			menu.value = false;
 		}
+		function setIcon(next) {
+			update({ icon: next });
+			picker.value = false;
+			props.editor.commands.focus();
+		}
+		function setColor(next) {
+			update({ color: next });
+		}
+		function onDocDown(e) {
+			const target = e.target;
+			if (!target.closest?.(".wy-callout-picker") && !iconButton.value?.contains(target)) picker.value = false;
+		}
+		watch(picker, (open) => open ? document.addEventListener("mousedown", onDocDown, true) : document.removeEventListener("mousedown", onDocDown, true));
+		onBeforeUnmount(() => document.removeEventListener("mousedown", onDocDown, true));
 		async function addTitle() {
 			menu.value = false;
 			titleFocused.value = true;
@@ -5008,12 +8184,12 @@ var CalloutView_default = /* @__PURE__ */ defineComponent({
 					"copy-text": unref(copyText),
 					editable: false,
 					onDelete: unref(remove),
-					onMore: _cache[7] || (_cache[7] = ($event) => menu.value = !menu.value)
+					onMore: _cache[8] || (_cache[8] = ($event) => menu.value = !menu.value)
 				}, {
 					menu: withCtx(() => [createVNode(BlockMenu_default, {
 						open: menu.value,
 						convert: props,
-						onClose: _cache[6] || (_cache[6] = ($event) => menu.value = false)
+						onClose: _cache[7] || (_cache[7] = ($event) => menu.value = false)
 					}, {
 						default: withCtx(() => [
 							!titled.value && !unref(readonly) ? (openBlock(), createElementBlock("button", {
@@ -5025,7 +8201,12 @@ var CalloutView_default = /* @__PURE__ */ defineComponent({
 								class: "wy-menu-icon",
 								size: 16
 							}), createTextVNode(toDisplayString(unref(t)("callout.addTitle")), 1)])) : createCommentVNode("", true),
-							createElementVNode("div", _hoisted_5$13, toDisplayString(unref(t)("callout.kinds")), 1),
+							createVNode(PalettePicker_default, {
+								value: color.value,
+								t: unref(t),
+								onPick: setColor
+							}, null, 8, ["value", "t"]),
+							createElementVNode("div", _hoisted_6$11, toDisplayString(unref(t)("callout.kinds")), 1),
 							(openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(kinds), (k) => {
 								return openBlock(), createElementBlock("button", {
 									key: k,
@@ -5038,23 +8219,33 @@ var CalloutView_default = /* @__PURE__ */ defineComponent({
 								}, [createElementVNode("span", {
 									class: "wy-callout-swatch",
 									"data-variant": k
-								}, [createVNode(CalloutIcon_default, { type: k }, null, 8, ["type"])], 8, _hoisted_7$8), createElementVNode("span", null, toDisplayString(kindLabel(k)), 1)], 8, _hoisted_6$10);
+								}, [createVNode(CalloutIcon_default, { type: k }, null, 8, ["type"])], 8, _hoisted_8$6), createElementVNode("span", null, toDisplayString(kindLabel(k)), 1)], 8, _hoisted_7$8);
 							}), 128))
 						]),
 						_: 1
 					}, 8, ["open", "convert"])]),
 					default: withCtx(() => [createElementVNode("div", {
-						class: normalizeClass(["wy-callout", { "has-title": titled.value }]),
-						"data-variant": type.value
-					}, [createElementVNode("div", _hoisted_2$16, [withDirectives((openBlock(), createElementBlock("button", {
+						class: normalizeClass(["wy-callout", {
+							"has-title": titled.value,
+							"has-icon": !!icon.value
+						}]),
+						"data-variant": type.value,
+						"data-color": color.value || void 0,
+						style: normalizeStyle(unref(calloutStyle)(color.value))
+					}, [createElementVNode("div", _hoisted_2$17, [withDirectives((openBlock(), createElementBlock("button", {
+						ref_key: "iconButton",
+						ref: iconButton,
 						type: "button",
 						class: "wy-callout-icon",
-						"data-block-more": "",
-						"aria-label": unref(t)("callout.changeType"),
+						"aria-label": unref(t)("callout.changeIcon"),
+						"aria-expanded": picker.value,
 						disabled: unref(readonly),
 						onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
-						onClick: _cache[1] || (_cache[1] = ($event) => menu.value = !menu.value)
-					}, [createVNode(CalloutIcon_default, { type: type.value }, null, 8, ["type"])], 40, _hoisted_3$16)), [[unref(vTooltip), unref(t)("callout.changeType")]]), withDirectives(createElementVNode("input", {
+						onClick: _cache[1] || (_cache[1] = ($event) => picker.value = !picker.value)
+					}, [icon.value ? (openBlock(), createElementBlock("span", _hoisted_4$16, toDisplayString(icon.value), 1)) : (openBlock(), createBlock(CalloutIcon_default, {
+						key: 1,
+						type: type.value
+					}, null, 8, ["type"]))], 40, _hoisted_3$17)), [[unref(vTooltip), unref(t)("callout.changeIcon")]]), withDirectives(createElementVNode("input", {
 						ref_key: "titleInput",
 						ref: titleInput,
 						class: "wy-callout-title-input",
@@ -5067,7 +8258,19 @@ var CalloutView_default = /* @__PURE__ */ defineComponent({
 						onFocus: _cache[3] || (_cache[3] = ($event) => titleFocused.value = true),
 						onBlur: _cache[4] || (_cache[4] = ($event) => titleFocused.value = false),
 						onKeydown: _cache[5] || (_cache[5] = (...args) => unref(onHeaderKey) && unref(onHeaderKey)(...args))
-					}, null, 40, _hoisted_4$15), [[vShow, titled.value]])]), createVNode(unref(NodeViewContent), { class: "wy-callout-body" })], 10, _hoisted_1$18)]),
+					}, null, 40, _hoisted_5$14), [[vShow, titled.value]])]), createVNode(unref(NodeViewContent), { class: "wy-callout-body" })], 14, _hoisted_1$19), picker.value ? (openBlock(), createBlock(AnchoredPopover_default, {
+						key: 0,
+						anchor: iconButton.value,
+						class: "wy-menu wy-callout-picker",
+						onEscape: _cache[6] || (_cache[6] = ($event) => picker.value = false)
+					}, {
+						default: withCtx(() => [createVNode(EmojiPicker_default, {
+							value: icon.value,
+							t: unref(t),
+							onPick: setIcon
+						}, null, 8, ["value", "t"])]),
+						_: 1
+					}, 8, ["anchor"])) : createCommentVNode("", true)]),
 					_: 1
 				}, 8, [
 					"label",
@@ -5078,6 +8281,219 @@ var CalloutView_default = /* @__PURE__ */ defineComponent({
 				])]),
 				_: 1
 			});
+		};
+	}
+});
+// src/core/diagrams.ts
+var PLANTUML_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_";
+/** plantuml's text encoding: raw deflate of the utf-8 source in its own base64 alphabet */
+async function plantumlEncode(source) {
+	const stream = new Blob([new TextEncoder().encode(source)]).stream().pipeThrough(new CompressionStream("deflate-raw"));
+	const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+	let out = "";
+	for (let i = 0; i < bytes.length; i += 3) {
+		const b1 = bytes[i];
+		const b2 = bytes[i + 1] ?? 0;
+		const b3 = bytes[i + 2] ?? 0;
+		out += PLANTUML_ALPHABET[b1 >> 2] + PLANTUML_ALPHABET[(b1 & 3) << 4 | b2 >> 4] + PLANTUML_ALPHABET[(b2 & 15) << 2 | b3 >> 6] + PLANTUML_ALPHABET[b3 & 63];
+	}
+	return out;
+}
+async function plantumlUrl(server, source) {
+	return `${server}/svg/${await plantumlEncode(source)}`;
+}
+function luminance(color) {
+	const hex = /^#([\da-f]{3}|[\da-f]{6})$/i.exec(color.trim());
+	let rgb = null;
+	if (hex) {
+		const h = hex[1].length === 3 ? [...hex[1]].map((c) => c + c).join("") : hex[1];
+		rgb = [
+			0,
+			2,
+			4
+		].map((i) => parseInt(h.slice(i, i + 2), 16));
+	} else {
+		const m = /rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/.exec(color);
+		if (m) rgb = [
+			m[1],
+			m[2],
+			m[3]
+		].map(Number);
+	}
+	return rgb ? (.2126 * rgb[0] + .7152 * rgb[1] + .0722 * rgb[2]) / 255 : null;
+}
+/** dark when the editor's `--vc-bg` (or the page background) is dark */
+function isDarkTheme(el) {
+	if (typeof document === "undefined") return false;
+	const target = el ?? document.documentElement;
+	const style = getComputedStyle(target);
+	const l = luminance(style.getPropertyValue("--vc-bg")) ?? luminance(getComputedStyle(document.body).backgroundColor);
+	if (l !== null) return l < .5;
+	return style.colorScheme === "dark" || document.documentElement.classList.contains("dark");
+}
+/** calls `fn` when the host switches its theme (class, style or color scheme) */
+function watchTheme(fn) {
+	if (typeof document === "undefined" || typeof MutationObserver === "undefined") return () => {};
+	const observer = new MutationObserver(fn);
+	const opts = {
+		attributes: true,
+		attributeFilter: [
+			"class",
+			"style",
+			"data-theme"
+		]
+	};
+	observer.observe(document.documentElement, opts);
+	if (document.body) observer.observe(document.body, opts);
+	const media = typeof matchMedia === "function" ? matchMedia("(prefers-color-scheme: dark)") : null;
+	media?.addEventListener("change", fn);
+	return () => {
+		observer.disconnect();
+		media?.removeEventListener("change", fn);
+	};
+}
+var mermaid = null;
+var queue = Promise.resolve();
+var counter = 0;
+/** renders one diagram at a time: mermaid keeps its configuration and scratch elements global */
+function renderMermaid(source, dark) {
+	mermaid ??= import("mermaid").then((m) => m.default);
+	const job = queue.then(async () => {
+		const api = await mermaid;
+		api.initialize({
+			startOnLoad: false,
+			securityLevel: "strict",
+			theme: dark ? "dark" : "default",
+			fontFamily: "inherit"
+		});
+		const id = `wy-mermaid-${++counter}`;
+		try {
+			await api.parse(source);
+			return (await api.render(id, source)).svg;
+		} finally {
+			document.getElementById(id)?.remove();
+			document.getElementById(`d${id}`)?.remove();
+		}
+	});
+	queue = job.catch(() => void 0);
+	return job;
+}
+// src/nodes/DiagramView.vue?vue&type=script&setup=true&lang.ts
+var _hoisted_1$18 = ["data-language"];
+var _hoisted_2$16 = {
+	key: 0,
+	class: "wy-diagram-error",
+	role: "alert"
+};
+var _hoisted_3$16 = ["innerHTML"];
+var _hoisted_4$15 = ["src", "alt"];
+var _hoisted_5$13 = {
+	key: 3,
+	class: "wy-diagram-hint"
+};
+var _hoisted_6$10 = {
+	key: 4,
+	class: "wy-diagram-hint"
+};
+// src/nodes/DiagramView.vue
+var DiagramView_default = /* @__PURE__ */ defineComponent({
+	__name: "DiagramView",
+	props: {
+		language: {},
+		source: {},
+		server: {},
+		services: {},
+		t: { type: Function }
+	},
+	setup(__props) {
+		const props = __props;
+		const root = ref(null);
+		const svg = ref("");
+		const img = ref("");
+		const error = ref("");
+		const loading = ref(true);
+		let timer = 0;
+		let abort = null;
+		let blobUrl = "";
+		let run = 0;
+		function setImage(url, blob = false) {
+			if (blobUrl) URL.revokeObjectURL(blobUrl);
+			blobUrl = blob ? url : "";
+			img.value = url;
+		}
+		async function render() {
+			const id = ++run;
+			const source = props.source.trim();
+			abort?.abort();
+			if (!source) {
+				svg.value = "";
+				setImage("");
+				error.value = "";
+				loading.value = false;
+				return;
+			}
+			loading.value = true;
+			try {
+				if (props.language === "mermaid") {
+					const out = await renderMermaid(source, isDarkTheme(root.value));
+					if (id !== run) return;
+					svg.value = out;
+					error.value = "";
+				} else if (props.services.plantuml) {
+					const ctrl = abort = new AbortController();
+					const markup = await props.services.plantuml(source, ctrl.signal);
+					if (id !== run) return;
+					setImage(URL.createObjectURL(new Blob([markup], { type: "image/svg+xml" })), true);
+					error.value = "";
+				} else {
+					const url = await plantumlUrl(props.server, source);
+					if (id !== run) return;
+					setImage(url);
+					error.value = "";
+				}
+			} catch (e) {
+				if (id !== run) return;
+				svg.value = "";
+				setImage("");
+				error.value = (e instanceof Error ? e.message : String(e)).split("\n").slice(0, 6).join("\n") || props.t("diagram.failed");
+			} finally {
+				if (id === run) loading.value = false;
+			}
+		}
+		function schedule() {
+			window.clearTimeout(timer);
+			timer = window.setTimeout(() => void render(), 300);
+		}
+		watch(() => [props.source, props.language], schedule);
+		let stopTheme = () => {};
+		onMounted(() => {
+			render();
+			if (props.language === "mermaid") stopTheme = watchTheme(schedule);
+		});
+		onBeforeUnmount(() => {
+			run++;
+			window.clearTimeout(timer);
+			abort?.abort();
+			stopTheme();
+			setImage("");
+		});
+		return (_ctx, _cache) => {
+			return openBlock(), createElementBlock("div", {
+				ref_key: "root",
+				ref: root,
+				class: normalizeClass(["wy-diagram", { "is-loading": loading.value && !svg.value && !img.value }]),
+				"data-language": __props.language
+			}, [error.value ? (openBlock(), createElementBlock("div", _hoisted_2$16, toDisplayString(error.value), 1)) : svg.value ? (openBlock(), createElementBlock("div", {
+				key: 1,
+				class: "wy-diagram-svg",
+				innerHTML: svg.value
+			}, null, 8, _hoisted_3$16)) : img.value ? (openBlock(), createElementBlock("img", {
+				key: 2,
+				class: "wy-diagram-img",
+				src: img.value,
+				alt: __props.t("diagram.alt"),
+				onError: _cache[0] || (_cache[0] = ($event) => error.value = __props.t("diagram.failed"))
+			}, null, 40, _hoisted_4$15)) : loading.value ? (openBlock(), createElementBlock("p", _hoisted_5$13, toDisplayString(__props.t("diagram.loading")), 1)) : (openBlock(), createElementBlock("p", _hoisted_6$10, toDisplayString(__props.t("diagram.empty")), 1))], 10, _hoisted_1$18);
 		};
 	}
 });
@@ -5105,6 +8521,8 @@ var CodeBlockView_default = /* @__PURE__ */ defineComponent({
 		const language = computed(() => props.node.attrs.language ?? "");
 		const editing = ref(false);
 		const highlighted = computed(() => editing.value ? "" : highlightCode(props.node.textContent, language.value));
+		const diagram = computed(() => ctx.config.base.diagrams.includes(language.value) ? language.value : null);
+		const sourceShown = computed(() => !diagram.value || editing.value || selected.value || !props.node.textContent.trim());
 		const languages = ctx.config.base.codeBlocks || [];
 		const listId = `wy-code-languages-${Math.random().toString(36).slice(2, 8)}`;
 		const label = computed(() => {
@@ -5128,6 +8546,13 @@ var CodeBlockView_default = /* @__PURE__ */ defineComponent({
 			props.editor.off("blur", syncEditing);
 			props.editor.off("focus", syncEditing);
 		});
+		function editSource() {
+			const pos = props.getPos();
+			if (readonly.value || typeof pos !== "number") return;
+			const view = props.editor.view;
+			view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, pos + props.node.nodeSize - 1)));
+			view.focus();
+		}
 		function setLanguage(e) {
 			update({ language: e.target.value.trim().toLowerCase() || null });
 		}
@@ -5139,7 +8564,11 @@ var CodeBlockView_default = /* @__PURE__ */ defineComponent({
 		return (_ctx, _cache) => {
 			return openBlock(), createBlock(unref(NodeViewWrapper), {
 				as: "div",
-				class: normalizeClass(["wy-node wy-node-code", { "is-editing": editing.value }])
+				class: normalizeClass(["wy-node wy-node-code", {
+					"is-editing": editing.value,
+					"is-diagram": diagram.value,
+					"is-source-hidden": !sourceShown.value
+				}])
 			}, {
 				default: withCtx(() => [createVNode(BlockFrame_default, {
 					label: label.value,
@@ -5177,25 +8606,46 @@ var CodeBlockView_default = /* @__PURE__ */ defineComponent({
 						]),
 						_: 1
 					}, 8, ["open", "convert"])]),
-					default: withCtx(() => [createElementVNode("pre", _hoisted_1$17, [!editing.value ? (openBlock(), createElementBlock("code", {
-						key: 0,
-						class: "wy-code-highlight",
-						"aria-hidden": "true",
-						contenteditable: "false",
-						innerHTML: highlighted.value
-					}, null, 8, _hoisted_2$15)) : createCommentVNode("", true), createVNode(unref(NodeViewContent), {
-						as: "code",
-						class: normalizeClass(language.value ? `language-${language.value}` : ""),
-						spellcheck: "false"
-					}, null, 8, ["class"])]), (openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(ctx).codeBlock.filter((x) => x.below), (h, i) => {
-						return openBlock(), createElementBlock("div", {
-							key: i,
-							class: "wy-code-below",
+					default: withCtx(() => [
+						createElementVNode("pre", _hoisted_1$17, [!editing.value ? (openBlock(), createElementBlock("code", {
+							key: 0,
+							class: "wy-code-highlight",
+							"aria-hidden": "true",
 							contenteditable: "false",
-							"data-block-portal": "",
-							onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["stop"]))
-						}, [(openBlock(), createBlock(resolveDynamicComponent(h.below), mergeProps({ ref_for: true }, props), null, 16))], 32);
-					}), 128))]),
+							innerHTML: highlighted.value
+						}, null, 8, _hoisted_2$15)) : createCommentVNode("", true), createVNode(unref(NodeViewContent), {
+							as: "code",
+							class: normalizeClass(language.value ? `language-${language.value}` : ""),
+							spellcheck: "false"
+						}, null, 8, ["class"])]),
+						diagram.value ? (openBlock(), createElementBlock("div", {
+							key: 0,
+							class: "wy-code-diagram",
+							contenteditable: "false",
+							onClick: editSource
+						}, [createVNode(DiagramView_default, {
+							language: diagram.value,
+							source: _ctx.node.textContent,
+							server: unref(ctx).config.base.plantumlServer,
+							services: unref(ctx).services,
+							t: unref(t)
+						}, null, 8, [
+							"language",
+							"source",
+							"server",
+							"services",
+							"t"
+						])])) : createCommentVNode("", true),
+						(openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(ctx).codeBlock.filter((x) => x.below), (h, i) => {
+							return openBlock(), createElementBlock("div", {
+								key: i,
+								class: "wy-code-below",
+								contenteditable: "false",
+								"data-block-portal": "",
+								onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["stop"]))
+							}, [(openBlock(), createBlock(resolveDynamicComponent(h.below), mergeProps({ ref_for: true }, props), null, 16))], 32);
+						}), 128))
+					]),
 					_: 1
 				}, 8, [
 					"label",
@@ -5210,7 +8660,7 @@ var CodeBlockView_default = /* @__PURE__ */ defineComponent({
 	}
 });
 // src/nodes/DetailsView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$16 = ["data-open"];
+var _hoisted_1$16 = ["data-open", "data-heading"];
 var _hoisted_2$14 = {
 	class: "wy-details-summary",
 	contenteditable: "false"
@@ -5240,7 +8690,7 @@ var DetailsView_default = /* @__PURE__ */ defineComponent({
 				class: "wy-node wy-node-details"
 			}, {
 				default: withCtx(() => [createVNode(BlockFrame_default, {
-					label: unref(t)("details.label"),
+					label: _ctx.node.attrs.heading ? unref(t)("details.headingLabel", { n: _ctx.node.attrs.heading }) : unref(t)("details.label"),
 					selected: unref(selected),
 					readonly: unref(readonly),
 					"copy-text": unref(copyText),
@@ -5249,7 +8699,8 @@ var DetailsView_default = /* @__PURE__ */ defineComponent({
 				}, {
 					default: withCtx(() => [createElementVNode("div", {
 						class: "wy-details",
-						"data-open": _ctx.node.attrs.open ? "true" : "false"
+						"data-open": _ctx.node.attrs.open ? "true" : "false",
+						"data-heading": _ctx.node.attrs.heading || void 0
 					}, [createElementVNode("div", _hoisted_2$14, [withDirectives((openBlock(), createElementBlock("button", {
 						type: "button",
 						class: "wy-details-toggle",
@@ -5299,12 +8750,12 @@ var _hoisted_8$5 = ["aria-pressed", "onClick"];
 var _hoisted_9$4 = { class: "wy-menu-heading" };
 var _hoisted_10$4 = ["aria-label"];
 var _hoisted_11$4 = ["aria-pressed", "aria-label"];
-var _hoisted_12$3 = [
+var _hoisted_12$4 = [
 	"aria-pressed",
 	"aria-label",
 	"onClick"
 ];
-var _hoisted_13$3 = ["value", "aria-label"];
+var _hoisted_13$4 = ["value", "aria-label"];
 var _hoisted_14$3 = { class: "wy-menu-heading" };
 var _hoisted_15$2 = ["aria-pressed", "onClick"];
 var _hoisted_16$2 = {
@@ -5422,7 +8873,7 @@ var DividerView_default = /* @__PURE__ */ defineComponent({
 										key: 0,
 										class: "wy-swatch-check",
 										size: 12
-									})) : createCommentVNode("", true)], 12, _hoisted_12$3)), [[unref(vTooltip), unref(t)(`divider.colors.${c}`)]]);
+									})) : createCommentVNode("", true)], 12, _hoisted_12$4)), [[unref(vTooltip), unref(t)(`divider.colors.${c}`)]]);
 								}), 128)),
 								withDirectives((openBlock(), createElementBlock("label", {
 									class: "wy-swatch is-round is-custom",
@@ -5437,7 +8888,7 @@ var DividerView_default = /* @__PURE__ */ defineComponent({
 									value: customColor.value || "#808080",
 									"aria-label": unref(t)("divider.customColor"),
 									onChange: _cache[1] || (_cache[1] = ($event) => unref(update)({ color: $event.target.value }))
-								}, null, 40, _hoisted_13$3)], 4)), [[unref(vTooltip), unref(t)("divider.customColor")]])
+								}, null, 40, _hoisted_13$4)], 4)), [[unref(vTooltip), unref(t)("divider.customColor")]])
 							], 8, _hoisted_10$4),
 							createElementVNode("div", _hoisted_14$3, toDisplayString(unref(t)("divider.design")), 1),
 							(openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(DIVIDER_DESIGNS), (d) => {
@@ -5511,8 +8962,8 @@ var _hoisted_10$3 = [
 	"onClick"
 ];
 var _hoisted_11$3 = { class: "wy-inline-field" };
-var _hoisted_12$2 = { class: "wy-label" };
-var _hoisted_13$2 = ["value", "aria-label"];
+var _hoisted_12$3 = { class: "wy-label" };
+var _hoisted_13$3 = ["value", "aria-label"];
 var _hoisted_14$2 = ["aria-label", "disabled"];
 var _hoisted_15$1 = ["aria-expanded"];
 var _hoisted_16$1 = {
@@ -5733,7 +9184,7 @@ var FigureView_default = /* @__PURE__ */ defineComponent({
 							}, [(openBlock(), createBlock(resolveDynamicComponent(ICONS[a]), { size: 16 }))], 8, _hoisted_10$3)), [[unref(vTooltip), unref(t)(`image.align.${a}`)]]);
 						}), 128))]),
 						createElementVNode("label", _hoisted_11$3, [
-							createElementVNode("span", _hoisted_12$2, toDisplayString(unref(t)("image.width")), 1),
+							createElementVNode("span", _hoisted_12$3, toDisplayString(unref(t)("image.width")), 1),
 							createElementVNode("input", {
 								class: "wy-input is-sm is-num",
 								type: "number",
@@ -5744,7 +9195,7 @@ var FigureView_default = /* @__PURE__ */ defineComponent({
 								"aria-label": unref(t)("image.width"),
 								onChange: _cache[7] || (_cache[7] = ($event) => setWidth(Number($event.target.value))),
 								onKeydown: onWidthKey
-							}, null, 40, _hoisted_13$2),
+							}, null, 40, _hoisted_13$3),
 							_cache[12] || (_cache[12] = createElementVNode("span", { class: "wy-muted" }, "%", -1))
 						]),
 						withDirectives((openBlock(), createElementBlock("button", {
@@ -5793,70 +9244,6 @@ var FigureView_default = /* @__PURE__ */ defineComponent({
 				])]),
 				_: 1
 			}, 8, ["class", "style"]);
-		};
-	}
-});
-// src/components/AnchoredPopover.vue
-var AnchoredPopover_default = /* @__PURE__ */ defineComponent({
-	inheritAttrs: false,
-	__name: "AnchoredPopover",
-	props: {
-		anchor: {},
-		side: { default: "bottom" },
-		align: { default: "start" }
-	},
-	emits: ["escape"],
-	setup(__props, { expose: __expose, emit: __emit }) {
-		const props = __props;
-		const emit = __emit;
-		const root = ref(null);
-		const pos = ref({
-			x: -9999,
-			y: -9999
-		});
-		const room = ref(9999);
-		let floating = null;
-		function place() {
-			floating?.update();
-		}
-		function bind() {
-			floating?.stop();
-			floating = null;
-			if (!root.value || !props.anchor) return;
-			floating = floatNear(props.anchor, root.value, {
-				placement: props.align === "center" ? props.side : `${props.side}-${props.align}`,
-				offset: 4,
-				padding: 8,
-				apply: (x, y) => pos.value = {
-					x,
-					y
-				},
-				room: (h) => room.value = h
-			});
-		}
-		watch(() => props.anchor, bind);
-		onMounted(bind);
-		onBeforeUnmount(() => floating?.stop());
-		__expose({
-			place,
-			el: root
-		});
-		return (_ctx, _cache) => {
-			return openBlock(), createBlock(Teleport, { to: "body" }, [createElementVNode("div", mergeProps({
-				ref_key: "root",
-				ref: root
-			}, _ctx.$attrs, {
-				class: "wy-floating",
-				style: {
-					left: `${pos.value.x}px`,
-					top: `${pos.value.y}px`,
-					"--wy-popover-room": `${room.value}px`
-				},
-				contenteditable: "false",
-				"data-block-portal": "",
-				onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["stop"])),
-				onKeydown: _cache[1] || (_cache[1] = (e) => e.key === "Escape" && emit("escape", e))
-			}), [renderSlot(_ctx.$slots, "default")], 16)]);
 		};
 	}
 });
@@ -6182,6 +9569,109 @@ var MathInlineView_default = /* @__PURE__ */ defineComponent({
 				_: 1
 			}, 8, ["class"]);
 		};
+	}
+});
+// src/editor/pasteUrl.ts
+var PASTE_URL_KEY = new PluginKey("wysiwygPasteUrl");
+var PasteUrl = Extension.create({
+	name: "pasteUrl",
+	addProseMirrorPlugins() {
+		const editor = this.editor;
+		let menu = null;
+		let pending = null;
+		const close = () => {
+			menu?.close();
+			menu = null;
+			pending = null;
+		};
+		/** the pasted paragraph, if it still holds just the address */
+		const pastedBlock = (view, p) => {
+			if (p.from > view.state.doc.content.size) return null;
+			const $pos = view.state.doc.resolve(p.from);
+			return $pos.parent.type.name === "paragraph" && $pos.parent.textContent === p.url ? {
+				from: $pos.before(),
+				to: $pos.after()
+			} : null;
+		};
+		const pick = (entry) => {
+			const p = pending;
+			close();
+			if (!p || entry.key === "link") return;
+			const view = editor.view;
+			const block = pastedBlock(view, p);
+			const { schema } = view.state;
+			const node = entry.key === "bookmark" ? schema.nodes.bookmark?.create({ url: p.url }) : schema.nodes.embed?.create(embedAttrs(p.url));
+			if (!block || !node) return;
+			view.dispatch(view.state.tr.replaceWith(block.from, block.to, node).scrollIntoView());
+			view.focus();
+		};
+		const open = (view, p) => {
+			const ctx = contextOf(editor);
+			const schema = view.state.schema;
+			const target = embedFor(p.url);
+			const items = [{
+				key: "link",
+				title: ctx.t("paste.link"),
+				icon: Link$1
+			}];
+			if (schema.nodes.bookmark) items.push({
+				key: "bookmark",
+				title: ctx.t("paste.bookmark"),
+				icon: Bookmark
+			});
+			if (schema.nodes.embed && target) items.push({
+				key: "embed",
+				title: ctx.t("paste.embed"),
+				detail: ctx.t(`embed.providers.${target.provider}`),
+				icon: AppWindow
+			});
+			if (items.length < 2) return;
+			pending = p;
+			menu = openPopup(editor, SuggestionList_default, {
+				items,
+				label: ctx.t("paste.label"),
+				onPick: pick
+			}, caretRect(editor, p.from + p.url.length));
+		};
+		return [new Plugin({
+			key: PASTE_URL_KEY,
+			props: {
+				handlePaste(view, event) {
+					const url = loneUrl(event.clipboardData?.getData("text/plain") ?? "");
+					const { $from, empty } = view.state.selection;
+					if (!url || !empty || $from.parent.type.name !== "paragraph" || $from.parent.content.size || isInCell($from)) return false;
+					const link = view.state.schema.marks.link;
+					const tr = view.state.tr.insertText(url, $from.pos);
+					if (link) tr.addMark($from.pos, $from.pos + url.length, link.create({ href: url }));
+					view.dispatch(tr);
+					open(view, {
+						from: $from.pos,
+						url
+					});
+					return true;
+				},
+				handleKeyDown(_view, event) {
+					if (!menu) return false;
+					if (event.key === "Escape") {
+						close();
+						return true;
+					}
+					if (menu.ref?.onKeyDown?.(event)) return true;
+					close();
+					return false;
+				},
+				handleDOMEvents: { blur: () => {
+					close();
+					return false;
+				} }
+			},
+			view: () => ({
+				update(view, prev) {
+					if (menu && (view.state.doc !== prev.doc || !view.state.selection.eq(prev.selection))) close();
+				},
+				destroy: close
+			})
+		})];
 	}
 });
 // src/editor/clipboard.ts
@@ -6683,6 +10173,7 @@ function editorExtensions(ctx, opts) {
 		groupLabel: (id) => groupLabel(ctx.config, id, ctx.text),
 		t: (k) => ctx.t(k)
 	}));
+	if (ctx.config.base.bookmarks || ctx.config.base.embeds) out.push(PasteUrl);
 	if (opts.gutter) {
 		const g = opts.gutter;
 		out.push(GutterHandle.configure({
@@ -7605,8 +11096,8 @@ var _hoisted_8$2 = { class: "wy-slash-label" };
 var _hoisted_9$2 = { class: "wy-slash-desc" };
 var _hoisted_10$2 = { class: "wy-field" };
 var _hoisted_11$2 = { class: "wy-label" };
-var _hoisted_12$1 = ["placeholder"];
-var _hoisted_13$1 = { class: "wy-form-actions" };
+var _hoisted_12$2 = ["placeholder"];
+var _hoisted_13$2 = { class: "wy-form-actions" };
 var _hoisted_14$1 = ["disabled"];
 // src/components/LinkDialog.vue
 var LinkDialog_default = /* @__PURE__ */ defineComponent({
@@ -7752,8 +11243,8 @@ var LinkDialog_default = /* @__PURE__ */ defineComponent({
 						class: "wy-input",
 						type: "text",
 						placeholder: unref(t)("link.textPlaceholder")
-					}, null, 8, _hoisted_12$1), [[vModelText, text.value]])]),
-					createElementVNode("div", _hoisted_13$1, [
+					}, null, 8, _hoisted_12$2), [[vModelText, text.value]])]),
+					createElementVNode("div", _hoisted_13$2, [
 						__props.hasLink ? (openBlock(), createElementBlock("button", {
 							key: 0,
 							type: "button",
@@ -7864,16 +11355,18 @@ var _hoisted_3$2 = [
 ];
 var _hoisted_4$2 = ["aria-label"];
 var _hoisted_5$2 = ["aria-label"];
-var _hoisted_6$2 = { class: "wy-menu-split" };
-var _hoisted_7$1 = { class: "wy-menu-hint" };
-var _hoisted_8$1 = ["aria-label"];
-var _hoisted_9$1 = [
+var _hoisted_6$2 = ["aria-checked", "aria-pressed"];
+var _hoisted_7$1 = { class: "wy-menu-split" };
+var _hoisted_8$1 = { class: "wy-menu-hint" };
+var _hoisted_9$1 = ["aria-label"];
+var _hoisted_10$1 = [
 	"aria-pressed",
 	"aria-label",
 	"onClick"
 ];
-var _hoisted_10$1 = ["aria-checked", "aria-pressed"];
 var _hoisted_11$1 = ["aria-checked", "aria-pressed"];
+var _hoisted_12$1 = ["aria-checked", "aria-pressed"];
+var _hoisted_13$1 = ["aria-checked", "aria-pressed"];
 var HIDE_DELAY = 250;
 var DRAG_THRESHOLD = 4;
 // src/components/TableControls.vue
@@ -7988,6 +11481,7 @@ var TableControls_default = /* @__PURE__ */ defineComponent({
 					col: sel.left
 				} : null,
 				header: hasHeaderRow(table.node),
+				headerColumn: hasHeaderColumn(table.node),
 				left: left - base.left,
 				right: right - base.left,
 				top: box.top - base.top,
@@ -8397,7 +11891,24 @@ var TableControls_default = /* @__PURE__ */ defineComponent({
 						class: "wy-menu-icon",
 						size: 16
 					}), createTextVNode(toDisplayString(unref(t)("table.insertRight")), 1)], 32),
-					createElementVNode("div", _hoisted_6$2, [createElementVNode("span", _hoisted_7$1, toDisplayString(unref(t)("table.align")), 1), createElementVNode("div", {
+					menu.value.index === 0 ? (openBlock(), createElementBlock("button", {
+						key: 0,
+						type: "button",
+						class: "wy-menu-item",
+						role: "menuitemcheckbox",
+						"aria-checked": geo.value?.headerColumn,
+						"aria-pressed": geo.value?.headerColumn,
+						onMousedown: _cache[18] || (_cache[18] = withModifiers(() => {}, ["prevent"])),
+						onClick: _cache[19] || (_cache[19] = ($event) => run({
+							kind: "col",
+							index: 0,
+							action: "header"
+						}))
+					}, [createVNode(unref(Heading$1), {
+						class: "wy-menu-icon",
+						size: 16
+					}), createTextVNode(toDisplayString(unref(t)("table.headerColumn")), 1)], 40, _hoisted_6$2)) : createCommentVNode("", true),
+					createElementVNode("div", _hoisted_7$1, [createElementVNode("span", _hoisted_8$1, toDisplayString(unref(t)("table.align")), 1), createElementVNode("div", {
 						class: "wy-seg",
 						role: "group",
 						"aria-label": unref(t)("table.align")
@@ -8407,20 +11918,20 @@ var TableControls_default = /* @__PURE__ */ defineComponent({
 							type: "button",
 							"aria-pressed": (columnAlign.value ?? "left") === a.value,
 							"aria-label": unref(t)(a.label),
-							onMousedown: _cache[18] || (_cache[18] = withModifiers(() => {}, ["prevent"])),
+							onMousedown: _cache[20] || (_cache[20] = withModifiers(() => {}, ["prevent"])),
 							onClick: ($event) => run({
 								kind: "col",
 								index: menu.value.index,
 								action: a.value
 							})
-						}, [(openBlock(), createBlock(resolveDynamicComponent(a.icon), { size: 14 }))], 40, _hoisted_9$1)), [[unref(vTooltip), unref(t)(a.label)]]);
-					}), 64))], 8, _hoisted_8$1)]),
+						}, [(openBlock(), createBlock(resolveDynamicComponent(a.icon), { size: 14 }))], 40, _hoisted_10$1)), [[unref(vTooltip), unref(t)(a.label)]]);
+					}), 64))], 8, _hoisted_9$1)]),
 					createElementVNode("button", {
 						type: "button",
 						class: "wy-menu-item is-danger",
 						role: "menuitem",
-						onMousedown: _cache[19] || (_cache[19] = withModifiers(() => {}, ["prevent"])),
-						onClick: _cache[20] || (_cache[20] = ($event) => run({
+						onMousedown: _cache[21] || (_cache[21] = withModifiers(() => {}, ["prevent"])),
+						onClick: _cache[22] || (_cache[22] = ($event) => run({
 							kind: "col",
 							index: menu.value.index,
 							action: "delete"
@@ -8434,8 +11945,8 @@ var TableControls_default = /* @__PURE__ */ defineComponent({
 						type: "button",
 						class: "wy-menu-item",
 						role: "menuitem",
-						onMousedown: _cache[21] || (_cache[21] = withModifiers(() => {}, ["prevent"])),
-						onClick: _cache[22] || (_cache[22] = ($event) => run({
+						onMousedown: _cache[23] || (_cache[23] = withModifiers(() => {}, ["prevent"])),
+						onClick: _cache[24] || (_cache[24] = ($event) => run({
 							kind: "row",
 							index: menu.value.index,
 							action: "before"
@@ -8448,8 +11959,8 @@ var TableControls_default = /* @__PURE__ */ defineComponent({
 						type: "button",
 						class: "wy-menu-item",
 						role: "menuitem",
-						onMousedown: _cache[23] || (_cache[23] = withModifiers(() => {}, ["prevent"])),
-						onClick: _cache[24] || (_cache[24] = ($event) => run({
+						onMousedown: _cache[25] || (_cache[25] = withModifiers(() => {}, ["prevent"])),
+						onClick: _cache[26] || (_cache[26] = ($event) => run({
 							kind: "row",
 							index: menu.value.index,
 							action: "after"
@@ -8465,8 +11976,8 @@ var TableControls_default = /* @__PURE__ */ defineComponent({
 						role: "menuitemcheckbox",
 						"aria-checked": geo.value?.header,
 						"aria-pressed": geo.value?.header,
-						onMousedown: _cache[25] || (_cache[25] = withModifiers(() => {}, ["prevent"])),
-						onClick: _cache[26] || (_cache[26] = ($event) => run({
+						onMousedown: _cache[27] || (_cache[27] = withModifiers(() => {}, ["prevent"])),
+						onClick: _cache[28] || (_cache[28] = ($event) => run({
 							kind: "row",
 							index: 0,
 							action: "header"
@@ -8474,13 +11985,13 @@ var TableControls_default = /* @__PURE__ */ defineComponent({
 					}, [createVNode(unref(Heading$1), {
 						class: "wy-menu-icon",
 						size: 16
-					}), createTextVNode(toDisplayString(unref(t)("table.headerRow")), 1)], 40, _hoisted_10$1)) : createCommentVNode("", true),
+					}), createTextVNode(toDisplayString(unref(t)("table.headerRow")), 1)], 40, _hoisted_11$1)) : createCommentVNode("", true),
 					createElementVNode("button", {
 						type: "button",
 						class: "wy-menu-item is-danger",
 						role: "menuitem",
-						onMousedown: _cache[27] || (_cache[27] = withModifiers(() => {}, ["prevent"])),
-						onClick: _cache[28] || (_cache[28] = ($event) => run({
+						onMousedown: _cache[29] || (_cache[29] = withModifiers(() => {}, ["prevent"])),
+						onClick: _cache[30] || (_cache[30] = ($event) => run({
 							kind: "row",
 							index: menu.value.index,
 							action: "delete"
@@ -8489,34 +12000,53 @@ var TableControls_default = /* @__PURE__ */ defineComponent({
 						class: "wy-menu-icon",
 						size: 16
 					}), createTextVNode(toDisplayString(unref(t)("table.deleteRow")), 1)], 32)
-				], 64)) : (openBlock(), createElementBlock(Fragment$1, { key: 2 }, [createElementVNode("button", {
-					type: "button",
-					class: "wy-menu-item",
-					role: "menuitemcheckbox",
-					"aria-checked": geo.value?.header,
-					"aria-pressed": geo.value?.header,
-					onMousedown: _cache[29] || (_cache[29] = withModifiers(() => {}, ["prevent"])),
-					onClick: _cache[30] || (_cache[30] = ($event) => run({
-						kind: "row",
-						index: 0,
-						action: "header"
-					}))
-				}, [createVNode(unref(Heading$1), {
-					class: "wy-menu-icon",
-					size: 16
-				}), createTextVNode(toDisplayString(unref(t)("table.headerRow")), 1)], 40, _hoisted_11$1), createElementVNode("button", {
-					type: "button",
-					class: "wy-menu-item is-danger",
-					role: "menuitem",
-					onMousedown: _cache[31] || (_cache[31] = withModifiers(() => {}, ["prevent"])),
-					onClick: _cache[32] || (_cache[32] = ($event) => run({
-						kind: "table",
-						action: "delete"
-					}))
-				}, [createVNode(unref(Trash2), {
-					class: "wy-menu-icon",
-					size: 16
-				}), createTextVNode(toDisplayString(unref(t)("table.deleteTable")), 1)], 32)], 64))]),
+				], 64)) : (openBlock(), createElementBlock(Fragment$1, { key: 2 }, [
+					createElementVNode("button", {
+						type: "button",
+						class: "wy-menu-item",
+						role: "menuitemcheckbox",
+						"aria-checked": geo.value?.header,
+						"aria-pressed": geo.value?.header,
+						onMousedown: _cache[31] || (_cache[31] = withModifiers(() => {}, ["prevent"])),
+						onClick: _cache[32] || (_cache[32] = ($event) => run({
+							kind: "row",
+							index: 0,
+							action: "header"
+						}))
+					}, [createVNode(unref(Heading$1), {
+						class: "wy-menu-icon",
+						size: 16
+					}), createTextVNode(toDisplayString(unref(t)("table.headerRow")), 1)], 40, _hoisted_12$1),
+					createElementVNode("button", {
+						type: "button",
+						class: "wy-menu-item",
+						role: "menuitemcheckbox",
+						"aria-checked": geo.value?.headerColumn,
+						"aria-pressed": geo.value?.headerColumn,
+						onMousedown: _cache[33] || (_cache[33] = withModifiers(() => {}, ["prevent"])),
+						onClick: _cache[34] || (_cache[34] = ($event) => run({
+							kind: "col",
+							index: 0,
+							action: "header"
+						}))
+					}, [createVNode(unref(Heading$1), {
+						class: "wy-menu-icon",
+						size: 16
+					}), createTextVNode(toDisplayString(unref(t)("table.headerColumn")), 1)], 40, _hoisted_13$1),
+					createElementVNode("button", {
+						type: "button",
+						class: "wy-menu-item is-danger",
+						role: "menuitem",
+						onMousedown: _cache[35] || (_cache[35] = withModifiers(() => {}, ["prevent"])),
+						onClick: _cache[36] || (_cache[36] = ($event) => run({
+							kind: "table",
+							action: "delete"
+						}))
+					}, [createVNode(unref(Trash2), {
+						class: "wy-menu-icon",
+						size: 16
+					}), createTextVNode(toDisplayString(unref(t)("table.deleteTable")), 1)], 32)
+				], 64))]),
 				_: 1
 			}, 8, ["anchor", "side"])) : createCommentVNode("", true)], 512);
 		};
@@ -10408,4 +13938,4 @@ function convertBlocks(blocks, target, options = {}) {
 function markdownToHtml(md, extensions, base) {
 	return createMarkdown(extensions, { base }).toHtml(md);
 }
-export { AnchoredPopover_default as AnchoredPopover, BLOCK_EDIT_EVENT, BlockFrame_default as BlockFrame, BlockMenu_default as BlockMenu, CODE_LANGUAGES, HTML_CALLOUTS, MARKDOWN_CALLOUTS, MESSAGES, SaveStatus_default as SaveStatus, WysiwygEditor_default as WysiwygEditor, blockBody, blockStopEvent, cleanPastedHtml, clipboardText, collaborationCaret, contextOf, convertBlocks, convertTargets, createMarkdown, createWysiwyg, defineEditorExtension, defineFenceBlock, escapeHtml, fenceAtom, fenceClose, fenceFor, fenceOpen, formatBytes, formatInfo, highlightCode, insertFresh, isImageSrc, isInCell, joinSections, looksLikeMarkdown, markFresh, markdownToHtml, mediaKind, moveItem, newBlockId, normalizeHref, parseInfo, pasteAsMarkdown, registerCodeLanguage, renderMath, splitSections, takeFresh, useBlockNode, useDraft, useEditorContext, useEditorHandle, useFenceSync, vTooltip };
+export { AnchoredPopover_default as AnchoredPopover, BLOCK_EDIT_EVENT, BlockFrame_default as BlockFrame, BlockMenu_default as BlockMenu, CODE_LANGUAGES, EMBED_PROVIDERS, HTML_CALLOUTS, MARKDOWN_CALLOUTS, MESSAGES, PALETTE, PageSearch_default as PageSearch, SaveStatus_default as SaveStatus, SuggestionList_default as SuggestionList, WysiwygEditor_default as WysiwygEditor, blockBody, blockStopEvent, cleanPastedHtml, clipboardText, collaborationCaret, contextOf, convertBlocks, convertTargets, createMarkdown, createWysiwyg, defineEditorExtension, defineFenceBlock, embedFor, escapeHtml, fenceAtom, fenceClose, fenceFor, fenceOpen, formatBytes, formatInfo, highlightCode, insertFresh, isImageSrc, isInCell, isPaletteToken, joinSections, looksLikeMarkdown, markFresh, markdownToHtml, mediaKind, mentionMarkdown, moveItem, newBlockId, normalizeHref, paletteCss, parseInfo, parseMentionTarget, pasteAsMarkdown, registerCodeLanguage, renderMath, splitSections, takeFresh, useBlockNode, useDraft, useEditorContext, useEditorHandle, useFenceSync, vTooltip };

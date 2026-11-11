@@ -1,5 +1,17 @@
 import { Extension, Node } from "@tiptap/core";
 import { Fragment, type Node as PMNode, type Schema } from "@tiptap/pm/model";
+/** a palette token from `data-color`; html may carry other colors, which stay out of the palette attribute */
+export declare function paletteAttribute(): {
+    default: null;
+    parseHTML: (dom: HTMLElement) => string | null;
+    renderHTML: (a: {
+        color?: string | null;
+    }) => {
+        "data-color": string;
+    } | {
+        "data-color"?: undefined;
+    };
+};
 export declare const InlineImage: Node<import("@tiptap/extension-image").ImageOptions, any>;
 export declare const Figure: Node<any, any>;
 export declare const Callout: Node<any, any>;

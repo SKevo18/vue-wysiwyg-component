@@ -27,7 +27,7 @@
 @media (max-width: 40rem) {
   .wy-prose .wy-columns {
     flex-direction: column;
-    gap: 0;
+    gap: 0.75em;
   }
 }
 .wy-node-columns {
@@ -73,7 +73,7 @@
 @container (max-width: 36rem) {
   .wy-node-columns .wy-columns {
     flex-direction: column;
-    gap: 0;
+    gap: 0.75em;
   }
   .wy-column-resize {
     display: none;

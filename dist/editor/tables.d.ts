@@ -12,7 +12,7 @@ export declare function selectLine(editor: Editor, table: TableRef, kind: "col" 
 export type TableAction = {
     kind: "col";
     index: number;
-    action: "before" | "after" | "delete" | ColumnAlign;
+    action: "before" | "after" | "delete" | "header" | ColumnAlign;
 } | {
     kind: "row";
     index: number;
@@ -25,3 +25,5 @@ export declare function runTableAction(editor: Editor, table: TableRef, a: Table
 /** the header row stays first: gfm writes it above the `---` line, so it neither moves nor gets displaced */
 export declare function moveLine(editor: Editor, table: TableRef, kind: "col" | "row", from: number, to: number): boolean;
 export declare function hasHeaderRow(table: PMNode): boolean;
+/** every row starts with a header cell (markdown has no header column; it lives in html and the shared document) */
+export declare function hasHeaderColumn(table: PMNode): boolean;

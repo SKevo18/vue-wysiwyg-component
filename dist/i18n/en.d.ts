@@ -171,6 +171,46 @@ export declare const en: {
                 label: string;
                 description: string;
             };
+            toggleHeading1: {
+                label: string;
+                description: string;
+            };
+            toggleHeading2: {
+                label: string;
+                description: string;
+            };
+            toggleHeading3: {
+                label: string;
+                description: string;
+            };
+            columns2: {
+                label: string;
+                description: string;
+            };
+            columns3: {
+                label: string;
+                description: string;
+            };
+            columns4: {
+                label: string;
+                description: string;
+            };
+            bookmark: {
+                label: string;
+                description: string;
+            };
+            embed: {
+                label: string;
+                description: string;
+            };
+            tableOfContents: {
+                label: string;
+                description: string;
+            };
+            pageLink: {
+                label: string;
+                description: string;
+            };
         };
     };
     convert: {
@@ -178,6 +218,7 @@ export declare const en: {
         targets: {
             paragraph: string;
             unwrap: string;
+            columns: string;
         };
     };
     blockMenu: {
@@ -204,6 +245,7 @@ export declare const en: {
         alignCenter: string;
         alignRight: string;
         headerRow: string;
+        headerColumn: string;
         deleteColumn: string;
         deleteRow: string;
         deleteTable: string;
@@ -252,6 +294,11 @@ export declare const en: {
         changeType: string;
         title: string;
         addTitle: string;
+        changeIcon: string;
+        icon: string;
+        ownIcon: string;
+        useIcon: string;
+        defaultIcon: string;
         kinds: string;
         types: {
             note: string;
@@ -340,12 +387,107 @@ export declare const en: {
         toggleDefault: string;
         openByDefault: string;
         closedByDefault: string;
+        headingLabel: string;
     };
     footnote: {
         label: string;
     };
     source: {
         label: string;
+    };
+    columns: {
+        label: string;
+        add: string;
+        remove: string;
+        removeHint: string;
+        equal: string;
+        resize: string;
+    };
+    bookmark: {
+        edit: string;
+        label: string;
+        url: string;
+        placeholder: string;
+        create: string;
+        loading: string;
+        failed: string;
+        refresh: string;
+        open: string;
+    };
+    embed: {
+        edit: string;
+        url: string;
+        placeholder: string;
+        create: string;
+        open: string;
+        interact: string;
+        resize: string;
+        defaultHeight: string;
+        providers: {
+            youtube: string;
+            vimeo: string;
+            loom: string;
+            figma: string;
+            gist: string;
+            maps: string;
+            tweet: string;
+            codepen: string;
+            generic: string;
+        };
+    };
+    toc: {
+        label: string;
+        empty: string;
+    };
+    pageLink: {
+        label: string;
+        untitled: string;
+        search: string;
+        searchPlaceholder: string;
+    };
+    mention: {
+        label: string;
+        empty: string;
+        searching: string;
+        groups: {
+            user: string;
+            page: string;
+            date: string;
+        };
+        today: string;
+        tomorrow: string;
+        yesterday: string;
+        date: string;
+        time: string;
+        includeTime: string;
+        endDate: string;
+        editDate: string;
+    };
+    paste: {
+        label: string;
+        link: string;
+        bookmark: string;
+        embed: string;
+    };
+    diagram: {
+        alt: string;
+        loading: string;
+        empty: string;
+        failed: string;
+    };
+    palette: {
+        background: string;
+        text: string;
+        default: string;
+        gray: string;
+        brown: string;
+        orange: string;
+        yellow: string;
+        green: string;
+        blue: string;
+        purple: string;
+        pink: string;
+        red: string;
     };
     dialog: {
         close: string;
