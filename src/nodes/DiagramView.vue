@@ -80,6 +80,9 @@ onBeforeUnmount(() => {
   stopTheme();
   setImage("");
 });
+
+/** what is shown, for the lightbox */
+defineExpose({ svg, img });
 </script>
 
 <template>

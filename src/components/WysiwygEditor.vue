@@ -13,7 +13,7 @@ import type { BaseOptions, CollaborationOptions, DeepPartial, EditorExtension, E
 import type { DraftHandle } from "../draft/useDraft";
 import { applyLink, linkAtSelection, removeLink } from "../editor/behaviour";
 import { slashCatalog } from "../editor/catalog";
-import { EDITOR_CONTEXT, type EditorContext } from "../editor/context";
+import { EDITOR_CONTEXT, type EditorContext, type ZoomImage } from "../editor/context";
 import { convertRegistry, nodeRun, selectionRun, type BlockRun } from "../editor/convert";
 import { debounced } from "../editor/debounce";
 import { createFileController } from "../editor/files";
@@ -165,7 +165,7 @@ const ctx: EditorContext = {
 ctx.slashItems = isInline ? [] : slashCatalog(config, files, services, text);
 provide(EDITOR_CONTEXT, ctx);
 const readonlyBubble = ctx.bubble.some((item) => item.readonly);
-const zoomed = ref<{ src: string; alt: string } | null>(null);
+const zoomed = ref<ZoomImage | null>(null);
 const floatingBar = ref<InstanceType<typeof FloatingToolbar> | null>(null);
 
 const root = ref<HTMLElement | null>(null);
