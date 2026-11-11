@@ -40,7 +40,27 @@ export interface BaseOptions {
   math?: boolean;
   details?: boolean;
   footnotes?: boolean;
+  /** ```` ```columns ```` with `==== <width>` sections. */
+  columns?: boolean;
+  /** ```` ```bookmark ```` link preview cards; with `embeds` a lone pasted URL offers both. */
+  bookmarks?: boolean;
+  /** ```` ```embed ```` iframes (youtube, vimeo, loom, figma, gist, maps, tweets, codepen, any https page). */
+  embeds?: boolean;
+  /** ```` ```toc ```` table of contents. */
+  toc?: boolean;
+  /** ```` ```page ```` "link to page" blocks; their slash item needs `services.searchMentions`. */
+  pageLinks?: boolean;
+  /** inline `@[label](user:1)` mentions with an `@` menu fed by `services.searchMentions`. */
+  mentions?: boolean;
+  /** code blocks in these languages render as diagrams below their source; true = mermaid and plantuml. */
+  diagrams?: boolean | DiagramLanguage[];
+  /** default https://www.plantuml.com/plantuml; used when `services.plantuml` is absent. */
+  plantumlServer?: string;
+  /** path of a page id for page mentions and searched page links, `{id}` is replaced; default `/p/{id}`. */
+  pageHref?: string;
 }
+
+export type DiagramLanguage = "mermaid" | "plantuml";
 
 export interface ResolvedBase {
   headings: HeadingLevel[];
@@ -63,6 +83,15 @@ export interface ResolvedBase {
   math: boolean;
   details: boolean;
   footnotes: boolean;
+  columns: boolean;
+  bookmarks: boolean;
+  embeds: boolean;
+  toc: boolean;
+  pageLinks: boolean;
+  mentions: boolean;
+  diagrams: DiagramLanguage[];
+  plantumlServer: string;
+  pageHref: string;
 }
 
 export interface UploadOptions {
@@ -97,6 +126,38 @@ export interface AskAiRequest {
 
 export type ToastKind = "info" | "success" | "error";
 
+export type MentionKind = "user" | "page" | "date";
+
+export interface MentionSuggestion {
+  kind: MentionKind;
+  /** user id or page id; "" for dates */
+  id: string;
+  label: string;
+  detail?: string;
+  /** emoji or image URL */
+  icon?: string;
+  /** page link target; default `base.pageHref` with the id */
+  href?: string;
+  /** dates: ISO date or datetime */
+  start?: string;
+  end?: string;
+}
+
+export interface ResolvedLink {
+  title: string;
+  icon?: string;
+  href: string;
+}
+
+export interface LinkPreview {
+  title?: string;
+  description?: string;
+  image?: string;
+  /** favicon URL */
+  icon?: string;
+  site?: string;
+}
+
 export interface EditorServices {
   upload?: (file: File, options: UploadOptions) => Promise<UploadResult>;
   pickFile?: (kind: "image" | "file") => Promise<PickedFile[] | null>;
@@ -105,6 +166,14 @@ export interface EditorServices {
   askAi?: (request: AskAiRequest) => void;
   sourceEditor?: Component;
   katex?: KatexLoader;
+  /** true when the host handled the click (internal routes); otherwise links open in a new tab */
+  openLink?(href: string, event: MouseEvent): boolean;
+  /** title and icon for page links and page mentions */
+  resolveLink?: (href: string) => Promise<ResolvedLink | null>;
+  searchMentions?: (query: string, kind: MentionKind | undefined, signal: AbortSignal) => Promise<MentionSuggestion[]>;
+  linkPreview?: (url: string, signal: AbortSignal) => Promise<LinkPreview | null>;
+  /** SVG markup of a PlantUML diagram */
+  plantuml?: (source: string, signal: AbortSignal) => Promise<string>;
 }
 
 export interface MarkdownPluginContext {

@@ -130,7 +130,7 @@ describe("markdown round trip", () => {
     expect(once).toBe(src);
     const doc = md.parse(once);
     expect(doc.child(0).type.name).toBe("details");
-    expect(doc.child(0).attrs).toEqual({ title: "Moje riešenie", open: true });
+    expect(doc.child(0).attrs).toEqual({ title: "Moje riešenie", open: true, heading: 0 });
     expect(doc.child(0).childCount).toBe(3);
     expect(doc.child(0).child(2).type.name).toBe("codeBlock");
     expect(doc.child(1).attrs).toEqual({ title: "", open: false });

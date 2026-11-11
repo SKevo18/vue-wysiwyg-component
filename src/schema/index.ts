@@ -51,6 +51,15 @@ export function resolveBase(format: EditorFormat, base: BaseOptions = {}): Resol
     math: base.math ?? false,
     details: base.details ?? false,
     footnotes: base.footnotes ?? false,
+    columns: base.columns ?? false,
+    bookmarks: base.bookmarks ?? false,
+    embeds: base.embeds ?? false,
+    toc: base.toc ?? false,
+    pageLinks: base.pageLinks ?? false,
+    mentions: base.mentions ?? false,
+    diagrams: base.diagrams === true ? ["mermaid", "plantuml"] : base.diagrams || [],
+    plantumlServer: (base.plantumlServer ?? "https://www.plantuml.com/plantuml").replace(/\/+$/, ""),
+    pageHref: base.pageHref ?? "/p/{id}",
   };
 }
 
@@ -121,7 +130,7 @@ export function schemaExtensions(config: EditorConfig, inline = false, history =
     if (b.listStyles && b.lists) out.push(ListStyles);
     if (b.codeBlocks) out.push(GenericCodeBlock);
     if (b.images) out.push(InlineImage, Figure);
-    if (b.tables) out.push(Table.configure({ resizable: false }), TableRow, InlineTableHeader, InlineTableCell);
+    if (b.tables) out.push(Table.configure({ resizable: true, cellMinWidth: 48 }), TableRow, InlineTableHeader, InlineTableCell);
     if (b.taskLists) out.push(TaskList, TaskItem.configure({ nested: true }));
     if (b.callouts.length) out.push(Callout);
   }

@@ -4,7 +4,7 @@ import type { MarkdownIt, Token } from "markdown-it";
 import mark from "markdown-it-mark";
 import { MarkdownParser, MarkdownSerializer, MarkdownSerializerState, type ParseSpec } from "prosemirror-markdown";
 import { DOMSerializer, Slice, type Fragment, type Node as PMNode, type Schema } from "@tiptap/pm/model";
-import { DEFAULT_DIVIDER, blockAttrsPlugin, formatDividerAttrs, formatListAttrs, type DividerAttrs, type ListAttrs } from "../core/attrs";
+import { DEFAULT_DIVIDER, blockAttrsPlugin, blockColorPlugin, formatBlockAttrs, formatDividerAttrs, formatListAttrs, type DividerAttrs, type ListAttrs } from "../core/attrs";
 import { fenceFor, formatInfo, joinSections, type Section } from "../core/info";
 import { formatImageAttrs, type ImageAttrs } from "../core/media";
 import { NO_EXTENSIONS, resolveConfig, schemaFor, type EditorConfig } from "../schema";
@@ -83,7 +83,7 @@ function baseTokens(config: EditorConfig): Record<string, ParseSpec> {
     tr: { block: "tableRow" },
     th: { block: "tableHeader", getAttrs: cellAttrs },
     td: { block: "tableCell", getAttrs: cellAttrs },
-    callout: { block: "callout", getAttrs: (tok) => ({ type: tok.meta.type, title: tok.meta.title }) },
+    callout: { block: "callout", getAttrs: (tok) => ({ type: tok.meta.type, title: tok.meta.title, icon: tok.meta.blockAttrs?.icon ?? "", color: tok.meta.blockAttrs?.color ?? null }) },
   };
 }
 
@@ -121,6 +121,7 @@ function buildConverter(config: EditorConfig): MarkdownConverter {
     if (b.tables) md.core.ruler.before("text_join", "table_cells", tableCellsRule);
     else md.disable("table");
     if (b.listStyles || b.dividers) md.use(blockAttrsPlugin);
+    md.use(blockColorPlugin);
     if (!b.dividers) md.disable("hr");
     if (!b.headings.length) md.disable(["heading", "lheading"]);
     if (!b.blockquote && !b.callouts.length) md.disable("blockquote");
@@ -326,6 +327,14 @@ function buildConverter(config: EditorConfig): MarkdownConverter {
       const title = String(node.attrs.title ?? "").trim();
       state.write(`> [!${String(node.attrs.type).toUpperCase()}]${title ? " " + title : ""}\n`);
       state.wrapBlock("> ", null, node, () => state.renderContent(node));
+      const attrs = formatBlockAttrs([
+        ["icon", node.attrs.icon as string],
+        ["color", node.attrs.color as string | null],
+      ]);
+      if (!attrs) return;
+      (state as MarkdownSerializerState & { flushClose(size: number): void }).flushClose(1);
+      state.write(attrs);
+      state.closeBlock(node);
     },
     codeBlock(state, node) {
       const lang = String(node.attrs.language ?? "");

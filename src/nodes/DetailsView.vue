@@ -13,8 +13,8 @@ const { selected, remove, update, copyText, readonly, onHeaderKey } = useBlockNo
 
 <template>
   <NodeViewWrapper as="div" class="wy-node wy-node-details">
-    <BlockFrame :label="t('details.label')" :selected="selected" :readonly="readonly" :copy-text="copyText" :editable="false" @delete="remove">
-      <div class="wy-details" :data-open="node.attrs.open ? 'true' : 'false'">
+    <BlockFrame :label="node.attrs.heading ? t('details.headingLabel', { n: node.attrs.heading }) : t('details.label')" :selected="selected" :readonly="readonly" :copy-text="copyText" :editable="false" @delete="remove">
+      <div class="wy-details" :data-open="node.attrs.open ? 'true' : 'false'" :data-heading="node.attrs.heading || undefined">
         <div class="wy-details-summary" contenteditable="false">
           <button
             v-tooltip="t(node.attrs.open ? 'details.openByDefault' : 'details.closedByDefault')"

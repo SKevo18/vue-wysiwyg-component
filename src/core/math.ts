@@ -1,4 +1,4 @@
-// katex comes from the app loader (`services.katex`) so apps without math never bundle it; formulas show as TeX source until it loads
+// katex comes from the app loader (`services.katex`) or, without one, from a lazy import of the package with its css and mhchem; formulas show as TeX source until it loads
 import { shallowRef } from "vue";
 import { escapeHtml } from "./highlight";
 
@@ -17,13 +17,20 @@ export function setKatexLoader(load: KatexLoader | undefined) {
   if (load && !loader) loader = load;
 }
 
+/** the package's own katex, its stylesheet and the mhchem `\ce` macros */
+async function bundledKatex(): Promise<KatexLike> {
+  const [k] = await Promise.all([import("katex"), import("katex/dist/katex.min.css")]);
+  await import("katex/contrib/mhchem");
+  return k.default;
+}
+
 function load() {
-  if (!loader || loading) return;
-  loading = loader().then(
+  if (loading) return;
+  loading = (loader ?? bundledKatex)().then(
     (m) => {
       katex.value = "renderToString" in m ? m : m.default;
     },
-    (e: unknown) => console.error("vue-wysiwyg-component: services.katex failed to load KaTeX", e),
+    (e: unknown) => console.error("vue-wysiwyg-component: KaTeX failed to load", e),
   );
 }
 

@@ -1,4 +1,5 @@
 import type { MarkdownIt, StateBlock, Token } from "markdown-it";
+import { isPaletteToken } from "./palette";
 
 export const ORDERED_STYLES = ["decimal", "lower-alpha", "upper-alpha", "lower-roman", "upper-roman"] as const;
 export const BULLET_STYLES = ["disc", "circle", "square", "dash", "arrow"] as const;
@@ -178,4 +179,41 @@ function attrLineRule(state: StateBlock, startLine: number, _endLine: number, si
 export function blockAttrsPlugin(md: MarkdownIt) {
   // before `lheading`: `---` under an attribute line is another rule, never a setext underline
   md.block.ruler.before("lheading", "block_attrs", attrLineRule, { alt: ["paragraph"] });
+}
+
+const ICON_GRAPHEMES = 8;
+
+/** an emoji or a short text icon; no line breaks */
+export function validIcon(s: string): boolean {
+  if (!s || /[\r\n]/.test(s)) return false;
+  let n = 0;
+  for (const _ of graphemes(s)) if (++n > ICON_GRAPHEMES) return false;
+  return true;
+}
+
+function validBlockAttrs(fields: Record<string, string>): boolean {
+  return Object.entries(fields).every(([k, v]) => (k === "color" && isPaletteToken(v)) || (k === "icon" && validIcon(v)));
+}
+
+/** `{color=… icon=…}` right after a quote (on its opener) or a fence (on the fence token) lands in `meta.blockAttrs` */
+function blockAttrsLineRule(state: StateBlock, startLine: number, _endLine: number, silent: boolean): boolean {
+  if (state.sCount[startLine]! - state.blkIndent >= 4) return false;
+  const fields = parseAttrLine(state.src.slice(state.bMarks[startLine]! + state.tShift[startLine]!, state.eMarks[startLine]!));
+  if (!fields || !validBlockAttrs(fields)) return false;
+  // a quote ends at the line instead of taking it as a lazy continuation
+  if (silent) return true;
+  const prev = state.tokens[state.tokens.length - 1];
+  const target = prev?.type === "fence" ? prev : prev?.type === "blockquote_close" ? listOpen(state.tokens, prev) : null;
+  if (!target) return false;
+  target.meta = { ...target.meta, blockAttrs: { ...(target.meta?.blockAttrs as Record<string, string> | undefined), ...fields } };
+  state.line = startLine + 1;
+  return true;
+}
+
+export function blockColorPlugin(md: MarkdownIt) {
+  md.block.ruler.before("lheading", "wy_block_attrs_e2", blockAttrsLineRule, { alt: ["blockquote"] });
+}
+
+export function formatBlockAttrs(fields: [string, string | null | undefined][]): string {
+  return formatFields(fields.filter((f): f is [string, string] => !!f[1]));
 }

@@ -104,7 +104,7 @@ export function retagCallouts(tokens: Token[], kinds: readonly string[]) {
     const callout = calloutAt(tokens, i, kinds);
     if (!callout) continue;
     tokens[i]!.type = "callout_open";
-    tokens[i]!.meta = { type: callout.type, title: callout.title };
+    tokens[i]!.meta = { ...tokens[i]!.meta, type: callout.type, title: callout.title };
     tokens[callout.close]!.type = "callout_close";
     if (callout.rest.trim() === "") {
       tokens.splice(i + 1, 3);
@@ -250,7 +250,7 @@ function retagFences(state: StateCore, tokens: Token[], opts: RetagOptions) {
         sections: (name, child, meta, body = own) => void (advance = spliceSections(state, tokens, i, name, child, meta, body, opts)),
         atom: (name, meta) => {
           t.type = name;
-          t.meta = meta;
+          t.meta = { ...t.meta, ...meta };
         },
       };
       rule.parse(ctx);
@@ -259,7 +259,7 @@ function retagFences(state: StateCore, tokens: Token[], opts: RetagOptions) {
     }
     if (!rule.node) continue;
     if (rule.ensureId && !info.attrs.id) info.attrs = { id: newBlockId(), ...info.attrs };
-    t.meta = { kind: info.kind, attrs: info.attrs };
+    t.meta = { ...t.meta, kind: info.kind, attrs: info.attrs };
     t.type = atomToken(rule.node);
   }
 }

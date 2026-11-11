@@ -6,6 +6,19 @@ import Image from "@tiptap/extension-image";
 import { TableCell, TableHeader } from "@tiptap/extension-table";
 import { DEFAULT_DIVIDER, dividerOrnament, dividerStyle, listLook, parseDividerAttrs, parseListAttrs, type DividerAttrs, type ListAttrs } from "../core/attrs";
 import { FIGURE_ALIGNS, SIZE_RE, shownAlign, type FigureAlign } from "../core/media";
+import { isPaletteToken } from "../core/palette";
+
+/** a palette token from `data-color`; html may carry other colors, which stay out of the palette attribute */
+export function paletteAttribute() {
+  return {
+    default: null,
+    parseHTML: (dom: HTMLElement) => {
+      const v = dom.getAttribute("data-color");
+      return isPaletteToken(v) ? v : null;
+    },
+    renderHTML: (a: { color?: string | null }) => (a.color ? { "data-color": a.color } : {}),
+  };
+}
 
 function readAlign(dom: HTMLElement): FigureAlign | null {
   const a = dom.getAttribute("data-align");
@@ -105,6 +118,8 @@ export const Callout = Node.create({
         renderHTML: () => ({}),
       },
       title: { default: "", parseHTML: (dom: HTMLElement) => dom.getAttribute("data-title") || "", renderHTML: (a: { title: string }) => (a.title ? { "data-title": a.title } : {}) },
+      icon: { default: "", parseHTML: (dom: HTMLElement) => dom.getAttribute("data-icon") || "", renderHTML: (a: { icon: string }) => (a.icon ? { "data-icon": a.icon } : {}) },
+      color: paletteAttribute(),
     };
   },
   parseHTML() {
