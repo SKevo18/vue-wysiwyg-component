@@ -4,12 +4,17 @@ import { MessageSquare } from "@lucide/vue";
 import { WysiwygEditor, defineEditorExtension, type EditorServices } from "@skevo18/vue-wysiwyg-component";
 import { badgerCensus } from "./badger";
 import { collaborators } from "./collab";
+import { swallowBlock } from "./swallow";
+
+const notionExtensions = [swallowBlock];
 
 const dark = ref(false);
 watch(dark, (d) => document.documentElement.classList.toggle("dark", d));
 const toolbar = ref<"fixed" | "floating" | "both">("fixed");
 const readonly = ref(false);
 const slovak = ref(false);
+// sansmemo's page canvas: no surface padding, the handles hang in the page margin
+const flush = ref(false);
 const log = ref<string[]>([]);
 
 const PAGES = [
@@ -159,6 +164,13 @@ Hidden until opened.
 \`\`\`embed url=https://www.youtube.com/watch?v=dQw4w9WgXcQ provider=youtube
 \`\`\`
 
+\`\`\`js
+console.log("otter")
+\`\`\`
+
+\`\`\`swallow
+\`\`\`
+
 ## Diagrams
 
 \`\`\`mermaid
@@ -232,13 +244,14 @@ const bobMd = ref("");
 </script>
 
 <template>
-  <main class="pg">
+  <main class="pg" :class="{ 'pg-flush': flush }">
     <header class="pg-head">
       <h1>vue-wysiwyg-component</h1>
       <div class="pg-controls">
         <label>toolbar <select v-model="toolbar" data-testid="toolbar-mode"><option>fixed</option><option>floating</option><option>both</option></select></label>
         <label><input v-model="readonly" type="checkbox" /> readonly</label>
         <label><input v-model="slovak" type="checkbox" /> sk</label>
+        <label><input v-model="flush" type="checkbox" data-testid="flush" /> page margins</label>
         <label><input v-model="dark" type="checkbox" /> dark</label>
       </div>
     </header>
@@ -249,7 +262,7 @@ const bobMd = ref("");
     </section>
     <section>
       <h2>Notion blocks</h2>
-      <WysiwygEditor v-model="notionMd" size="full" :services="notionServices" :base="notionBase" />
+      <WysiwygEditor v-model="notionMd" size="full" :services="notionServices" :base="notionBase" :extensions="notionExtensions" />
       <pre class="pg-out" data-testid="notion-md">{{ notionMd }}</pre>
     </section>
     <section>

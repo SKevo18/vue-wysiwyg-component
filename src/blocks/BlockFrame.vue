@@ -16,7 +16,7 @@ const props = withDefaults(
   }>(),
   { selected: false, editing: false, readonly: false, editable: true, deletable: true, copyText: "" },
 );
-const emit = defineEmits<{ edit: []; delete: []; more: [event: MouseEvent] }>();
+const emit = defineEmits<{ edit: []; delete: []; more: [event: MouseEvent]; select: [] }>();
 const ctx = inject(EDITOR_CONTEXT, null);
 const t = (key: string, fallback: string) => ctx?.t(key) ?? fallback;
 
@@ -33,7 +33,7 @@ async function copy() {
 <template>
   <div class="wy-block-frame" :class="{ 'is-selected': selected, 'is-editing': editing, 'is-readonly': readonly, 'is-editable': editable && !readonly }">
     <div v-if="!readonly" class="wy-block-tools" contenteditable="false">
-      <span class="wy-block-label">{{ label }}</span>
+      <span class="wy-block-label" @mousedown.prevent="emit('select')">{{ label }}</span>
       <button v-if="editable && !editing" v-tooltip="t('block.edit', 'Edit')" type="button" class="wy-icon-btn" :aria-label="t('block.edit', 'Edit')" @mousedown.prevent @click="emit('edit')"><Pencil :size="14" /></button>
       <button v-if="copyText" v-tooltip="t('block.copy', 'Copy')" type="button" class="wy-icon-btn" :aria-label="t('block.copy', 'Copy')" @mousedown.prevent @click="copy"><Copy :size="14" /></button>
       <button v-if="deletable" v-tooltip="t('block.delete', 'Delete')" type="button" class="wy-icon-btn is-danger" :aria-label="t('block.delete', 'Delete')" @mousedown.prevent @click="emit('delete')"><Trash2 :size="14" /></button>

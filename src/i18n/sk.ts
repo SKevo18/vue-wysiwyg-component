@@ -131,6 +131,8 @@ export const sk: Messages = {
   },
   convert: {
     title: "Previesť na",
+    search: "Hľadať",
+    empty: "Nič sa nenašlo",
     targets: { paragraph: "Text", unwrap: "Zrušiť obal", columns: "Stĺpce" },
   },
   blockMenu: {
@@ -320,7 +322,6 @@ export const sk: Messages = {
     placeholder: "Vložte odkaz na obsah",
     create: "Vložiť",
     open: "Otvoriť originál",
-    interact: "Kliknutím ovládate obsah",
     resize: "Potiahnutím zmeníte výšku",
     defaultHeight: "Predvolená výška",
     providers: { youtube: "YouTube", vimeo: "Vimeo", loom: "Loom", figma: "Figma", gist: "Gist", maps: "Mapy Google", tweet: "Príspevok na X", codepen: "CodePen", generic: "Vložený obsah" },

@@ -1,8 +1,8 @@
 import { Extension, type Editor } from "@tiptap/core";
 import { VueRenderer } from "@tiptap/vue-3";
 import Suggestion, { type SuggestionProps } from "@tiptap/suggestion";
-import { NodeSelection, Plugin, PluginKey, TextSelection } from "@tiptap/pm/state";
-import { floatNear } from "../components/floating";
+import { NodeSelection, Plugin, PluginKey, Selection, TextSelection } from "@tiptap/pm/state";
+import { floatNear, passWheel } from "../components/floating";
 import type { EditorServices, SlashItem } from "../types";
 import SlashMenu from "../components/SlashMenu.vue";
 import { cellSlice, isInCell } from "./tables";
@@ -146,7 +146,9 @@ export const SlashCommand = Extension.create<SlashOptions>({
           let el: HTMLElement | null = null;
           let floating: { update(): void; stop(): void } | null = null;
           let rect: (() => DOMRect | null) | null = null;
+          let unwheel = () => {};
           const close = () => {
+            unwheel();
             floating?.stop();
             renderer?.destroy();
             el?.remove();
@@ -164,6 +166,7 @@ export const SlashCommand = Extension.create<SlashOptions>({
               menu.style.position = "fixed";
               menu.style.zIndex = "1000";
               document.body.appendChild(menu);
+              unwheel = passWheel(menu, () => p.editor.view.dom);
               floating = floatNear(reference, menu, {
                 placement: "bottom-start",
                 offset: 6,
@@ -222,6 +225,65 @@ export const InlineKeys = Extension.create({
   name: "inlineKeys",
   addKeyboardShortcuts() {
     return { Enter: () => true, "Shift-Enter": () => true };
+  },
+});
+
+/** Mod-a in a code block or table cell selects that block's text first; the next Mod-a selects the document */
+export const ScopedSelectAll = Extension.create({
+  name: "scopedSelectAll",
+  // ahead of the core keymap's select all
+  priority: 101,
+  addKeyboardShortcuts() {
+    return {
+      "Mod-a": ({ editor }) => {
+        const { state } = editor;
+        const { $from, to, from } = state.selection;
+        for (let d = $from.depth; d > 0; d--) {
+          const node = $from.node(d);
+          const role = node.type.spec.tableRole;
+          if (!node.type.spec.code && role !== "cell" && role !== "header_cell") continue;
+          if (to > $from.end(d)) return false;
+          const inner = TextSelection.between(state.doc.resolve($from.start(d)), state.doc.resolve($from.end(d)));
+          if (inner.from === from && inner.to === to) return false;
+          editor.view.dispatch(state.tr.setSelection(inner));
+          return true;
+        }
+        return false;
+      },
+    };
+  },
+});
+
+// editor ui outside the content that acts on the selected block
+const SELECTION_UI = ".wy-gutter, .wy-floating, .wy-menu, .wy-toolbar, .wy-field-tools, .wy-bubble, .wy-modal-backdrop, [role=dialog], [data-block-portal]";
+
+/**
+ * A mousedown anywhere but the selected block (outside the editor, in another block's own controls such as an embedded
+ * database or a form field) drops a block selection, so no block stays highlighted once the user works elsewhere.
+ */
+export const ClickAway = Extension.create({
+  name: "clickAway",
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey("clickAway"),
+        view(view) {
+          const onDown = (e: MouseEvent) => {
+            const sel = view.state.selection;
+            const target = e.target;
+            if (!(sel instanceof NodeSelection) || !(target instanceof Element)) return;
+            const own = view.nodeDOM(sel.from);
+            if (own instanceof Node && own.contains(target)) return;
+            if (!view.dom.contains(target) && target.closest(SELECTION_UI)) return;
+            const $pos = view.state.doc.resolve(sel.from);
+            const text = Selection.findFrom($pos, -1, true) ?? Selection.findFrom($pos, 1, true);
+            if (text) view.dispatch(view.state.tr.setSelection(text).setMeta("addToHistory", false));
+          };
+          document.addEventListener("mousedown", onDown, true);
+          return { destroy: () => document.removeEventListener("mousedown", onDown, true) };
+        },
+      }),
+    ];
   },
 });
 

@@ -43,7 +43,7 @@ function onKey(e: KeyboardEvent) {
       <span v-if="html" v-html="html"></span>
       <span v-else class="wy-muted">{{ t("math.empty") }}</span>
     </span>
-    <AnchoredPopover v-if="editing" :anchor="anchor" class="wy-popover" :class="{ 'is-wide': palettes.length }" @escape="onKeydown">
+    <AnchoredPopover v-if="editing" :anchor="anchor" class="wy-popover" :class="{ 'is-wide': palettes.length }" @escape="onKeydown" @close="finishEdit">
       <textarea ref="area" class="wy-input is-mono" rows="2" :value="tex" :placeholder="t('math.placeholder')" :aria-label="t('math.tex')" spellcheck="false" @input="update({ tex: ($event.target as HTMLTextAreaElement).value })" @keydown="onKey"></textarea>
       <span class="wy-math-preview" v-html="html"></span>
       <component :is="p.palette" v-for="(p, i) in palettes" :key="i" :apply="apply" />

@@ -427,16 +427,6 @@
 .wy-embed iframe[style*="height"] {
   aspect-ratio: auto;
 }
-.wy-embed-overlay {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  padding: 0;
-  border: 0;
-  border-radius: var(--vc-radius);
-  background: transparent;
-  cursor: pointer;
-}
 .wy-embed-shield {
   position: absolute;
   inset: 0;
@@ -630,8 +620,35 @@
 
 /* diagrams under mermaid and plantuml code */
 .wy-code-diagram {
+  position: relative;
+  width: var(--wy-figure-width, 100%);
+  max-width: 100%;
   margin-top: 8px;
   cursor: text;
+}
+.wy-code-diagram.wy-align-center {
+  margin-inline: auto;
+}
+.wy-code-diagram.wy-align-right {
+  margin-left: auto;
+}
+.wy-code-diagram.wy-align-left .wy-diagram {
+  justify-items: start;
+}
+.wy-code-diagram.wy-align-right .wy-diagram {
+  justify-items: end;
+}
+.wy-code-diagram.wy-align-left .wy-diagram-svg {
+  justify-content: flex-start;
+}
+.wy-code-diagram.wy-align-right .wy-diagram-svg {
+  justify-content: flex-end;
+}
+/* a resized diagram fills its box like a resized image */
+.wy-code-diagram.has-width .wy-diagram-svg svg,
+.wy-code-diagram.has-width .wy-diagram-img {
+  width: 100%;
+  max-width: 100% !important;
 }
 .wy-node-code.is-source-hidden .wy-code {
   display: none;

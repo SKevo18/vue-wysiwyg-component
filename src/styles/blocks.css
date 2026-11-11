@@ -18,14 +18,14 @@
   outline-color: var(--vc-border-strong);
 }
 .wy-block-frame.is-selected > .wy-block-body {
-  outline: 2px solid color-mix(in srgb, var(--vc-accent) 60%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--vc-accent) 45%, transparent);
 }
 .wy-block-frame.is-editable > .wy-block-body {
   padding: var(--wy-block-pad);
   outline-offset: 0;
 }
 .wy-block-frame.is-editing > .wy-block-body {
-  outline: 2px solid color-mix(in srgb, var(--vc-accent) 60%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--vc-accent) 55%, transparent);
   background: var(--vc-bg-subtle);
 }
 .wy-block-tools {
@@ -41,18 +41,22 @@
   border-radius: 999px;
   background: var(--vc-bg);
   opacity: 0;
+  pointer-events: none;
   user-select: none;
   transition: opacity 120ms ease;
 }
+/* the pill shows on hover and for the block being edited or selected; keyboard focus inside it keeps it too */
 .wy-block-frame:hover > .wy-block-tools,
 .wy-block-frame.is-selected > .wy-block-tools,
 .wy-block-frame.is-editing > .wy-block-tools,
-.wy-block-frame:focus-within > .wy-block-tools {
+.wy-block-tools:has(:focus-visible) {
   opacity: 1;
+  pointer-events: auto;
 }
 @media (hover: none) {
   .wy-block-tools {
     opacity: 1;
+    pointer-events: auto;
     position: static;
     width: fit-content;
     margin: 0 0 4px auto;
@@ -64,6 +68,7 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--vc-fg-faint);
+  cursor: default;
 }
 .wy-block-menu {
   position: absolute;

@@ -23,6 +23,11 @@ watch(editing, async (on) => {
   altInput.value?.focus();
 });
 
+function zoom() {
+  stopEdit();
+  ctx.zoom({ src: props.node.attrs.src, alt: props.node.attrs.alt || "" });
+}
+
 function toFigure() {
   const pos = props.getPos();
   if (typeof pos !== "number") return;
@@ -48,9 +53,10 @@ function toFigure() {
       :style="node.attrs.width ? `width:${node.attrs.width}%` : undefined"
       loading="lazy"
       draggable="false"
-      @click="editor.isEditable ? startEdit() : ctx.zoom({ src: node.attrs.src, alt: node.attrs.alt || '' })"
+      @click="editor.isEditable ? startEdit() : zoom()"
+      @dblclick="zoom"
     />
-    <AnchoredPopover v-if="editing" :anchor="image" class="wy-popover" @escape="onKeydown">
+    <AnchoredPopover v-if="editing" :anchor="image" class="wy-popover" @escape="onKeydown" @close="finishEdit">
       <label class="wy-field">
         <span class="wy-label">{{ t("image.alt") }}</span>
         <input ref="altInput" class="wy-input" type="text" :value="node.attrs.alt || ''" :placeholder="t('image.altPlaceholder')" @input="update({ alt: ($event.target as HTMLInputElement).value || null })" @keydown.enter.prevent="finishEdit" />

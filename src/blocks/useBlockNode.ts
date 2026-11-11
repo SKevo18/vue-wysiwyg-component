@@ -47,7 +47,10 @@ export function useBlockNode(props: NodeViewProps, opts: { editOnInsert?: boolea
   function onDocClick(e: MouseEvent) {
     const target = e.target as HTMLElement | null;
     const el = rootEl();
-    if (!target || !el || el.contains(target) || target.closest(PORTAL_SELECTOR)) return;
+    if (!target || !el || el.contains(target)) return;
+    // a popup of this block floats outside it; another block's own controls (a form, an embedded database) do not count
+    const portal = target.closest(PORTAL_SELECTOR);
+    if (portal && !props.editor.view.dom.contains(portal)) return;
     stopEdit();
   }
 

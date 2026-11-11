@@ -116,7 +116,7 @@ function submit() {
 </script>
 
 <template>
-  <Modal :open="open" :title="t('link.title')" :close-label="t('dialog.close')" @close="emit('close')">
+  <Modal :open="open" pass-wheel :title="t('link.title')" :close-label="t('dialog.close')" @close="emit('close')">
     <form class="wy-form wy-link-form" @submit.prevent="submit">
       <div class="wy-link-search">
         <input

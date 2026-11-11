@@ -37,6 +37,37 @@ export function shownAlign(align: FigureAlign | null, caption: string | null | u
   return align ?? (caption ? "center" : "left");
 }
 
+export const DIAGRAM_ALIGNS = ["left", "center", "right"] as const;
+export type DiagramAlign = (typeof DIAGRAM_ALIGNS)[number];
+
+/** a diagram's size and place, kept in the code fence info after the language: ```mermaid width=60 align=center */
+export interface DiagramLayout {
+  /** percent of the column, 10..100; null = the full column */
+  width: number | null;
+  align: DiagramAlign | null;
+}
+
+const LAYOUT_RE = /(?:^|\s)(width|align)=(\S+)/g;
+
+export function diagramLayout(meta: string): DiagramLayout {
+  const out: DiagramLayout = { width: null, align: null };
+  for (const [, key, value] of meta.matchAll(LAYOUT_RE)) {
+    if (key === "width") {
+      const n = /^(\d+)%?$/.exec(value!);
+      if (n) out.width = Math.min(100, Math.max(10, parseInt(n[1]!, 10)));
+    } else if ((DIAGRAM_ALIGNS as readonly string[]).includes(value!)) out.align = value as DiagramAlign;
+  }
+  if (out.width === 100) out.width = null;
+  return out;
+}
+
+/** the fence info `meta` with the layout replaced; other words of the info stay as they were */
+export function withDiagramLayout(meta: string, layout: DiagramLayout): string {
+  const rest = meta.replace(LAYOUT_RE, "").trim();
+  const parts = [...(layout.width && layout.width !== 100 ? [`width=${layout.width}`] : []), ...(layout.align ? [`align=${layout.align}`] : [])];
+  return [...parts, rest].filter(Boolean).join(" ");
+}
+
 type MediaKind = "video" | "audio";
 const MEDIA_EXTS: Record<string, MediaKind> = { mp4: "video", webm: "video", mov: "video", mp3: "audio", ogg: "audio", wav: "audio", m4a: "audio" };
 const IMAGE_EXT_RE = /^(png|jpe?g|gif|webp|svg|avif|bmp|tiff?)$/;

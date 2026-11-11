@@ -15,6 +15,13 @@ export interface FileController {
   dispose(): void;
 }
 
+/** what the lightbox shows: an image url, or sanitized svg markup (a rendered mermaid diagram) */
+export interface ZoomImage {
+  src: string;
+  alt: string;
+  svg?: string;
+}
+
 export interface EditorContext {
   config: EditorConfig;
   markdown: MarkdownConverter;
@@ -36,8 +43,8 @@ export interface EditorContext {
   has(key: string): boolean;
   field: Component;
   inherit: WysiwygDefaults;
-  /** shows an image enlarged over the page */
-  zoom(image: { src: string; alt: string }): void;
+  /** shows an image or a diagram enlarged over the page */
+  zoom(image: ZoomImage): void;
 }
 
 declare module "@tiptap/core" {

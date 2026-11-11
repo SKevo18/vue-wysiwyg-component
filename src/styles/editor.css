@@ -181,19 +181,27 @@
   color: var(--vc-fg-faint);
   pointer-events: none;
 }
+/* a selected block is marked, not framed: the reader keeps looking at the content */
 .wy-content .ProseMirror-selectednode {
-  outline: 2px solid var(--vc-accent);
+  outline: 1px solid color-mix(in srgb, var(--vc-accent) 45%, transparent);
   outline-offset: 2px;
   border-radius: 4px;
+  background-color: color-mix(in srgb, var(--vc-accent) 6%, transparent);
 }
 .wy-content .wy-node.ProseMirror-selectednode {
   outline: none;
+  background-color: transparent;
 }
 .wy-content .ProseMirror-gapcursor::after {
   border-top-color: var(--vc-fg);
 }
 .wy-content a {
   cursor: text;
+}
+/* links in a block's own ui (cards, page links, an embedded database) navigate on click */
+.wy-content [contenteditable="false"] a[href],
+.wy-content [contenteditable="false"] [role="link"] {
+  cursor: pointer;
 }
 .wy-content .tableWrapper {
   overflow-x: auto;
@@ -265,6 +273,22 @@ button.wy-grip {
   .wy-gutter {
     display: none !important;
   }
+}
+.wy-gutter.is-dragging {
+  opacity: 0;
+  pointer-events: none;
+}
+.wy-drop-guide {
+  position: absolute;
+  z-index: 11;
+  height: 3px;
+  margin-top: -1px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--vc-accent) 70%, transparent);
+  pointer-events: none;
+}
+html.wy-block-dragging iframe {
+  pointer-events: none;
 }
 
 .wy-slash {
@@ -471,6 +495,22 @@ button.wy-grip {
   object-fit: contain;
   border-radius: 4px;
   box-shadow: 0 10px 40px rgb(0 0 0 / 0.4);
+}
+.wy-lightbox-svg {
+  display: grid;
+  place-items: center;
+  width: min(100%, 80rem);
+  max-height: 100%;
+  padding: 24px;
+  border-radius: 6px;
+  background: var(--vc-bg);
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.4);
+}
+.wy-lightbox-svg svg {
+  width: 100%;
+  height: auto;
+  max-width: none !important;
+  max-height: calc(100dvh - 96px);
 }
 .wy-lightbox-close {
   position: absolute;

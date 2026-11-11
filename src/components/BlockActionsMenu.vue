@@ -2,13 +2,15 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import type { Editor } from "@tiptap/core";
 import { Fragment } from "@tiptap/pm/model";
-import { NodeSelection, Selection } from "@tiptap/pm/state";
+import { NodeSelection, Selection, TextSelection } from "@tiptap/pm/state";
 import { ChevronRight, Copy, CopyPlus, Palette, Trash2 } from "@lucide/vue";
 import { isBgToken } from "../core/colors";
 import { blockColorOf, colorTargets, setBlockColor } from "../editor/blockColor";
 import { useEditorContext } from "../editor/context";
 import { convertRun, runTargets, type BlockRun } from "../editor/convert";
+import { isInCell } from "../editor/tables";
 import { fragmentHtml, fragmentMarkdown } from "../markdown";
+import type { SlashItem } from "../types";
 import AnchoredPopover from "./AnchoredPopover.vue";
 import ColorMenu from "./ColorMenu.vue";
 import ConvertItems from "./ConvertItems.vue";
@@ -22,6 +24,14 @@ type Sub = "convert" | "color";
 const targets = computed(() => runTargets(ctx.convert, props.editor.state, props.run));
 const colorable = computed(() => colorTargets(props.editor.state, props.run).length > 0);
 const blockColor = computed(() => blockColorOf(props.editor.state, props.run));
+// an empty paragraph can become any block the slash menu inserts
+const inserts = computed<SlashItem[]>(() => {
+  const only = props.run.nodes.length === 1 ? props.run.nodes[0]! : null;
+  if (only?.type.name !== "paragraph" || only.content.size) return [];
+  const inCell = isInCell(props.editor.state.doc.resolve(props.run.from + 1));
+  return ctx.slashItems.filter((item) => item.enabled(props.editor) && (item.inline || !inCell));
+});
+const convertList = ref<InstanceType<typeof ConvertItems> | null>(null);
 const sub = ref<Sub | null>(null);
 const menuEl = ref<HTMLElement | null>(null);
 const subEl = ref<HTMLElement | null>(null);
@@ -40,7 +50,8 @@ async function openSub(which: Sub, focus: boolean) {
   sub.value = which;
   if (!focus) return;
   await nextTick();
-  focusItem(subEl.value, "first");
+  if (which === "convert") convertList.value?.focus();
+  else focusItem(subEl.value, "first");
 }
 
 function closeSub() {
@@ -57,6 +68,15 @@ function convert(target: string) {
   const tr = convertRun(ctx.convert, props.editor.state, props.run, target, props.selectAll);
   if (tr) props.editor.view.dispatch(tr);
   finish();
+}
+
+// the item may open a dialog or a file picker, so the menu goes first
+function insert(item: SlashItem) {
+  const at = props.run.from + 1;
+  emit("close");
+  props.editor.view.dispatch(props.editor.state.tr.setSelection(TextSelection.create(props.editor.state.doc, at)));
+  props.editor.view.focus();
+  item.run(props.editor, { from: at, to: at });
 }
 
 function color(token: string | null) {
@@ -121,6 +141,8 @@ function onKeydown(e: KeyboardEvent, inSub: boolean) {
       finish();
       break;
     default:
+      // typing while the turn-into submenu is open goes to its search
+      if (!inSub && sub.value === "convert" && e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey) convertList.value?.focus();
       return;
   }
   e.preventDefault();
@@ -136,18 +158,19 @@ function onDocDown(e: MouseEvent) {
 onMounted(async () => {
   document.addEventListener("mousedown", onDocDown, true);
   await nextTick();
-  focusItem(menuEl.value, "first");
+  if (props.convertOnly) convertList.value?.focus();
+  else focusItem(menuEl.value, "first");
 });
 onBeforeUnmount(() => document.removeEventListener("mousedown", onDocDown, true));
 </script>
 
 <template>
-  <AnchoredPopover :anchor="anchor" class="wy-menu wy-block-actions">
+  <AnchoredPopover :anchor="anchor" class="wy-menu wy-block-actions" @close="emit('close')">
     <div ref="menuEl" class="wy-menu-list" role="menu" :aria-label="convertOnly ? t('convert.title') : t('blockMenu.label')" @keydown="onKeydown($event, false)">
-      <ConvertItems v-if="convertOnly" :targets="targets" @pick="convert" />
+      <ConvertItems v-if="convertOnly" ref="convertList" :targets="targets" :inserts="inserts" @pick="convert" @insert="insert" />
       <template v-else>
         <button
-          v-if="targets.length"
+          v-if="targets.length || inserts.length"
           :ref="(el) => (triggers.convert = el as HTMLElement | null)"
           type="button"
           class="wy-menu-item"
@@ -185,9 +208,10 @@ onBeforeUnmount(() => document.removeEventListener("mousedown", onDocDown, true)
       </template>
     </div>
   </AnchoredPopover>
-  <AnchoredPopover v-if="sub && trigger" :anchor="trigger" side="right" class="wy-menu wy-block-actions" :class="{ 'wy-color-panel': sub === 'color' }">
+  <!-- hovering opens the submenu, so a click on its trigger keeps it open -->
+  <AnchoredPopover v-if="sub && trigger" :anchor="trigger" side="right" class="wy-menu wy-block-actions" :class="{ 'wy-color-panel': sub === 'color' }" :anchor-closes="false">
     <div v-if="sub === 'convert'" ref="subEl" class="wy-menu-list" role="menu" :aria-label="t('convert.title')" @keydown="onKeydown($event, true)">
-      <ConvertItems :targets="targets" @pick="convert" />
+      <ConvertItems ref="convertList" :targets="targets" :inserts="inserts" @pick="convert" @insert="insert" />
     </div>
     <div v-else ref="subEl" @keydown="onKeydown($event, true)">
       <ColorMenu :editor="editor" block :color="isBgToken(blockColor) ? '' : blockColor" :highlight="isBgToken(blockColor) ? blockColor : ''" @pick="color" />
