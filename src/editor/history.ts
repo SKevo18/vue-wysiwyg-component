@@ -1,7 +1,7 @@
 // mod+z steps the local history first; once it is exhausted (or only holds remapped steps) the bridge steps the server history.
 // in collaboration mode the collaboration extension's undo/redo commands (y-undo, this client's changes only) take over.
 import { Extension, type CommandProps, type Editor } from "@tiptap/core";
-import { TextSelection } from "@tiptap/pm/state";
+import { TextSelection, type EditorState } from "@tiptap/pm/state";
 import { redo, undo } from "@tiptap/pm/history";
 import type { Node as PMNode } from "@tiptap/pm/model";
 
@@ -10,6 +10,34 @@ export interface HistoryBridge {
   canRedo(): boolean;
   undo(): Promise<void>;
   redo(): Promise<void>;
+}
+
+interface CaptureManager {
+  captureTimeout: number;
+  stopCapturing(): void;
+}
+
+function isCaptureManager(v: unknown): v is CaptureManager {
+  return !!v && typeof v === "object" && "captureTimeout" in v && "stopCapturing" in v && typeof v.stopCapturing === "function";
+}
+
+/**
+ * Records every local change as one step of a collaborative (Yjs) undo history until the returned function runs,
+ * however long the pauses between them (Yjs merges changes only within its capture timeout). Null without one.
+ */
+export function captureUndo(state: EditorState): (() => void) | null {
+  // the collaboration extension's undo plugin, found by its key so the base needs no Yjs dependency
+  const plugin = state.plugins.find((p) => "key" in p && typeof p.key === "string" && p.key.startsWith("y-undo$"));
+  const pluginState: unknown = plugin?.getState(state);
+  const manager = pluginState && typeof pluginState === "object" && "undoManager" in pluginState ? pluginState.undoManager : null;
+  if (!isCaptureManager(manager)) return null;
+  manager.stopCapturing();
+  const timeout = manager.captureTimeout;
+  manager.captureTimeout = Number.POSITIVE_INFINITY;
+  return () => {
+    manager.captureTimeout = timeout;
+    manager.stopCapturing();
+  };
 }
 
 declare module "@tiptap/core" {

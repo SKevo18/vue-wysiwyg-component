@@ -7,6 +7,7 @@ import { NodeViewContent, NodeViewWrapper, nodeViewProps } from "@tiptap/vue-3";
 import { Fragment } from "@tiptap/pm/model";
 import { Sparkles } from "@lucide/vue";
 import { contextOf } from "../editor/context";
+import { captureUndo } from "../editor/history";
 import BlockFrame from "../blocks/BlockFrame.vue";
 import { useBlockNode } from "../blocks/useBlockNode";
 
@@ -64,13 +65,15 @@ async function generate() {
   // the raw node: a reactive proxy of it would not match its own node types in the schema
   const before = toRaw(props.node).content;
   const ctrl = (abort = new AbortController());
+  // a collaborative history records the whole stream as one step; the local one keeps the stream out and adds one step at the end
+  const release = captureUndo(props.editor.state);
   busy.value = true;
   error.value = "";
   let text = "";
   let frame = 0;
   const flush = () => {
     frame = 0;
-    if (!setContent(text, false)) ctrl.abort();
+    if (!setContent(text, !!release)) ctrl.abort();
   };
   try {
     for await (const piece of run({ prompt: prompt.value, scope: scope.value, document: documentMarkdown() }, ctrl.signal)) {
@@ -84,8 +87,12 @@ async function generate() {
     cancelAnimationFrame(frame);
     busy.value = false;
     abort = null;
+    const written = { updatedAt: new Date().toISOString() };
     // one undo step from the content before to what was written, also after Stop
-    if (text.trim() && setContent(before, false)) setContent(text, true, { updatedAt: new Date().toISOString() });
+    if (release) {
+      setContent(text.trim() ? text : before, true, text.trim() ? written : undefined);
+      release();
+    } else if (text.trim() && setContent(before, false)) setContent(text, true, written);
     else setContent(before, false);
   }
 }
@@ -119,6 +126,7 @@ function onPromptKey(e: KeyboardEvent) {
               :placeholder="t('ai.promptPlaceholder')"
               :aria-label="t('ai.prompt')"
               :disabled="busy"
+              @focus="startEdit"
               @input="update({ prompt: ($event.target as HTMLTextAreaElement).value })"
               @keydown="onPromptKey"
             ></textarea>
