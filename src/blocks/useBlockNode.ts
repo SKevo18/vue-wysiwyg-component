@@ -26,7 +26,11 @@ export interface BlockNode {
 export function useBlockNode(props: NodeViewProps, opts: { editOnInsert?: boolean } = {}): BlockNode {
   const editing = ref(false);
   const selected = computed(() => props.selected);
-  const readonly = computed(() => !props.editor.isEditable);
+  // `isEditable` is not reactive and a node view outlives a switch to read-only; `setEditable` emits `update`
+  const editable = ref(props.editor.isEditable);
+  const syncEditable = () => (editable.value = props.editor.isEditable);
+  props.editor.on("update", syncEditable);
+  const readonly = computed(() => !editable.value);
   const copyText = computed(() => {
     const ctx = contextOf(props.editor);
     if (ctx.config.format === "markdown") return ctx.markdown.serializeNode(props.node);
@@ -110,6 +114,7 @@ export function useBlockNode(props: NodeViewProps, opts: { editOnInsert?: boolea
     const el = rootEl();
     el?.removeEventListener("keydown", onKeydown);
     el?.removeEventListener(BLOCK_EDIT_EVENT, onEditEvent);
+    props.editor.off("update", syncEditable);
   });
 
   return {

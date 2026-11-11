@@ -25,7 +25,7 @@ async function editingBlock() {
   const props = {
     selected: false,
     getPos: () => 0,
-    editor: { isEditable: true, view: { nodeDOM: () => root, dom: content }, commands: { setNodeSelection: vi.fn() } },
+    editor: { isEditable: true, on: vi.fn(), off: vi.fn(), view: { nodeDOM: () => root, dom: content }, commands: { setNodeSelection: vi.fn() } },
   } as unknown as NodeViewProps;
   wrapper = mount(defineComponent({
     setup() {
@@ -37,6 +37,38 @@ async function editingBlock() {
   await nextTick();
   return block;
 }
+
+describe("block read-only state", () => {
+  it("follows the editor turning read-only and editable again", async () => {
+    const listeners = new Set<() => void>();
+    const editor = {
+      isEditable: true,
+      on: (_: string, fn: () => void) => listeners.add(fn),
+      off: (_: string, fn: () => void) => listeners.delete(fn),
+      view: { nodeDOM: () => null, dom: document.body },
+      commands: { setNodeSelection: vi.fn() },
+    };
+    const setEditable = (value: boolean) => {
+      editor.isEditable = value;
+      for (const fn of listeners) fn();
+    };
+    let block!: BlockNode;
+    wrapper = mount(defineComponent({
+      setup() {
+        block = useBlockNode({ selected: false, getPos: () => 0, editor } as unknown as NodeViewProps);
+        return () => h("div");
+      },
+    }));
+    expect(block.readonly.value).toBe(false);
+    setEditable(false);
+    expect(block.readonly.value).toBe(true);
+    setEditable(true);
+    expect(block.readonly.value).toBe(false);
+    wrapper.unmount();
+    wrapper = null;
+    expect(listeners.size).toBe(0);
+  });
+});
 
 describe("block editing outside interactions", () => {
   it("keeps the layout stable through an outside button's press and closes on its completed click", async () => {
