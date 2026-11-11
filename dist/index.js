@@ -3301,7 +3301,10 @@ var PORTAL_SELECTOR = "[data-block-portal], .wy-modal, [role=dialog], [role=menu
 function useBlockNode(props, opts = {}) {
 	const editing = ref(false);
 	const selected = computed(() => props.selected);
-	const readonly = computed(() => !props.editor.isEditable);
+	const editable = ref(props.editor.isEditable);
+	const syncEditable = () => editable.value = props.editor.isEditable;
+	props.editor.on("update", syncEditable);
+	const readonly = computed(() => !editable.value);
 	const copyText = computed(() => {
 		const ctx = contextOf(props.editor);
 		if (ctx.config.format === "markdown") return ctx.markdown.serializeNode(props.node);
@@ -3371,6 +3374,7 @@ function useBlockNode(props, opts = {}) {
 		const el = rootEl();
 		el?.removeEventListener("keydown", onKeydown);
 		el?.removeEventListener(BLOCK_EDIT_EVENT, onEditEvent);
+		props.editor.off("update", syncEditable);
 	});
 	return {
 		selected,
