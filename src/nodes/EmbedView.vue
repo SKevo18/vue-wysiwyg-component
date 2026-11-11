@@ -1,5 +1,6 @@
 <script setup lang="ts">
-// while editing, an overlay keeps clicks out of the iframe until the block is selected (Notion's click to interact)
+// the iframe takes the first click (a video plays at once); the block is selected through its grip or its label.
+// a shield covers the iframe only while its height is dragged, and grip drags switch iframe pointer events off.
 import { NodeViewWrapper, nodeViewProps } from "@tiptap/vue-3";
 import { computed, nextTick, ref, watch } from "vue";
 import { ExternalLink, Pencil } from "@lucide/vue";
@@ -26,7 +27,6 @@ const provider = computed<EmbedProvider>(() => target.value?.provider ?? "generi
 const height = computed<number | null>(() => props.node.attrs.height ?? EMBED_HEIGHTS[provider.value]);
 const live = ref<number | null>(null);
 const shown = computed(() => live.value ?? height.value);
-const interactive = computed(() => readonly.value || selected.value);
 
 watch(
   editing,
@@ -85,7 +85,7 @@ function onResizeUp() {
 
 <template>
   <NodeViewWrapper as="div" class="wy-node wy-node-embed">
-    <BlockFrame :label="t(`embed.providers.${provider}`)" :selected="selected" :editing="editing" :readonly="readonly" :copy-text="copyText" :editable="false" @delete="remove" @more="menu = !menu">
+    <BlockFrame :label="t(`embed.providers.${provider}`)" :selected="selected" :editing="editing" :readonly="readonly" :copy-text="copyText" :editable="false" @delete="remove" @more="menu = !menu" @select="select">
       <form v-if="editing || !url" class="wy-url-form" contenteditable="false" data-block-portal @mousedown.stop @submit.prevent="submit">
         <input ref="input" v-model="draft" class="wy-input" type="url" inputmode="url" autocomplete="off" spellcheck="false" :placeholder="t('embed.placeholder')" :aria-label="t('embed.url')" :readonly="readonly" @keydown.esc.prevent.stop="cancel" />
         <button type="submit" class="wy-btn is-primary" :disabled="!embedFor(normalizeHref(draft))">{{ t("embed.create") }}</button>
@@ -102,7 +102,6 @@ function onResizeUp() {
           loading="lazy"
           :title="t(`embed.providers.${provider}`)"
         ></iframe>
-        <button v-if="!interactive" type="button" class="wy-embed-overlay" :aria-label="t('embed.interact')" @mousedown.prevent @click="select"></button>
         <div
           v-if="!readonly"
           v-tooltip="t('embed.resize')"

@@ -313,7 +313,6 @@ export const sk: Messages = {
     placeholder: "Vložte odkaz na obsah",
     create: "Vložiť",
     open: "Otvoriť originál",
-    interact: "Kliknutím ovládate obsah",
     resize: "Potiahnutím zmeníte výšku",
     defaultHeight: "Predvolená výška",
     providers: { youtube: "YouTube", vimeo: "Vimeo", loom: "Loom", figma: "Figma", gist: "Gist", maps: "Mapy Google", tweet: "Príspevok na X", codepen: "CodePen", generic: "Vložený obsah" },

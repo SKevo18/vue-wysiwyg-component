@@ -311,7 +311,6 @@ export const en = {
     placeholder: "Paste a link to embed",
     create: "Embed",
     open: "Open original",
-    interact: "Click to interact",
     resize: "Drag to resize",
     defaultHeight: "Default height",
     providers: { youtube: "YouTube", vimeo: "Vimeo", loom: "Loom", figma: "Figma", gist: "Gist", maps: "Google Maps", tweet: "Post on X", codepen: "CodePen", generic: "Embed" },
