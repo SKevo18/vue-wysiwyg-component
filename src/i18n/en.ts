@@ -122,6 +122,8 @@ export const en = {
   },
   convert: {
     title: "Turn into",
+    search: "Search",
+    empty: "No matches",
     targets: { paragraph: "Text", unwrap: "Unwrap", columns: "Columns" },
   },
   blockMenu: {

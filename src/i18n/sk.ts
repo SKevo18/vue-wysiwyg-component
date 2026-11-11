@@ -124,6 +124,8 @@ export const sk: Messages = {
   },
   convert: {
     title: "Previesť na",
+    search: "Hľadať",
+    empty: "Nič sa nenašlo",
     targets: { paragraph: "Text", unwrap: "Zrušiť obal", columns: "Stĺpce" },
   },
   blockMenu: {
