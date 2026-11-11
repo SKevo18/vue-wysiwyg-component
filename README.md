@@ -82,6 +82,8 @@ const services: EditorServices = {
 };
 ```
 
+A link to a heading of the same document, `[Setup](#Setup)` or `[Setup](#setup)`, scrolls to that heading instead, and so do the entries of the table of contents. The heading's exact text matches first, then its slug (lower case words joined by dashes).
+
 Hovering a link, or putting the caret into one, shows a card with the address and Open, Copy, Edit and Remove (Edit and Remove in editable editors only). The link dialog has one field for an address or, with `services.searchLinks`, a search; results show `title`, `detail` and an optional `icon` (an emoji) of each `LinkSuggestion`, and the arrow keys and Enter pick one.
 
 Images open enlarged on click in a readonly editor, and from the zoom button of the image tools in an editable one. A collapsible block (`details`) hides its body while closed; its chevron opens and closes it, for a reader only for themselves.
