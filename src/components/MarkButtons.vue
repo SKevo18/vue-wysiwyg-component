@@ -5,7 +5,7 @@ import { Bold, Code, Highlighter, Italic, Strikethrough, Underline } from "@luci
 import { useEditorContext } from "../editor/context";
 import { vTooltip } from "./tooltip";
 
-const props = defineProps<{ editor: Editor; tick: number; small?: boolean }>();
+const props = withDefaults(defineProps<{ editor: Editor; tick: number; small?: boolean; highlight?: boolean }>(), { small: false, highlight: true });
 const ctx = useEditorContext();
 const b = ctx.config.base;
 const html = ctx.config.format === "html";
@@ -23,7 +23,7 @@ const tools: MarkTool[] = [
   ...(b.underline ? [{ id: "underline", icon: Underline, keys: "Mod-u", toggle: (c: ChainedCommands) => c.toggleUnderline() }] : []),
   { id: "strike", icon: Strikethrough, keys: "Mod-Shift-s", toggle: (c) => c.toggleStrike() },
   { id: "code", icon: Code, keys: "Mod-e", toggle: (c) => c.toggleCode() },
-  ...(b.highlight && !html ? [{ id: "highlight", icon: Highlighter, keys: "Mod-Shift-h", toggle: (c: ChainedCommands) => c.toggleHighlight() }] : []),
+  ...(b.highlight && !html && props.highlight ? [{ id: "highlight", icon: Highlighter, keys: "Mod-Shift-h", toggle: (c: ChainedCommands) => c.toggleHighlight() }] : []),
 ];
 
 const active = computed(() => {

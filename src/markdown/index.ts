@@ -183,7 +183,7 @@ function buildConverter(config: EditorConfig): MarkdownConverter {
 
   /** an attribute line's fields (`{color=…}`) land on every node type that has an attribute of that name */
   function withBlockAttrs(spec: ParseSpec, type: NodeType): ParseSpec {
-    const keys = BLOCK_ATTR_KEYS.filter((k) => k in type.attrs);
+    const keys = BLOCK_ATTR_KEYS.filter((k) => k in (type.spec.attrs ?? {}));
     if (!keys.length) return spec;
     return {
       ...spec,

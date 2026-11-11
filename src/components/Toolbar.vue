@@ -26,6 +26,7 @@ import {
   Undo2,
 } from "@lucide/vue";
 import { BULLET_STYLES, ORDERED_STYLES, validChar, type ListKind } from "../core/attrs";
+import { tokenCss } from "../core/colors";
 import { useEditorContext } from "../editor/context";
 import { groupLabel } from "../editor/catalog";
 import { isInCell } from "../editor/tables";
@@ -161,10 +162,10 @@ function toggleCallout() {
         <span class="wy-sep"></span>
         <div class="wy-group">
           <MarkButtons :editor="editor" :tick="tick" />
-          <Dropdown v-if="html && (b.color || b.highlight)" panel-class="wy-color-panel">
+          <Dropdown v-if="b.color || b.highlight" panel-class="wy-color-panel">
             <template #trigger="{ open, toggle }">
               <button v-tooltip="t('toolbar.color')" type="button" class="wy-tool" :aria-label="t('toolbar.color')" aria-haspopup="menu" :aria-expanded="open" @mousedown.prevent @click="toggle">
-                <Baseline :size="18" :style="{ color: state.color || undefined }" />
+                <Baseline :size="18" :style="{ color: (html ? state.color : tokenCss(state.color)) || undefined }" />
               </button>
             </template>
             <template #default="{ close }">

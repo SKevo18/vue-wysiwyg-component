@@ -22,8 +22,10 @@ import { replaceDocument, type HistoryBridge } from "../editor/history";
 import { editorExtensions } from "../editor/setup";
 import { WYSIWYG_DEFAULTS, useHandleRegistry } from "../plugin";
 import BlockActionsMenu from "./BlockActionsMenu.vue";
-import BubbleMenu from "./BubbleMenu.vue";
+import FloatingToolbar from "./FloatingToolbar.vue";
+import ImageLightbox from "./ImageLightbox.vue";
 import LinkDialog from "./LinkDialog.vue";
+import LinkHoverCard from "./LinkHoverCard.vue";
 import Modal from "./Modal.vue";
 import SaveStatus from "./SaveStatus.vue";
 import MarkButtons from "./MarkButtons.vue";
@@ -63,6 +65,8 @@ const props = withDefaults(
     shortcuts?: string[];
     trailingNewline?: boolean;
     contentClass?: string;
+    /** `fixed`: the toolbar above the content, plus a compact one on a text selection. `floating`: only the selection toolbar, with the turn-into menu. `both`: the two at full strength */
+    toolbar?: "fixed" | "floating" | "both";
   }>(),
   {
     format: "markdown",
@@ -87,6 +91,7 @@ const props = withDefaults(
     shortcuts: () => [],
     trailingNewline: undefined,
     contentClass: "",
+    toolbar: "fixed",
   },
 );
 
@@ -154,10 +159,13 @@ const ctx: EditorContext = {
   has,
   field: instance.type,
   inherit: { extensions, base, services, locale, messages: overrides },
+  zoom: (image) => (zoomed.value = image),
 };
 ctx.slashItems = isInline ? [] : slashCatalog(config, files, services, text);
 provide(EDITOR_CONTEXT, ctx);
 const readonlyBubble = ctx.bubble.some((item) => item.readonly);
+const zoomed = ref<{ src: string; alt: string } | null>(null);
+const floatingBar = ref<InstanceType<typeof FloatingToolbar> | null>(null);
 
 const root = ref<HTMLElement | null>(null);
 const mode = ref<"visual" | "source">("visual");
@@ -265,6 +273,7 @@ function hostKeys(): Record<string, () => boolean> {
     openLink();
     return true;
   };
+  keys["Alt-F10"] = () => floatingBar.value?.focusFirst() ?? false;
   for (const k of props.shortcuts) {
     keys[k] = () => {
       emit("shortcut", k);
@@ -583,7 +592,7 @@ defineExpose(handle);
     <template v-if="full">
       <slot name="header" />
       <Toolbar
-        v-if="editor && !readonly"
+        v-if="editor && !readonly && toolbar !== 'floating'"
         :editor="editor"
         :tick="tick"
         :mode="mode"
@@ -605,7 +614,8 @@ defineExpose(handle);
       </Toolbar>
       <div v-show="mode === 'visual'" class="wy-surface" :class="{ 'has-gutter': gutter && !readonly }">
         <EditorContent :editor="editor" class="wy-host" />
-        <BubbleMenu v-if="editor && (!readonly || readonlyBubble)" v-show="mode === 'visual'" :editor="editor" :tick="tick" :readonly="readonly" @link="openLink" @convert="openConvertMenu" />
+        <FloatingToolbar v-if="editor && (!readonly || readonlyBubble)" ref="floatingBar" v-show="mode === 'visual'" :editor="editor" :tick="tick" :readonly="readonly" :full="toolbar !== 'fixed'" @link="openLink" @convert="openConvertMenu" />
+        <LinkHoverCard v-if="editor && config.base.links && mode === 'visual'" :editor="editor" :tick="tick" :readonly="readonly" :focused="focused" @edit="openLink" />
         <TableControls v-if="editor && !readonly && config.base.tables" :editor="editor" :tick="tick" />
         <span ref="menuAnchor" class="wy-menu-anchor" aria-hidden="true"></span>
         <BlockActionsMenu
@@ -627,7 +637,7 @@ defineExpose(handle);
     </template>
 
     <template v-else>
-      <div v-show="focused && !readonly" class="wy-field-tools" role="toolbar" :aria-label="t('field.tools')" @mousedown.prevent>
+      <div v-show="focused && !readonly && toolbar !== 'floating'" class="wy-field-tools" role="toolbar" :aria-label="t('field.tools')" @mousedown.prevent>
         <MarkButtons v-if="editor" :editor="editor" :tick="tick" small />
         <button v-if="config.base.links" v-tooltip="{ text: t('toolbar.link'), keys: 'Mod-k' }" type="button" class="wy-tool is-sm" :aria-label="t('toolbar.link')" :aria-pressed="linkActive" @click="openLink"><LinkIcon :size="15" /></button>
         <button v-if="config.base.math" v-tooltip="t('slash.items.mathInline.label')" type="button" class="wy-tool is-sm" :aria-label="t('slash.items.mathInline.label')" @click="toMath"><SquareFunction :size="15" /></button>
@@ -636,6 +646,8 @@ defineExpose(handle);
       <div class="wy-field-body" @mousedown="onFieldMouseDown">
         <EditorContent :editor="editor" class="wy-host" />
       </div>
+      <FloatingToolbar v-if="editor && toolbar !== 'fixed' && (!readonly || readonlyBubble)" ref="floatingBar" :editor="editor" :tick="tick" :readonly="readonly" :full="false" @link="openLink" />
+      <LinkHoverCard v-if="editor && config.base.links" :editor="editor" :tick="tick" :readonly="readonly" :focused="focused" @edit="openLink" />
       <SaveStatus v-if="activeDraft" class="wy-field-status" :status="draftStatus" dot />
       <Modal v-if="!isInline && !shared" :open="expanded" size="lg" :title="expandTitle ?? t('field.expandTitle')" :close-label="t('field.close')" @close="expanded = false">
         <WysiwygEditor
@@ -651,6 +663,7 @@ defineExpose(handle);
           :draft="activeDraft"
           :trailing-newline="trailing"
           :placeholder="placeholder"
+          :toolbar="toolbar"
           autofocus="end"
           @update:model-value="onExpandedInput"
         />
@@ -658,5 +671,6 @@ defineExpose(handle);
     </template>
 
     <LinkDialog :open="linkOpen" :href="linkInitial.href" :text="linkInitial.text" :has-link="linkInitial.hasLink" @close="linkOpen = false" @apply="onApplyLink" @remove="onRemoveLink" />
+    <ImageLightbox :image="zoomed" :close-label="t('dialog.close')" @close="zoomed = null" />
   </div>
 </template>

@@ -11,7 +11,7 @@ import FigureView from "../nodes/FigureView.vue";
 import InlineImageView from "../nodes/InlineImageView.vue";
 import MathBlockView from "../nodes/MathBlockView.vue";
 import MathInlineView from "../nodes/MathInlineView.vue";
-import { BlockKeys, HostKeys, InlineAtomClick, InlineKeys, SlashCommand, TableCells, blockStopEvent } from "./behaviour";
+import { BlockKeys, HostKeys, InlineAtomClick, InlineKeys, LinkClicks, SlashCommand, TableCells, blockStopEvent, openHref } from "./behaviour";
 import { filterItems, groupLabel } from "./catalog";
 import { clipboardExtension } from "./clipboard";
 import { ContextStorage, type EditorContext } from "./context";
@@ -54,6 +54,7 @@ export function editorExtensions(ctx: EditorContext, opts: SetupOptions): Extens
     InlineAtomClick,
     clipboardExtension(ctx.markdown, ctx.config.format === "markdown"),
   ];
+  if (ctx.config.base.links) out.push(LinkClicks.configure({ open: (href, event) => openHref(ctx.services, href, event) }));
   if (ctx.inline) {
     out.push(InlineKeys, Placeholder.configure({ placeholder: opts.placeholder, showOnlyWhenEditable: true }));
     if (opts.collaboration) out.push(...opts.collaboration);

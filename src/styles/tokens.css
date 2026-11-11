@@ -45,4 +45,25 @@
   --vc-tint-violet: #6e56cf;
   --vc-tint-pink: #d6409f;
   --wy-toolbar-top: 0px;
+
+  /* text and background palette of the markdown dialect (`red`, `red_bg`); dark values follow the host's
+     `color-scheme: dark` */
+  --vc-color-gray: light-dark(#787774, #9b9b9b);
+  --vc-color-brown: light-dark(#9f6b53, #ba856f);
+  --vc-color-orange: light-dark(#d9730d, #c77d48);
+  --vc-color-yellow: light-dark(#cb912f, #ca9849);
+  --vc-color-green: light-dark(#448361, #529e72);
+  --vc-color-blue: light-dark(#337ea9, #5e87c9);
+  --vc-color-purple: light-dark(#9065b0, #9d68d3);
+  --vc-color-pink: light-dark(#c14c8a, #d15796);
+  --vc-color-red: light-dark(#d44c47, #df5452);
+  --vc-bg-gray: light-dark(#f1f1ef, #2f2f2f);
+  --vc-bg-brown: light-dark(#f4eeee, #4a3228);
+  --vc-bg-orange: light-dark(#fbecdd, #5c3b23);
+  --vc-bg-yellow: light-dark(#fbf3db, #564328);
+  --vc-bg-green: light-dark(#edf3ec, #243d30);
+  --vc-bg-blue: light-dark(#e7f3f8, #143a4e);
+  --vc-bg-purple: light-dark(#f6f3f9, #3c2d49);
+  --vc-bg-pink: light-dark(#faf1f5, #4e2c3c);
+  --vc-bg-red: light-dark(#fdebec, #522e2a);
 }

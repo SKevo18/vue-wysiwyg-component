@@ -8,7 +8,8 @@ import { useBlockNode } from "../blocks/useBlockNode";
 import AnchoredPopover from "../components/AnchoredPopover.vue";
 
 const props = defineProps(nodeViewProps);
-const t = contextOf(props.editor).t;
+const ctx = contextOf(props.editor);
+const t = ctx.t;
 const { selected, editing, startEdit, stopEdit, finishEdit, update, readonly, onKeydown } = useBlockNode(props);
 const image = ref<HTMLImageElement | null>(null);
 const altInput = ref<HTMLInputElement | null>(null);
@@ -38,7 +39,17 @@ function toFigure() {
 
 <template>
   <NodeViewWrapper as="span" class="wy-inline-atom" :class="{ 'is-selected': selected, 'is-editing': editing }">
-    <img ref="image" :src="node.attrs.src" :alt="node.attrs.alt || ''" :title="node.attrs.title || undefined" :style="node.attrs.width ? `width:${node.attrs.width}%` : undefined" loading="lazy" draggable="false" @click="readonly || startEdit()" />
+    <img
+      ref="image"
+      :src="node.attrs.src"
+      :alt="node.attrs.alt || ''"
+      :title="node.attrs.title || undefined"
+      :class="{ 'is-zoomable': readonly }"
+      :style="node.attrs.width ? `width:${node.attrs.width}%` : undefined"
+      loading="lazy"
+      draggable="false"
+      @click="editor.isEditable ? startEdit() : ctx.zoom({ src: node.attrs.src, alt: node.attrs.alt || '' })"
+    />
     <AnchoredPopover v-if="editing" :anchor="image" class="wy-popover" @escape="onKeydown">
       <label class="wy-field">
         <span class="wy-label">{{ t("image.alt") }}</span>

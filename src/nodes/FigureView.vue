@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { NodeViewWrapper, nodeViewProps } from "@tiptap/vue-3";
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
-import { AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, AlignHorizontalJustifyStart, ImagePlus, PanelLeft, PanelRight, Scaling, type LucideIcon } from "@lucide/vue";
+import { AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, AlignHorizontalJustifyStart, ImagePlus, PanelLeft, PanelRight, Scaling, ZoomIn, type LucideIcon } from "@lucide/vue";
 import { FIGURE_ALIGNS, mediaKind, shownAlign, type FigureAlign } from "../core/media";
 import { contextOf } from "../editor/context";
 import BlockFrame from "../blocks/BlockFrame.vue";
@@ -126,6 +126,10 @@ async function replace() {
     ctx.services.toast?.(t("editor.uploadFailed", { name: first.name }), "error");
   }
 }
+
+function zoom() {
+  ctx.zoom({ src: String(props.node.attrs.src ?? ""), alt: String(props.node.attrs.alt ?? "") });
+}
 </script>
 
 <template>
@@ -135,7 +139,7 @@ async function replace() {
         <span class="wy-figure-media">
           <video v-if="media === 'video'" :src="node.attrs.src" controls preload="metadata" :aria-label="node.attrs.alt || ''" @click="editing || startEdit()"></video>
           <audio v-else-if="media === 'audio'" :src="node.attrs.src" controls preload="metadata" :aria-label="node.attrs.alt || ''" @click="editing || startEdit()"></audio>
-          <img v-else :src="node.attrs.src" :alt="node.attrs.alt || ''" loading="lazy" draggable="false" @click="editing || startEdit()" />
+          <img v-else :src="node.attrs.src" :alt="node.attrs.alt || ''" :class="{ 'is-zoomable': readonly }" loading="lazy" draggable="false" @click="editor.isEditable ? editing || startEdit() : zoom()" />
           <span v-if="editing" class="wy-figure-resize" :class="{ 'is-left': rightAnchored }" role="separator" :aria-label="t('image.resize')" :title="t('image.resize')" contenteditable="false" @pointerdown="startResize"></span>
         </span>
         <figcaption v-if="editing" class="wy-figure-caption-edit" contenteditable="false" @mousedown.stop>
@@ -157,6 +161,7 @@ async function replace() {
             <span class="wy-muted">%</span>
           </label>
           <button v-tooltip="t('image.originalSize')" type="button" class="wy-tool" :aria-label="t('image.originalSize')" :disabled="!node.attrs.width && !node.attrs.pixels" @click="update({ width: null, pixels: null })"><Scaling :size="16" /></button>
+          <button v-if="!media" v-tooltip="t('image.zoom')" type="button" class="wy-tool" :aria-label="t('image.zoom')" @click="zoom"><ZoomIn :size="16" /></button>
           <button type="button" class="wy-btn is-sm" :aria-expanded="form" @click="form = !form"><ImagePlus :size="16" />{{ t("image.replace") }}</button>
           <component :is="h.tools" v-for="(h, i) in ctx.figure.filter((x) => x.tools)" :key="i" v-bind="props" />
         </div>

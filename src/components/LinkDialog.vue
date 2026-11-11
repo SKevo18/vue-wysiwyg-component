@@ -1,6 +1,8 @@
 <script setup lang="ts">
-// non-address text is a search: Enter and Apply take the active (or first pending) hit, never the raw query
+// one field takes an address or, with `searchLinks`, a search. an address is offered as the first option; Enter and
+// Apply take the active option (after a pending search when it is still running), never raw search text.
 import { computed, nextTick, ref, watch } from "vue";
+import { FileText, Globe, LoaderCircle } from "@lucide/vue";
 import { useEditorContext } from "../editor/context";
 import type { LinkSuggestion } from "../types";
 import Modal from "./Modal.vue";
@@ -9,19 +11,28 @@ const props = defineProps<{ open: boolean; href: string; text: string; hasLink: 
 const emit = defineEmits<{ close: []; apply: [href: string, text: string]; remove: [] }>();
 const ctx = useEditorContext();
 const t = ctx.t;
+const canSearch = !!ctx.services.searchLinks;
 
-const href = ref("");
+const query = ref("");
 const text = ref("");
 const hits = ref<LinkSuggestion[]>([]);
 const active = ref(0);
 const searching = ref(false);
 const input = ref<HTMLInputElement | null>(null);
+const list = ref<HTMLElement | null>(null);
 let timer = 0;
 let abort: AbortController | null = null;
 let enterPending = false;
 
 const looksLikeUrl = (v: string) => /^([a-z][a-z0-9+.-]*:|\/|#|www\.)|^[^\s]+\.[a-z]{2,}(\/|$)/i.test(v.trim());
-const searchable = computed(() => !!ctx.services.searchLinks && !!href.value.trim() && !looksLikeUrl(href.value));
+const address = computed(() => {
+  const v = query.value.trim();
+  return v && (!canSearch || looksLikeUrl(v)) ? v : "";
+});
+const searchable = computed(() => canSearch && !!query.value.trim() && !address.value);
+/** what Enter can pick: the typed address, or the search results */
+const options = computed<LinkSuggestion[]>(() => (address.value ? [{ href: address.value, title: address.value }] : searchable.value ? hits.value : []));
+const listId = `wy-link-options-${Math.random().toString(36).slice(2, 8)}`;
 
 watch(
   () => props.open,
@@ -32,10 +43,11 @@ watch(
       enterPending = false;
       return;
     }
-    href.value = props.href;
+    query.value = props.href;
     text.value = props.text;
     hits.value = [];
     active.value = 0;
+    searching.value = false;
     await nextTick();
     input.value?.focus();
     input.value?.select();
@@ -46,6 +58,7 @@ function onInput() {
   window.clearTimeout(timer);
   abort?.abort();
   enterPending = false;
+  active.value = 0;
   if (!searchable.value) {
     hits.value = [];
     searching.value = false;
@@ -55,7 +68,7 @@ function onInput() {
   timer = window.setTimeout(async () => {
     const ctrl = (abort = new AbortController());
     try {
-      const found = await ctx.services.searchLinks!(href.value.trim(), ctrl.signal);
+      const found = await ctx.services.searchLinks!(query.value.trim(), ctrl.signal);
       if (ctrl.signal.aborted) return;
       hits.value = found.slice(0, 12);
       active.value = 0;
@@ -71,17 +84,21 @@ function onInput() {
 }
 
 function pick(h: LinkSuggestion) {
-  emit("apply", h.href, text.value.trim() || h.title);
+  emit("apply", h.href, text.value.trim() || (h.href === h.title ? "" : h.title));
+}
+
+async function move(step: number) {
+  const n = options.value.length;
+  if (!n) return;
+  active.value = (active.value + step + n) % n;
+  await nextTick();
+  list.value?.querySelector<HTMLElement>('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
 }
 
 function onKey(e: KeyboardEvent) {
-  const n = hits.value.length;
-  if (e.key === "ArrowDown" && n) {
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
     e.preventDefault();
-    active.value = (active.value + 1) % n;
-  } else if (e.key === "ArrowUp" && n) {
-    e.preventDefault();
-    active.value = (active.value - 1 + n) % n;
+    void move(e.key === "ArrowDown" ? 1 : -1);
   } else if (e.key === "Enter") {
     e.preventDefault();
     submit();
@@ -89,33 +106,64 @@ function onKey(e: KeyboardEvent) {
 }
 
 function submit() {
-  if (searchable.value) {
-    const hit = hits.value[active.value];
-    if (searching.value) enterPending = true;
-    else if (hit) pick(hit);
+  if (searching.value) {
+    enterPending = true;
     return;
   }
-  const h = href.value.trim();
-  if (!h) return;
-  emit("apply", h, text.value.trim());
+  const hit = options.value[active.value];
+  if (hit) pick(hit);
 }
 </script>
 
 <template>
   <Modal :open="open" :title="t('link.title')" :close-label="t('dialog.close')" @close="emit('close')">
-    <form class="wy-form" @submit.prevent="submit">
-      <label class="wy-field">
-        <span class="wy-label">{{ ctx.services.searchLinks ? `${t("link.url")} / ${t("link.search")}` : t("link.url") }}</span>
-        <input ref="input" v-model="href" class="wy-input" type="text" inputmode="url" autocomplete="off" spellcheck="false" :placeholder="ctx.services.searchLinks ? t('link.searchPlaceholder') : t('link.urlPlaceholder')" @input="onInput" @keydown="onKey" />
-      </label>
-      <div v-if="searchable" class="wy-link-hits" role="listbox" :aria-label="t('link.search')">
-        <p v-if="!searching && !hits.length" class="wy-menu-hint">{{ t("link.noResults") }}</p>
-        <button v-for="(h, i) in hits" :key="h.href" type="button" role="option" class="wy-menu-item" :class="{ 'is-active': i === active }" :aria-selected="i === active" @mouseenter="active = i" @click="pick(h)">
-          <span class="wy-slash-text">
-            <span class="wy-slash-label">{{ h.title }}</span>
-            <span class="wy-slash-desc">{{ h.detail || h.href }}</span>
-          </span>
-        </button>
+    <form class="wy-form wy-link-form" @submit.prevent="submit">
+      <div class="wy-link-search">
+        <input
+          ref="input"
+          v-model="query"
+          class="wy-input"
+          type="text"
+          inputmode="url"
+          autocomplete="off"
+          spellcheck="false"
+          role="combobox"
+          aria-autocomplete="list"
+          :aria-expanded="options.length > 0"
+          :aria-controls="listId"
+          :aria-activedescendant="options.length ? `${listId}-${active}` : undefined"
+          :aria-label="canSearch ? t('link.searchPlaceholder') : t('link.url')"
+          :placeholder="canSearch ? t('link.searchPlaceholder') : t('link.urlPlaceholder')"
+          @input="onInput"
+          @keydown="onKey"
+        />
+        <div v-if="address || searchable" :id="listId" ref="list" class="wy-link-options" role="listbox" :aria-label="t('link.results')" :aria-busy="searching || undefined">
+          <div v-if="searching && !hits.length" class="wy-link-status" role="status"><LoaderCircle class="wy-spin" :size="15" aria-hidden="true" />{{ t("link.searching") }}</div>
+          <div v-else-if="searchable && !hits.length" class="wy-link-status" role="status">{{ t("link.noResults") }}</div>
+          <button
+            v-for="(h, i) in options"
+            :id="`${listId}-${i}`"
+            :key="h.href"
+            type="button"
+            role="option"
+            tabindex="-1"
+            class="wy-link-option"
+            :aria-selected="i === active"
+            @mouseenter="active = i"
+            @mousedown.prevent
+            @click="pick(h)"
+          >
+            <span class="wy-link-option-icon" aria-hidden="true">
+              <template v-if="h.icon">{{ h.icon }}</template>
+              <Globe v-else-if="address" :size="16" />
+              <FileText v-else :size="16" />
+            </span>
+            <span class="wy-link-option-text">
+              <span class="wy-link-option-title">{{ address ? t("link.linkTo") : h.title }}</span>
+              <span class="wy-link-option-detail">{{ address ? h.href : h.detail || h.href }}</span>
+            </span>
+          </button>
+        </div>
       </div>
       <label class="wy-field">
         <span class="wy-label">{{ t("link.text") }}</span>
@@ -125,7 +173,7 @@ function submit() {
         <button v-if="hasLink" type="button" class="wy-btn is-danger" @click="emit('remove')">{{ t("link.remove") }}</button>
         <span class="wy-grow"></span>
         <button type="button" class="wy-btn" @click="emit('close')">{{ t("dialog.cancel") }}</button>
-        <button type="submit" class="wy-btn is-primary" :disabled="!href.trim()">{{ t("link.apply") }}</button>
+        <button type="submit" class="wy-btn is-primary" :disabled="!options.length && !searching">{{ t("link.apply") }}</button>
       </div>
     </form>
   </Modal>

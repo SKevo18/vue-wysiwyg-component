@@ -86,6 +86,8 @@ export interface LinkSuggestion {
   href: string;
   title: string;
   detail?: string;
+  /** an emoji or short text shown before the title, e.g. a page icon */
+  icon?: string;
 }
 
 export interface AskAiRequest {
@@ -105,6 +107,8 @@ export interface EditorServices {
   askAi?: (request: AskAiRequest) => void;
   sourceEditor?: Component;
   katex?: KatexLoader;
+  /** a click on a link, or Open in its card; return true when the host handled it (e.g. an internal route). otherwise the link opens in a new tab. */
+  openLink?: (href: string, event: MouseEvent) => boolean;
 }
 
 export interface MarkdownPluginContext {

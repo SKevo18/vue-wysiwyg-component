@@ -221,7 +221,8 @@ function attrLineRule(state: StateBlock, startLine: number, _endLine: number, si
   } else if (block) {
     const target = blockAttrsTarget(state.tokens);
     if (!target) return false;
-    target.meta = { ...target.meta, blockAttrs: { ...target.meta?.blockAttrs, ...block } };
+    const meta = (target.meta ?? {}) as { blockAttrs?: Record<string, string> };
+    target.meta = { ...meta, blockAttrs: { ...meta.blockAttrs, ...block } };
   } else {
     return false;
   }

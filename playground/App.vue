@@ -1,34 +1,67 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { WysiwygEditor, type EditorServices } from "@skevo18/vue-wysiwyg-component";
+import { MessageSquare } from "@lucide/vue";
+import { WysiwygEditor, defineEditorExtension, type EditorServices } from "@skevo18/vue-wysiwyg-component";
 import { badgerCensus } from "./badger";
 import { collaborators } from "./collab";
 
 const dark = ref(false);
 watch(dark, (d) => document.documentElement.classList.toggle("dark", d));
+const toolbar = ref<"fixed" | "floating" | "both">("fixed");
+const readonly = ref(false);
+const slovak = ref(false);
 const log = ref<string[]>([]);
 
+const PAGES = [
+  { href: "/notes/setts", title: "Badger setts", detail: "Field notes, updated yesterday", icon: "🦡" },
+  { href: "/notes/otters", title: "Otter holts along the river and their seasonal use", detail: "Wildlife survey 2026, river section north of the old mill bridge", icon: "🦦" },
+  { href: "/notes/foxes", title: "Fox earths", detail: "Burrows" },
+];
 const services: EditorServices = {
   upload: async (file) => {
     await new Promise((r) => setTimeout(r, 300));
     return { url: URL.createObjectURL(file), name: file.name, size: file.size, type: file.type };
   },
-  searchLinks: async (q) => [{ href: `/notes/${q}`, title: `Note about ${q}`, detail: "Burrows" }],
+  searchLinks: async (q, signal) => {
+    await new Promise((r) => setTimeout(r, 400));
+    if (signal.aborted) return [];
+    return PAGES.filter((p) => `${p.title} ${p.detail}`.toLowerCase().includes(q.toLowerCase()));
+  },
+  openLink: (href) => {
+    if (!href.startsWith("/")) return false;
+    log.value.unshift(`open internal ${href}`);
+    return true;
+  },
   toast: (m, k) => log.value.unshift(`${k}: ${m}`),
   askAi: (r) => log.value.unshift(`ask ai: ${r.selection}`),
   katex: () => import("katex"),
 };
 const extensions = [badgerCensus];
+const comments = defineEditorExtension({ name: "comments", bubble: [{ id: "comment", label: "Comment", icon: MessageSquare, readonly: true, run: () => log.value.unshift("comment") }] });
+const fullExtensions = [badgerCensus, comments];
 
 const fullMd = ref(`# Badger notes
 
-Badgers dig **setts** with ==many== tunnels and $e^{i\\pi} = -1$.
+Badgers dig **setts** with ==many== tunnels, [red earth]{color=red}, [marked]{bg=yellow} and [both]{color=blue bg=pink}, ++underlined++ and $e^{i\\pi} = -1$. See [setts](/notes/setts) or [the wiki](https://en.wikipedia.org/wiki/Badger).
+
+A gray note on its own.
+{color=gray_bg}
+
+## Blue heading
+{color=blue}
 
 > [!TIP] Field tip
 > Visit at dusk.
 
 - [ ] count otters
+  {color=green}
 - [x] count badgers
+
+\`\`\`details title="Den sizes"
+Larger setts have up to fifty entrances.
+\`\`\`
+
+![A badger](/badger.svg "European badger"){width=50%}
 
 | Sett | Badgers |
 | :--- | ---: |
@@ -47,7 +80,7 @@ const compactMd = ref("A **short** comment about otters.");
 const fullHtml = ref('<h2>Hello otters</h2><p style="text-align: center"><span style="color: #dc2626">Red</span> and <mark data-color="#bbf7d0" style="background-color: #bbf7d0">green</mark>.</p><div data-type="callout" data-variant="warning"><p>Cold water.</p></div>');
 const compactHtml = ref("<p>Reply to the <strong>badger</strong> club.</p>");
 const [ada, bob] = collaborators([
-  { name: "Ada", color: "#e5484d" },
+  { name: "Ada Lovelace-Byron", color: "#e5484d", avatar: "https://example.invalid/ada.png" },
   { name: "Bob", color: "#0090ff" },
 ]);
 const adaMd = ref("");
@@ -58,11 +91,16 @@ const bobMd = ref("");
   <main class="pg">
     <header class="pg-head">
       <h1>vue-wysiwyg-component</h1>
-      <label><input v-model="dark" type="checkbox" /> dark</label>
+      <div class="pg-controls">
+        <label>toolbar <select v-model="toolbar" data-testid="toolbar-mode"><option>fixed</option><option>floating</option><option>both</option></select></label>
+        <label><input v-model="readonly" type="checkbox" /> readonly</label>
+        <label><input v-model="slovak" type="checkbox" /> sk</label>
+        <label><input v-model="dark" type="checkbox" /> dark</label>
+      </div>
     </header>
     <section>
       <h2>Full, markdown</h2>
-      <WysiwygEditor v-model="fullMd" size="full" :extensions="extensions" :services="services" :base="{ math: true, details: true, footnotes: true }" focus-mode source-mode @save="log.unshift('save')" />
+      <WysiwygEditor :key="`${toolbar}-${slovak}`" v-model="fullMd" size="full" :toolbar="toolbar" :readonly="readonly" :locale="slovak ? 'sk' : 'en'" :extensions="fullExtensions" :services="services" :base="{ math: true, details: true, footnotes: true }" focus-mode source-mode @save="log.unshift('save')" />
       <pre class="pg-out" data-testid="full-md">{{ fullMd }}</pre>
     </section>
     <section>
