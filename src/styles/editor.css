@@ -181,19 +181,27 @@
   color: var(--vc-fg-faint);
   pointer-events: none;
 }
+/* a selected block is marked, not framed: the reader keeps looking at the content */
 .wy-content .ProseMirror-selectednode {
-  outline: 2px solid var(--vc-accent);
+  outline: 1px solid color-mix(in srgb, var(--vc-accent) 45%, transparent);
   outline-offset: 2px;
   border-radius: 4px;
+  background-color: color-mix(in srgb, var(--vc-accent) 6%, transparent);
 }
 .wy-content .wy-node.ProseMirror-selectednode {
   outline: none;
+  background-color: transparent;
 }
 .wy-content .ProseMirror-gapcursor::after {
   border-top-color: var(--vc-fg);
 }
 .wy-content a {
   cursor: text;
+}
+/* links in a block's own ui (cards, page links, an embedded database) navigate on click */
+.wy-content [contenteditable="false"] a[href],
+.wy-content [contenteditable="false"] [role="link"] {
+  cursor: pointer;
 }
 .wy-content .tableWrapper {
   overflow-x: auto;

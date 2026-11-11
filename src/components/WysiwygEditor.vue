@@ -269,8 +269,10 @@ function hostKeys(): Record<string, () => boolean> {
     emit("save");
     return true;
   };
+  // an empty caret outside a link leaves Mod-k to the host (its search)
   keys["Mod-k"] = () => {
-    if (!config.base.links) return false;
+    const e = editor.value;
+    if (!config.base.links || !e || (e.state.selection.empty && !e.isActive("link"))) return false;
     openLink();
     return true;
   };

@@ -9,17 +9,23 @@ let outside: HTMLElement | null = null;
 afterEach(() => {
   wrapper?.unmount();
   outside?.remove();
+  content?.remove();
   wrapper = null;
   outside = null;
 });
 
+// the editor content the block lives in; another block's own controls sit in it
+let content: HTMLElement | null = null;
+
 async function editingBlock() {
   let block!: BlockNode;
   let root: HTMLElement | null = null;
+  content = document.createElement("div");
+  document.body.append(content);
   const props = {
     selected: false,
     getPos: () => 0,
-    editor: { isEditable: true, view: { nodeDOM: () => root }, commands: { setNodeSelection: vi.fn() } },
+    editor: { isEditable: true, view: { nodeDOM: () => root, dom: content }, commands: { setNodeSelection: vi.fn() } },
   } as unknown as NodeViewProps;
   wrapper = mount(defineComponent({
     setup() {
@@ -57,5 +63,14 @@ describe("block editing outside interactions", () => {
     document.body.append(outside);
     outside.querySelector("button")!.click();
     expect(block.editing.value).toBe(true);
+  });
+});
+
+describe("block editing next to other blocks", () => {
+  it("ends when another block's own form field in the editor is clicked", async () => {
+    const block = await editingBlock();
+    content!.innerHTML = '<div class="wy-node"><div data-block-portal contenteditable="false"><input placeholder="Filter rows"></div></div>';
+    content!.querySelector("input")!.click();
+    expect(block.editing.value).toBe(false);
   });
 });

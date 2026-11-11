@@ -24,9 +24,13 @@ let onCard = false;
 let showTimer = 0;
 let hideTimer = 0;
 
+/** a link in the editor's text; links in a block's own ui (a card, an embedded database) are that block's */
 function ownLink(target: EventTarget | null): HTMLAnchorElement | null {
   const link = target instanceof Element ? target.closest<HTMLAnchorElement>("a[href]") : null;
-  return link && link.closest(".ProseMirror") === props.editor.view.dom ? link : null;
+  const dom = props.editor.view.dom;
+  if (!link || link.closest(".ProseMirror") !== dom) return null;
+  for (let el = link.parentElement; el && el !== dom; el = el.parentElement) if (el.getAttribute("contenteditable") === "false") return null;
+  return link;
 }
 
 function show(link: HTMLAnchorElement | null) {
