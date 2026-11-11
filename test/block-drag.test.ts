@@ -168,6 +168,29 @@ describe("drop boundaries", () => {
   });
 });
 
+describe("drop boundaries in lists", () => {
+  it("puts a paragraph dropped between two list items at the end of the item above", async () => {
+    const handle = await mountEditor("- one\n- two\n\nPara.\n");
+    const view = handle.editor!.view;
+    const doc = view.state.doc;
+    const list = doc.child(0);
+    stub(view.dom, LEFT, 0, WIDTH, 120);
+    stub(view.dom.children[0]!, LEFT, 0, WIDTH, 80);
+    stub(view.dom.children[1]!, LEFT, 90, WIDTH, 30);
+    let at = 1;
+    list.forEach((item, _o, i) => {
+      stub(view.nodeDOM(at) as HTMLElement, LEFT + 24, i * 40, WIDTH - 24, 30);
+      stub(view.nodeDOM(at + 1) as HTMLElement, LEFT + 24, i * 40, WIDTH - 24, 30);
+      at += item.nodeSize;
+    });
+    const para = list.nodeSize;
+    const spot = dropSpot(view, LEFT + 100, 35, doc.child(1), para);
+    expect(spot?.pos).toBe(1 + list.child(0).nodeSize - 1);
+    view.dispatch(moveBlock(view.state, para, spot!.pos)!);
+    expect(handle.getContent()).toBe("- one\n\n  Para.\n- two\n");
+  });
+});
+
 describe("moveBlock", () => {
   it("moves up and down in one step and ignores drops on its own edges", async () => {
     const handle = await mountEditor("One.\n\nTwo.\n\nThree.\n");

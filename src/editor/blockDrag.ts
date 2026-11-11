@@ -59,12 +59,18 @@ export function dropSpot(view: EditorView, x: number, y: number, node: PMNode, f
     const last = kids[kids.length - 1]!;
     // the padding above and below a container's children drops next to the container
     if (parent !== view.state.doc && (y < kids[0]!.rect.top || y > last.rect.bottom)) break;
-    const pos = i < kids.length ? kids[i]!.pos : last.pos + last.node.nodeSize;
+    let pos = i < kids.length ? kids[i]!.pos : last.pos + last.node.nodeSize;
     const index = i < kids.length ? kids[i]!.index : last.index + 1;
     // a list item's first child is the item's own text; a block dropped before it would take over the bullet
     const ownText = index === 0 && /item$/i.test(parent.type.name);
-    const valid = parent.canReplaceWith(index, index, node.type, node.marks) && !ownText && !(pos > from && pos < end);
-    if (valid) {
+    let valid = parent.canReplaceWith(index, index, node.type, node.marks) && !ownText;
+    // a paragraph between two list items cannot stand in the list, so it goes to the end of the item above
+    const prev = i > 0 ? kids[i - 1]!.node : null;
+    if (!valid && prev && !prev.isTextblock && !prev.isAtom && prev.canReplaceWith(prev.childCount, prev.childCount, node.type, node.marks)) {
+      pos = kids[i - 1]!.pos + prev.nodeSize - 1;
+      valid = true;
+    }
+    if (valid && !(pos > from && pos < end)) {
       const top = parent === view.state.doc;
       best = {
         pos,
