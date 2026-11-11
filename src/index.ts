@@ -30,6 +30,7 @@ export { highlightCode, registerCodeLanguage, escapeHtml, CODE_LANGUAGES } from 
 export { renderMath, type KatexLike, type KatexLoader } from "./core/math";
 export { formatBytes, isImageSrc, mediaKind } from "./core/media";
 export { MARKDOWN_CALLOUTS, HTML_CALLOUTS } from "./core/callouts";
+export { PALETTE, isBgToken, isColorToken, isTextToken, tokenCss, type PaletteName } from "./core/colors";
 export { MESSAGES, type Locale, type Messages, type Translate } from "./i18n";
 export type * from "./types";
 

@@ -1,6 +1,6 @@
 import { Extension, type Editor } from "@tiptap/core";
 import { PluginKey } from "@tiptap/pm/state";
-import type { SlashItem } from "../types";
+import type { EditorServices, SlashItem } from "../types";
 export declare const BLOCK_EDIT_EVENT = "wy-block-edit";
 export declare function blockStopEvent({ event }: {
     event: Event;
@@ -14,6 +14,12 @@ export declare function linkAtSelection(editor: Editor): {
 };
 export declare function applyLink(editor: Editor, rawHref: string, text: string): void;
 export declare function removeLink(editor: Editor): void;
+/** the host's `openLink` first (it returns true for routes it handles), otherwise a new tab without an opener */
+export declare function openHref(services: EditorServices, raw: string, event: MouseEvent): void;
+/** a plain click on a link opens it in editable and readonly editors; dragging, shift and multi clicks select text */
+export declare const LinkClicks: Extension<{
+    open(href: string, event: MouseEvent): void;
+}, any>;
 export declare const SLASH_KEY: PluginKey<any>;
 interface SlashOptions {
     items(query: string): SlashItem[];

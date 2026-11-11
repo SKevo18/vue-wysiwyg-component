@@ -34,6 +34,11 @@ export interface EditorContext {
     has(key: string): boolean;
     field: Component;
     inherit: WysiwygDefaults;
+    /** shows an image enlarged over the page */
+    zoom(image: {
+        src: string;
+        alt: string;
+    }): void;
 }
 declare module "@tiptap/core" {
     interface Storage {

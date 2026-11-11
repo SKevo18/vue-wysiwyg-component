@@ -13,11 +13,11 @@ export type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
 export interface BaseOptions {
     /** false disables headings. default 1-6 (markdown), 1-3 (html). */
     headings?: HeadingLevel[] | false;
-    /** html only. */
+    /** markdown `++text++`. */
     underline?: boolean;
-    /** markdown `==text==`; multicolour `<mark>` in html. */
+    /** markdown `==text==` and `[text]{bg=yellow}`; multicolour `<mark>` in html. */
     highlight?: boolean;
-    /** html only. */
+    /** text colour: markdown `[text]{color=red}` with palette colours, any CSS colour in html. markdown also gets block colours (`{color=yellow_bg}` under a block). */
     color?: boolean;
     /** html only; markdown cannot store it. */
     textAlign?: boolean;
@@ -79,6 +79,8 @@ export interface LinkSuggestion {
     href: string;
     title: string;
     detail?: string;
+    /** an emoji or short text shown before the title, e.g. a page icon */
+    icon?: string;
 }
 export interface AskAiRequest {
     selection: string;
@@ -95,6 +97,8 @@ export interface EditorServices {
     askAi?: (request: AskAiRequest) => void;
     sourceEditor?: Component;
     katex?: KatexLoader;
+    /** a click on a link, or Open in its card; return true when the host handled it (e.g. an internal route). otherwise the link opens in a new tab. */
+    openLink?: (href: string, event: MouseEvent) => boolean;
 }
 export interface MarkdownPluginContext {
     schema: Schema;

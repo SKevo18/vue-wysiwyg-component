@@ -6,6 +6,16 @@ export interface FigureMeta extends ImageAttrs {
     caption: string;
 }
 export declare function imageAttrsRule(state: StateInline, silent: boolean): boolean;
+export interface SpanColors {
+    /** text token, `red` */
+    color: string | null;
+    /** background token, `yellow_bg` */
+    bg: string | null;
+}
+/** `color=red bg=yellow`; `bg` also takes `yellow_bg`, `color` also takes a background token */
+export declare function parseSpanAttrs(fields: Record<string, string>): SpanColors | null;
+/** `[text]{color=red bg=yellow}`: text colour and background colour marks around the bracketed inline content */
+export declare function colorSpanRule(state: StateInline, silent: boolean): boolean;
 export declare function figureRule(state: StateCore): void;
 /** an all-empty header row is dropped (that is how a headerless table is written); `\<br>` stays text; must run before `text_join` */
 export declare function tableCellsRule(state: StateCore): void;

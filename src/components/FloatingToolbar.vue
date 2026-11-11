@@ -135,8 +135,9 @@ function prepareFloating() {
   layer.style.position = "fixed";
   layer.style.visibility = "hidden";
 }
-// tiptap's bubble menu runs a delayed update that can land after the editor is destroyed
-const appendTo = () => (props.editor.isDestroyed ? document.body : props.editor.view.dom.closest<HTMLElement>(".wy-editor")!);
+// tiptap's bubble menu runs a delayed update that can land after the editor is destroyed; it then goes to a
+// detached element instead of leaving a stray toolbar in the page
+const appendTo = () => (props.editor.isDestroyed ? document.createElement("div") : (props.editor.view.dom.closest<HTMLElement>(".wy-editor") ?? document.createElement("div")));
 function overflowBounds() {
   const viewport = window.visualViewport;
   const x = viewport?.offsetLeft ?? 0;
@@ -181,7 +182,7 @@ onBeforeUnmount(() => document.removeEventListener("selectionchange", onSelectio
     <div ref="bar" class="wy-bubble" role="toolbar" :aria-label="t('bubble.label')" @keydown="onKeydown">
       <template v-if="!readonly">
         <template v-if="state.convert">
-          <button v-tooltip="t('convert.title')" type="button" class="wy-tool is-wide wy-bubble-block" aria-haspopup="menu" :aria-label="`${t('convert.title')}: ${state.block}`" data-convert-menu @mousedown.prevent @click="emit('convert', $event.currentTarget as HTMLElement)">
+          <button v-tooltip="t('convert.title')" type="button" class="wy-tool is-wide wy-bubble-block" aria-haspopup="menu" :aria-label="`${t('convert.title')} ${state.block}`" data-convert-menu @mousedown.prevent @click="emit('convert', $event.currentTarget as HTMLElement)">
             <span class="wy-tool-text">{{ state.block }}</span><ChevronDown :size="14" />
           </button>
           <span class="wy-sep"></span>
