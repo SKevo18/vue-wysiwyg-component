@@ -1,4 +1,4 @@
-import { Slice, type Fragment, type Node as PMNode, type Schema } from "@tiptap/pm/model";
+import { Fragment, Slice, type Node as PMNode, type Schema } from "@tiptap/pm/model";
 import { type EditorConfig } from "../schema";
 import type { BaseOptions, EditorExtension } from "../types";
 export interface MarkdownConverter {

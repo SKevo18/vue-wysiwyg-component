@@ -5,8 +5,8 @@ import Highlight from "@tiptap/extension-highlight";
 import { Color, TextStyle } from "@tiptap/extension-text-style";
 import { blockColorStyle, isBgToken, isColorToken, isTextToken, tokenCss, tokenFromCss } from "../core/colors";
 
-// above Link (1000): a colour mark must wrap a link, `[[label](/p/1)]{color=red}`, since markdown-it reads no
-// bracketed span inside a link label. text colour wraps background colour, so a partly highlighted run stays one span
+// above Link (1000): over exactly the same run a colour mark wraps a link, `[[label](/p/1)]{color=red}`. text colour
+// wraps background colour, so a run with both is one `{color=… bg=…}` span
 const OUTSIDE_LINKS = 1100;
 
 /** node types that take a block colour; types missing from the schema are ignored */

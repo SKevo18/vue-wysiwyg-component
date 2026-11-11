@@ -70,6 +70,20 @@ describe("toolbar modes", () => {
     document.querySelector<HTMLButtonElement>('.wy-colors .is-text[aria-label="Green"]')!.click();
     expect(handle.getContent()).toMatch(/<span style="color: (#16a34a|rgb\(22, 163, 74\));?">Otter<\/span>/);
   });
+
+  it("colours from the compact field tools, which sit under the text inside the field", async () => {
+    const { wrapper: w, handle } = await mountEditor({ modelValue: "<p>Otter</p>", format: "html", size: "compact" });
+    handle.editor!.commands.focus();
+    handle.editor!.commands.setTextSelection({ from: 1, to: 6 });
+    await vi.waitFor(() => expect(w.get(".wy-field-tools").isVisible()).toBe(true));
+    const tools = w.get(".wy-field-tools").element;
+    expect(w.get(".wy-field-body").element.compareDocumentPosition(tools) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    tools.querySelector<HTMLButtonElement>('button[aria-label="Colour"]')!.click();
+    await vi.waitFor(() => expect(document.querySelector(".wy-colors")).not.toBeNull());
+    document.querySelector<HTMLButtonElement>('.wy-colors .is-text[aria-label="Blue"]')!.click();
+    expect(handle.getContent()).toMatch(/<span style="color: (#2563eb|rgb\(37, 99, 235\));?">Otter<\/span>/);
+    window.getSelection()?.removeAllRanges();
+  });
 });
 
 describe("link clicks", () => {

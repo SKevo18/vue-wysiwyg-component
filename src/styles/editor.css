@@ -537,19 +537,15 @@ button.wy-grip {
 .wy-field-body > .wy-host > .wy-content {
   flex: 1;
 }
+/* a row inside the field, under the text, so it never covers what sits above the field */
 .wy-field-tools {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 4px);
-  z-index: 30;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 1px;
-  padding: 2px;
-  border: 1px solid var(--vc-border);
-  border-radius: var(--vc-radius-sm);
-  background: var(--vc-bg-subtle);
-  box-shadow: 0 2px 8px rgb(0 0 0 / 0.08);
+  margin: 6px -6px -2px;
+  padding: 4px 16px 0 0;
+  border-top: 1px solid var(--vc-border);
 }
 .wy-field-status {
   position: absolute;

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { Mark, Node as PMNode } from "@tiptap/pm/model";
 import { createMarkdown, markdownFor } from "./index";
 import { resolveConfig } from "../schema";
 import { flattenToParagraph } from "../schema/nodes";
@@ -285,6 +286,68 @@ describe("colours and underline", () => {
     expect(marksOf(src).find((m) => m.text === "link")!.marks).toMatchObject({ textStyle: "green", link: true });
     const overlap = expectStable("[a [b]{bg=yellow}]{color=red}\n");
     expect(marksOf(overlap).find((m) => m.text === "b")!.marks).toEqual({ textStyle: "red", highlight: "yellow_bg" });
+  });
+
+  it("keeps inline code and other marks inside colour spans byte for byte", () => {
+    for (const src of [
+      "[**a** `code`]{color=blue}\n",
+      "t [a `b` c]{bg=yellow} u\n",
+      "[`code` b]{color=blue bg=yellow}\n",
+      "[**`a`**]{color=blue}\n",
+      "[*~~`a`~~* ++b++]{bg=pink}\n",
+      "**x [a]{color=blue} y**\n",
+      "==x [a `b`]{color=red} y==\n",
+      "[x [a]{color=red} `b`](/p/1)\n",
+      "[a [b]{color=red} c]{bg=yellow}\n",
+    ]) {
+      expect(roundTrip(src)).toBe(src);
+    }
+    expect(marksOf("[**a** `code`]{color=blue}\n")).toEqual([
+      { text: "a", marks: { textStyle: "blue", bold: true } },
+      { text: " ", marks: { textStyle: "blue" } },
+      { text: "code", marks: { textStyle: "blue", code: true } },
+    ]);
+  });
+
+  it("lets the inner span of the same kind win and resumes the outer one after it", () => {
+    expect(marksOf("[a [b]{color=red} c]{color=blue}\n")).toEqual([
+      { text: "a ", marks: { textStyle: "blue" } },
+      { text: "b", marks: { textStyle: "red" } },
+      { text: " c", marks: { textStyle: "blue" } },
+    ]);
+    expect(marksOf("==a [b]{bg=yellow} c==\n").map((m) => m.marks.highlight)).toEqual([true, "yellow_bg", true]);
+  });
+
+  it("round trips every combination of colours with the other marks", () => {
+    const mk = (name: string, attrs?: Record<string, unknown>) => schema.marks[name]!.create(attrs);
+    const fg = mk("textStyle", { color: "blue" });
+    const colours = [[], [fg], [mk("highlight", { color: "yellow_bg" })], [mk("highlight", { color: null })], [fg, mk("highlight", { color: "yellow_bg" })], [fg, mk("highlight", { color: null })]];
+    const others = [mk("bold"), mk("italic"), mk("strike"), mk("underline"), mk("code"), mk("link", { href: "/p/1" })];
+    const subsets = Array.from({ length: 1 << others.length }, (_, bits) => others.filter((_, k) => bits & (1 << k)));
+    const para = (...runs: [string, readonly Mark[]][]) => schema.node("doc", null, [schema.node("paragraph", null, [schema.text("x "), ...runs.map(([t, m]) => schema.text(t, m)), schema.text(" y")])]);
+    const docs: PMNode[] = [];
+    for (const c of colours) {
+      for (const o of subsets) {
+        const both = [...c, ...o];
+        docs.push(para(["ab", both]));
+        if (c.length) docs.push(para(["ab ", c], ["cd", both], [" ef", c]), para(["cd", both], [" ef", c]), para(["ab ", c], ["cd", both]));
+      }
+    }
+    // a longer mark around a run with colours and other marks
+    for (const outer of [...others.filter((m) => m.type.name !== "code"), mk("highlight", { color: null }), mk("highlight", { color: "pink_bg" }), mk("textStyle", { color: "red" })]) {
+      for (const c of colours) {
+        for (const o of subsets) {
+          if ([...c, ...o].some((m) => m.type === outer.type)) continue;
+          docs.push(para(["ab ", [outer]], ["cd", outer.addToSet([...c, ...o])], [" ef", [outer]]));
+        }
+      }
+    }
+    const broken = docs.flatMap((doc) => {
+      const text = md.serialize(doc);
+      const back = md.parse(text);
+      return back.eq(doc) && md.serialize(back) === text ? [] : [text];
+    });
+    expect(broken).toEqual([]);
   });
 
   it("reads background tokens written either way and leaves unknown colours as text", () => {

@@ -7,7 +7,6 @@ import {
   AlignJustify,
   AlignLeft,
   AlignRight,
-  Baseline,
   ChevronDown,
   FileCode,
   Image,
@@ -26,12 +25,11 @@ import {
   Undo2,
 } from "@lucide/vue";
 import { BULLET_STYLES, ORDERED_STYLES, validChar, type ListKind } from "../core/attrs";
-import { tokenCss } from "../core/colors";
 import { useEditorContext } from "../editor/context";
 import { groupLabel } from "../editor/catalog";
 import { isInCell } from "../editor/tables";
+import ColorTool from "./ColorTool.vue";
 import Dropdown from "./Dropdown.vue";
-import ColorMenu from "./ColorMenu.vue";
 import MarkButtons from "./MarkButtons.vue";
 import { vTooltip } from "./tooltip";
 
@@ -50,7 +48,6 @@ const emit = defineEmits<{ link: []; "block-menu": [button: HTMLElement]; "toggl
 const ctx = useEditorContext();
 const t = ctx.t;
 const b = ctx.config.base;
-const html = ctx.config.format === "html";
 const canUpload = !!ctx.services.upload;
 
 function innermostList(e: Editor): { pos: number; node: PMNode; kind: ListKind } | null {
@@ -72,8 +69,6 @@ const state = computed(() => {
   return {
     block: e.isActive("codeBlock") ? "code" : level ? `h${level}` : "p",
     link: e.isActive("link"),
-    color: String(e.getAttributes("textStyle").color ?? ""),
-    mark: String(e.getAttributes("highlight").color ?? ""),
     bulletList: e.isActive("bulletList"),
     orderedList: e.isActive("orderedList"),
     taskList: e.isActive("taskList"),
@@ -162,16 +157,7 @@ function toggleCallout() {
         <span class="wy-sep"></span>
         <div class="wy-group">
           <MarkButtons :editor="editor" :tick="tick" />
-          <Dropdown v-if="b.color || b.highlight" panel-class="wy-color-panel">
-            <template #trigger="{ open, toggle }">
-              <button v-tooltip="t('toolbar.color')" type="button" class="wy-tool" :aria-label="t('toolbar.color')" aria-haspopup="menu" :aria-expanded="open" @mousedown.prevent @click="toggle">
-                <Baseline :size="18" :style="{ color: (html ? state.color : tokenCss(state.color)) || undefined }" />
-              </button>
-            </template>
-            <template #default="{ close }">
-              <ColorMenu :editor="editor" :color="state.color" :highlight="state.mark" @done="close" />
-            </template>
-          </Dropdown>
+          <ColorTool v-if="b.color || b.highlight" :editor="editor" :tick="tick" />
           <Dropdown v-if="b.textAlign">
             <template #trigger="{ open, toggle }">
               <button v-tooltip="t('toolbar.align')" type="button" class="wy-tool" :aria-label="t('toolbar.align')" aria-haspopup="menu" :aria-expanded="open" :disabled="state.inCell" @mousedown.prevent @click="toggle">

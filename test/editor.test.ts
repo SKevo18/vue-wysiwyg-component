@@ -148,4 +148,27 @@ describe("WysiwygEditor", () => {
     await w.get(".wy-content").trigger("keydown", { key: "Escape" });
     expect(w.classes()).not.toContain("is-fullscreen");
   });
+
+  it("keeps the keys it handles from host shortcuts and lets the others through", async () => {
+    const { handle } = await mountEditor({ modelValue: "Badger sett.\n", shortcuts: ["Mod-Shift-p"] });
+    const seen: string[] = [];
+    const host = (e: KeyboardEvent) => seen.push(`${e.shiftKey ? "Shift-" : ""}${e.key}`);
+    window.addEventListener("keydown", host);
+    try {
+      const mod = /Mac|iP(hone|[oa]d)/.test(navigator.platform) ? { metaKey: true } : { ctrlKey: true };
+      const press = (key: string, extra: KeyboardEventInit = {}) => handle.editor!.view.dom.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...extra }));
+      handle.editor!.commands.setTextSelection({ from: 1, to: 7 });
+      press("k", mod);
+      await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).not.toBeNull());
+      press("b", mod);
+      press("p", { ...mod, shiftKey: true });
+      expect(seen).toEqual([]);
+      expect(handle.getContent()).toBe("**Badger** sett.\n");
+      press("q", mod);
+      press("x");
+      expect(seen).toEqual(["q", "x"]);
+    } finally {
+      window.removeEventListener("keydown", host);
+    }
+  });
 });

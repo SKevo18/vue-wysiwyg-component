@@ -27,6 +27,12 @@ import { BlockColor, PaletteColor, PaletteHighlight, PaletteTextStyle } from "./
 
 const ALL_LEVELS: HeadingLevel[] = [1, 2, 3, 4, 5, 6];
 
+/**
+ * inline code takes every other mark (bold, colours, links), as in Notion. lowest priority makes it the innermost
+ * mark, which the markdown serialiser needs to write its backticks inside the other marks' delimiters
+ */
+const InnerCode = Code.extend({ priority: 1, excludes: "code" });
+
 export function resolveBase(format: EditorFormat, base: BaseOptions = {}): ResolvedBase {
   const html = format === "html";
   const callouts = base.callouts ?? true;
@@ -97,7 +103,7 @@ function coreExtensions(config: EditorConfig, inline: boolean, history: boolean)
   const out: AnyExtension[] = [Bold];
   if (!inline && (b.blockquote || b.callouts.length > 0)) out.push(Blockquote);
   if (listItems) out.push(BulletList);
-  out.push(Code);
+  out.push(InnerCode);
   if (!inline) out.push(Document, Dropcursor.configure({ color: "var(--vc-accent)", width: 2 }), Gapcursor, HardBreak);
   if (!inline && b.headings.length) out.push(Heading.configure({ levels: b.headings }));
   if (history) out.push(UndoRedo.configure({ newGroupDelay: 500 }));

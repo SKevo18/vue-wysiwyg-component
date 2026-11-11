@@ -7,6 +7,7 @@ import { embedFor } from "../src/core/embeds";
 import { PLANTUML_ALPHABET, plantumlEncode, plantumlUrl } from "../src/core/diagrams";
 import { tocEntries } from "../src/builtins/toc";
 import { columnShares } from "../src/builtins/columns";
+import { dateLabel } from "../src/core/mentions";
 
 const BASE = { details: true, columns: true, bookmarks: true, embeds: true, toc: true, pageLinks: true, mentions: true, math: true };
 const md = createMarkdown([], { base: BASE });
@@ -116,6 +117,13 @@ describe("notion blocks: markdown", () => {
       { kind: "date", id: "", label: "May 1 to 3", start: "2024-05-01", end: "2024-05-03" },
       { kind: "date", id: "", label: "10am", start: "2024-05-01T10:00", end: null },
     ]);
+  });
+
+  it("labels picked dates and ranges in the documented format", () => {
+    expect(dateLabel("2024-05-01", null, "en")).toBe("May 1, 2024");
+    expect(dateLabel("2024-05-01T10:00", null, "en")).toBe("May 1, 2024, 10:00 AM");
+    expect(dateLabel("2024-05-01", "2024-05-03", "en")).toBe("May 1, 2024 → May 3, 2024");
+    expect(dateLabel("2024-05-01T10:00", "2024-05-03T10:00", "en")).toBe("May 1, 2024, 10:00 AM → May 3, 2024, 10:00 AM");
   });
 
   it("escapes brackets in mention labels", () => {

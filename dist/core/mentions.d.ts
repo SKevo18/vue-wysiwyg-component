@@ -15,7 +15,11 @@ export declare function escapeMentionLabel(label: string): string;
 export declare function mentionMarkdown(a: MentionAttrs): string | null;
 /** inline rule for `@[label](kind:value)`; must run before `link` */
 export declare function mentionRule(state: StateInline, silent: boolean): boolean;
-/** "May 1, 2024", "May 1, 2024 10:00" or a range of them in the editor's locale */
+/**
+ * "May 1, 2024", "May 1, 2024, 10:00 AM" or a range of them joined by " → ", in the editor's locale. date and
+ * time are formatted apart and joined by ", " with plain spaces: engines differ in how they join them ("at" in
+ * Safari) and in the space before AM, and an importer has to write the same label
+ */
 export declare function dateLabel(start: string, end: string | null, locale: string): string;
 export declare function isoDate(d: Date): string;
 /** `/p/{id}` style template with the id filled in */

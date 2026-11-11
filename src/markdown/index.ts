@@ -4,14 +4,14 @@ import type { MarkdownIt, Token } from "markdown-it";
 import ins from "markdown-it-ins";
 import mark from "markdown-it-mark";
 import { MarkdownParser, MarkdownSerializer, MarkdownSerializerState, type ParseSpec } from "prosemirror-markdown";
-import { DOMSerializer, Slice, type Fragment, type Mark, type Node as PMNode, type NodeType, type Schema } from "@tiptap/pm/model";
+import { DOMSerializer, Fragment, Slice, type Mark, type Node as PMNode, type NodeType, type Schema } from "@tiptap/pm/model";
 import { BLOCK_ATTR_KEYS, DEFAULT_DIVIDER, blockAttrsPlugin, formatBlockAttrs, formatDividerAttrs, formatListAttrs, type DividerAttrs, type ListAttrs } from "../core/attrs";
 import { isBgToken, isTextToken } from "../core/colors";
 import { fenceFor, formatInfo, joinSections, type Section } from "../core/info";
 import { formatImageAttrs, type ImageAttrs } from "../core/media";
 import { NO_EXTENSIONS, resolveConfig, schemaFor, type EditorConfig } from "../schema";
 import type { BaseOptions, EditorExtension, MarkSerializer, NodeSerializer, SerializeHelpers } from "../types";
-import { atomToken, colorSpanRule, figureRule, imageAttrsRule, retagTokens, tableCellsRule, type FigureMeta, type RetagOptions } from "./rules";
+import { atomToken, colorSpanRule, figureRule, imageAttrsRule, retagTokens, sameMarkNestingRule, tableCellsRule, type FigureMeta, type RetagOptions } from "./rules";
 
 type NodeFn = (state: MarkdownSerializerState, node: PMNode, parent: PMNode, index: number) => void;
 type MarkSpec = ConstructorParameters<typeof MarkdownSerializer>[1][string];
@@ -49,6 +49,64 @@ function pairedColors(parent: PMNode, index: number): { color: string; bg: strin
   if (!fg || !bg) return null;
   if (markStart(parent, index, fg) !== markStart(parent, index, bg) || markEnd(parent, index, fg) !== markEnd(parent, index, bg)) return null;
   return { color: String(fg.attrs.color), bg: String(bg.attrs.color) };
+}
+
+/** where each of a child's marks starts (`dir` -1) or ends (`dir` 1, exclusive) in its run of siblings */
+function runEdges(parent: PMNode, dir: 1 | -1): number[][] {
+  const n = parent.childCount;
+  const out: number[][] = new Array<number[]>(n);
+  for (let k = 0; k < n; k++) {
+    const i = dir < 0 ? k : n - 1 - k;
+    const marks = parent.child(i).marks;
+    const near = i + dir >= 0 && i + dir < n ? parent.child(i + dir) : null;
+    out[i] = marks.map((m) => {
+      const j = near ? near.marks.findIndex((x) => x.eq(m)) : -1;
+      return j < 0 ? (dir < 0 ? i : i + 1) : out[i + dir]![j]!;
+    });
+  }
+  return out;
+}
+
+/**
+ * reorders each child's marks outermost first, as markdown has to nest them: a mark that starts earlier, or that
+ * runs further, wraps the others, and unescaped marks (code) stay innermost. prosemirror-markdown otherwise opens
+ * marks in schema order, which splits a long bold or background run around a shorter coloured or linked run.
+ * the reordered mark arrays only feed the serialiser
+ */
+function nestMarks(parent: PMNode, innermost: (m: Mark) => boolean): PMNode {
+  if (parent.childCount < 2) return parent;
+  const starts = runEdges(parent, -1);
+  const ends = runEdges(parent, 1);
+  const children: PMNode[] = [];
+  let changed = false;
+  parent.forEach((child, _, i) => {
+    if (child.marks.length < 2) {
+      children.push(child);
+      return;
+    }
+    const keyed = child.marks.map((m, k) => ({ m, inner: innermost(m) ? 1 : 0, start: starts[i]![k]!, end: ends[i]![k]!, rank: k }));
+    keyed.sort((a, b) => a.inner - b.inner || a.start - b.start || b.end - a.end || a.rank - b.rank);
+    const marks = keyed.map((x) => x.m);
+    if (marks.every((m, k) => m === child.marks[k])) children.push(child);
+    else {
+      changed = true;
+      children.push(child.mark(marks));
+    }
+  });
+  return changed ? parent.copy(Fragment.fromArray(children)) : parent;
+}
+
+function nestDoc(node: PMNode, innermost: (m: Mark) => boolean): PMNode {
+  if (node.inlineContent) return nestMarks(node, innermost);
+  if (!node.childCount) return node;
+  const children: PMNode[] = [];
+  let changed = false;
+  node.forEach((child) => {
+    const next = nestDoc(child, innermost);
+    if (next !== child) changed = true;
+    children.push(next);
+  });
+  return changed ? node.copy(Fragment.fromArray(children)) : node;
 }
 
 export interface MarkdownConverter {
@@ -156,7 +214,10 @@ function buildConverter(config: EditorConfig): MarkdownConverter {
     const md = markdownit({ html: false, linkify: false, typographer: false, breaks: false });
     if (b.highlight) md.use(mark);
     if (b.underline) md.use(ins);
-    if (b.color || b.highlight) md.inline.ruler.before("link", "color_span", colorSpanRule);
+    if (b.color || b.highlight) {
+      md.inline.ruler.before("link", "color_span", colorSpanRule);
+      md.core.ruler.after("inline", "same_mark_nesting", sameMarkNestingRule);
+    }
     if (!b.images) md.disable("image");
     else md.inline.ruler.after("image", "image_attrs", imageAttrsRule);
     if (b.images && schema.nodes.figure) md.core.ruler.after("inline", "figures", figureRule);
@@ -519,13 +580,14 @@ function buildConverter(config: EditorConfig): MarkdownConverter {
   }
 
   const serializer = new MarkdownSerializer(nodes, marks, options);
+  const unescaped = (m: Mark) => marks[m.type.name]?.escape === false;
 
   function serialize(doc: PMNode): string {
-    return serializer.serialize(doc, { tightLists: true }).trimEnd() + "\n";
+    return serializer.serialize(nestDoc(doc, unescaped), { tightLists: true }).trimEnd() + "\n";
   }
 
   function serializeInline(doc: PMNode): string {
-    return serializer.serialize(doc, { tightLists: true }).replace(/\s*\n\s*/g, " ").trim();
+    return serializer.serialize(nestDoc(doc, unescaped), { tightLists: true }).replace(/\s*\n\s*/g, " ").trim();
   }
 
   function serializeNode(node: PMNode): string {

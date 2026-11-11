@@ -79,11 +79,17 @@ function parseDate(v: string): { date: Date; time: boolean } {
   return { date: new Date(y, m - 1, day, hh, mm), time: t !== undefined };
 }
 
-/** "May 1, 2024", "May 1, 2024 10:00" or a range of them in the editor's locale */
+/**
+ * "May 1, 2024", "May 1, 2024, 10:00 AM" or a range of them joined by " → ", in the editor's locale. date and
+ * time are formatted apart and joined by ", " with plain spaces: engines differ in how they join them ("at" in
+ * Safari) and in the space before AM, and an importer has to write the same label
+ */
 export function dateLabel(start: string, end: string | null, locale: string): string {
+  const day = new Intl.DateTimeFormat(locale, { dateStyle: "medium" });
+  const hour = new Intl.DateTimeFormat(locale, { timeStyle: "short" });
   const fmt = (v: string) => {
     const { date, time } = parseDate(v);
-    return new Intl.DateTimeFormat(locale, time ? { dateStyle: "medium", timeStyle: "short" } : { dateStyle: "medium" }).format(date);
+    return (time ? `${day.format(date)}, ${hour.format(date)}` : day.format(date)).replace(/\s/g, " ");
   };
   return end ? `${fmt(start)} → ${fmt(end)}` : fmt(start);
 }

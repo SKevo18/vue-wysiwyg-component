@@ -36,6 +36,10 @@ const text = ref("# Hello\n\nSome **markdown**.\n");
 
 The floating toolbar stays inside the viewport, opens below the selection on touch screens, and is a keyboard toolbar: Alt+F10 in the editor moves focus into it, the arrow keys move between its buttons, Esc returns to the text. Its colour menu has a text colour row, a background colour row and a reset. The fixed toolbar has the same colour menu in both formats.
 
+In the compact size, `fixed` and `both` show the field tools while the field has focus: marks, colour, link, inline math and expand, in a row under the text inside the field, so they never cover what sits above it.
+
+Keys the editor handles (its shortcuts such as Mod+K, Mod+B, Enter, and the host `shortcuts`) stop propagating at the editor, so a host's global shortcut for the same key does not fire as well. Keys the editor leaves alone bubble on as usual.
+
 ## Colours and underline
 
 Markdown documents colour with a palette of nine names: `gray brown orange yellow green blue purple pink red`. A background colour is the name with `_bg` (`yellow_bg`). They render through CSS variables in `style.css`, `--vc-color-<name>` and `--vc-bg-<name>`, with Notion like muted values that switch to their dark variants when the host sets `color-scheme: dark`. Override them like the other `--vc-*` tokens.
@@ -48,7 +52,7 @@ Markdown documents colour with a palette of nine names: `gray brown orange yello
 | `[text]{bg=yellow}` | `highlight` mark, `color: "yellow_bg"` (`bg=yellow_bg` is read too) |
 | `[text]{color=red bg=yellow}` | both marks over the same text |
 
-A colour wraps a link (`[[label](/p/1)]{color=red}`), since markdown-it reads no bracketed span inside a link label. Colours outside the palette are not written to markdown. html documents keep tiptap's `Color` and multicolour `Highlight`, which store any CSS colour as written (the html colour menu uses fixed values for mail clients).
+Colour spans hold any other marks, inline code included (``[**a** `code`]{color=blue}``), and a link label may hold a colour span (`[[a]{color=red} b](/p/1)`). Marks nest by their extent: a mark that starts earlier or runs further wraps the others, over exactly the same text a colour wraps a link (`[[label](/p/1)]{color=red}`) and the other marks sit inside the span. A span inside a span of the same kind (`[a [b]{color=red} c]{color=blue}`, `==a [b]{bg=yellow} c==`) colours its own text and the outer one resumes after it. Text with any mix of text colour, background and the other marks reads back from its markdown unchanged, and that markdown is written again byte for byte. Equivalent spellings of the same text (`**[a]{color=red}**` and `[**a**]{color=red}`) read the same and are written in the one form above. Colours outside the palette are not written to markdown. html documents keep tiptap's `Color` and multicolour `Highlight`, which store any CSS colour as written (the html colour menu uses fixed values for mail clients).
 
 Block colours are a `color` attribute on `paragraph heading listItem taskItem blockquote callout details tableCell tableHeader pageLink`, set from the block menu (the gutter grip or Mod+/) under "Colour". A text token colours the text, a `_bg` token fills the block. Markdown writes them on an attribute line right under the block:
 
@@ -150,6 +154,17 @@ Page editors can opt into Notion style blocks through `base`. Every flag is off 
 | `mentions` | inline `mention` (`kind id label start end`) | `@[Ada](user:58501171)`, `@[Plan](page:<id>)`, `@[May 1, 2024](date:2024-05-01)`, `date:2024-05-01/2024-05-03`, `date:2024-05-01T10:00` |
 | `diagrams` | code blocks in `mermaid` and `plantuml` (or the listed languages) | unchanged code fences |
 
+A date mention's label is the fallback text the editor writes when a date is picked or edited. It is the date formatted with `Intl.DateTimeFormat(locale, { dateStyle: "medium" })`. A value with a time adds `, ` and the time formatted with `{ timeStyle: "short" }`. Every space in it is a plain U+0020. A range joins start and end with ` → ` (space, U+2192, space). The editor's locale is `en` unless the host sets one:
+
+```md
+@[May 1, 2024](date:2024-05-01)
+@[May 1, 2024, 10:00 AM](date:2024-05-01T10:00)
+@[May 1, 2024 → May 3, 2024](date:2024-05-01/2024-05-03)
+@[May 1, 2024, 10:00 AM → May 3, 2024, 10:00 AM](date:2024-05-01T10:00/2024-05-03T10:00)
+```
+
+A range with a time gives the end the start's time. The editor shows the stored label as written, so a label from an importer or another locale stays until the date is edited.
+
 Fence info values are written on one line: `"` and backticks become `'` in text values and are percent encoded in addresses. A `{color=…}` line right after the fence keeps the color of a `pageLink` or `tableOfContents` (`{color=blue_bg}`). Callouts keep an emoji and a color on the line after the quote:
 
 ```md
@@ -173,7 +188,6 @@ Embeds recognise YouTube, Vimeo, Loom, Figma, Gist, Google Maps, posts on X, Cod
 
 CSS hooks: `.wy-columns`, `.wy-column`, `.wy-column-resize`, `.wy-details[data-heading]`, `.wy-callout[data-color]`, `.wy-callout-emoji`, `.wy-bookmark`, `.wy-bookmark-card`, `.wy-embed`, `.wy-embed-overlay`, `.wy-toc`, `.wy-toc-item`, `.wy-page-link`, `.wy-mention.is-user|is-page|is-date`, `.wy-diagram`, `.wy-diagram-error`, `.wy-suggest` (the shared suggestion list).
 
-## Bubble tools in readonly editors
 ## Floating toolbar tools in readonly editors
 
 A readonly editor hides the floating toolbar, except for `bubble` tools marked `readonly: true`, which then show alone on a non-empty selection. Use it for actions that do not edit the document, such as commenting:

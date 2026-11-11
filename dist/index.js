@@ -1721,7 +1721,7 @@ var vTooltip = {
 	}
 };
 // src/nodes/ColumnView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$37 = ["aria-label"];
+var _hoisted_1$38 = ["aria-label"];
 // src/nodes/ColumnView.vue
 var ColumnView_default = /* @__PURE__ */ defineComponent({
 	__name: "ColumnView",
@@ -1819,14 +1819,14 @@ var ColumnView_default = /* @__PURE__ */ defineComponent({
 					onPointermove: onMove,
 					onPointerup: onUp,
 					onPointercancel: onUp
-				}, null, 40, _hoisted_1$37)), [[unref(vTooltip), unref(t)("columns.resize")]]) : createCommentVNode("", true)]),
+				}, null, 40, _hoisted_1$38)), [[unref(vTooltip), unref(t)("columns.resize")]]) : createCommentVNode("", true)]),
 				_: 1
 			}, 8, ["class", "style"]);
 		};
 	}
 });
 // src/blocks/BlockFrame.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$36 = {
+var _hoisted_1$37 = {
 	key: 0,
 	class: "wy-block-tools",
 	contenteditable: "false"
@@ -1888,7 +1888,7 @@ var BlockFrame_default = /* @__PURE__ */ defineComponent({
 				"is-readonly": __props.readonly,
 				"is-editable": __props.editable && !__props.readonly
 			}]) }, [
-				!__props.readonly ? (openBlock(), createElementBlock("div", _hoisted_1$36, [
+				!__props.readonly ? (openBlock(), createElementBlock("div", _hoisted_1$37, [
 					createElementVNode("span", _hoisted_2$29, toDisplayString(__props.label), 1),
 					__props.editable && !__props.editing ? withDirectives((openBlock(), createElementBlock("button", {
 						key: 0,
@@ -2419,7 +2419,7 @@ function convertRun(reg, state, run, target, selectAll = false) {
 	return tr.scrollIntoView();
 }
 // src/components/ConvertItems.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$35 = ["data-convert", "onClick"];
+var _hoisted_1$36 = ["data-convert", "onClick"];
 // src/components/ConvertItems.vue
 var ConvertItems_default = /* @__PURE__ */ defineComponent({
 	__name: "ConvertItems",
@@ -2446,13 +2446,13 @@ var ConvertItems_default = /* @__PURE__ */ defineComponent({
 					class: "wy-menu-icon",
 					size: 16,
 					"aria-hidden": "true"
-				})) : createCommentVNode("", true), createElementVNode("span", null, toDisplayString(label(target)), 1)], 40, _hoisted_1$35);
+				})) : createCommentVNode("", true), createElementVNode("span", null, toDisplayString(label(target)), 1)], 40, _hoisted_1$36);
 			}), 128);
 		};
 	}
 });
 // src/blocks/BlockMenu.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$34 = { class: "wy-menu-heading" };
+var _hoisted_1$35 = { class: "wy-menu-heading" };
 // src/blocks/BlockMenu.vue
 var BlockMenu_default = /* @__PURE__ */ defineComponent({
 	__name: "BlockMenu",
@@ -2513,7 +2513,7 @@ var BlockMenu_default = /* @__PURE__ */ defineComponent({
 				contenteditable: "false",
 				"data-block-portal": "",
 				onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["stop"]))
-			}, [renderSlot(_ctx.$slots, "default"), targets.value.length ? (openBlock(), createElementBlock(Fragment$1, { key: 0 }, [createElementVNode("div", _hoisted_1$34, toDisplayString(title.value), 1), createVNode(ConvertItems_default, {
+			}, [renderSlot(_ctx.$slots, "default"), targets.value.length ? (openBlock(), createElementBlock(Fragment$1, { key: 0 }, [createElementVNode("div", _hoisted_1$35, toDisplayString(title.value), 1), createVNode(ConvertItems_default, {
 				targets: targets.value,
 				onPick: pick
 			}, null, 8, ["targets"])], 64)) : createCommentVNode("", true)], 544)) : createCommentVNode("", true);
@@ -2521,7 +2521,7 @@ var BlockMenu_default = /* @__PURE__ */ defineComponent({
 	}
 });
 // src/components/SlashMenu.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$33 = ["aria-label"];
+var _hoisted_1$34 = ["aria-label"];
 var _hoisted_2$28 = {
 	key: 0,
 	class: "wy-menu-empty"
@@ -2640,7 +2640,7 @@ var SlashMenu_default = /* @__PURE__ */ defineComponent({
 						"aria-hidden": "true"
 					})) : createCommentVNode("", true), createElementVNode("span", _hoisted_5$23, [createElementVNode("span", _hoisted_6$17, toDisplayString(item.label), 1), item.description ? (openBlock(), createElementBlock("span", _hoisted_7$13, toDisplayString(item.description), 1)) : createCommentVNode("", true)])], 42, _hoisted_4$25);
 				}), 128))], 64);
-			}), 128))], 512))], 8, _hoisted_1$33);
+			}), 128))], 512))], 8, _hoisted_1$34);
 		};
 	}
 });
@@ -3155,7 +3155,7 @@ function useBlockNode(props, opts = {}) {
 	};
 }
 // src/nodes/ColumnsView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$32 = ["title"];
+var _hoisted_1$33 = ["title"];
 // src/nodes/ColumnsView.vue
 var ColumnsView_default = /* @__PURE__ */ defineComponent({
 	__name: "ColumnsView",
@@ -3278,7 +3278,7 @@ var ColumnsView_default = /* @__PURE__ */ defineComponent({
 							}, [createVNode(unref(Minus), {
 								class: "wy-menu-icon",
 								size: 16
-							}), createTextVNode(toDisplayString(unref(t)("columns.remove")), 1)], 8, _hoisted_1$32),
+							}), createTextVNode(toDisplayString(unref(t)("columns.remove")), 1)], 8, _hoisted_1$33),
 							sized.value ? (openBlock(), createElementBlock("button", {
 								key: 0,
 								type: "button",
@@ -3617,7 +3617,7 @@ function resolveOnce(services, href) {
 	return result;
 }
 // src/nodes/BookmarkView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$31 = [
+var _hoisted_1$32 = [
 	"placeholder",
 	"aria-label",
 	"readonly",
@@ -3794,7 +3794,7 @@ var BookmarkView_default = /* @__PURE__ */ defineComponent({
 						"aria-label": unref(t)("bookmark.url"),
 						readonly: unref(readonly),
 						onKeydown: withKeys(withModifiers(cancel, ["prevent", "stop"]), ["esc"])
-					}, null, 40, _hoisted_1$31), [[vModelText, draft.value]]), createElementVNode("button", {
+					}, null, 40, _hoisted_1$32), [[vModelText, draft.value]]), createElementVNode("button", {
 						type: "submit",
 						class: "wy-btn is-primary",
 						disabled: !unref(loneUrl)(unref(normalizeHref)(draft.value))
@@ -3974,7 +3974,7 @@ var bookmarkExtension = {
 	}]
 };
 // src/nodes/EmbedView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$30 = [
+var _hoisted_1$31 = [
 	"placeholder",
 	"aria-label",
 	"readonly",
@@ -4128,7 +4128,7 @@ var EmbedView_default = /* @__PURE__ */ defineComponent({
 						"aria-label": unref(t)("embed.url"),
 						readonly: unref(readonly),
 						onKeydown: withKeys(withModifiers(cancel, ["prevent", "stop"]), ["esc"])
-					}, null, 40, _hoisted_1$30), [[vModelText, draft.value]]), createElementVNode("button", {
+					}, null, 40, _hoisted_1$31), [[vModelText, draft.value]]), createElementVNode("button", {
 						type: "submit",
 						class: "wy-btn is-primary",
 						disabled: !unref(embedFor)(unref(normalizeHref)(draft.value))
@@ -4315,7 +4315,7 @@ var embedExtension = {
 	}]
 };
 // src/components/PalettePicker.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$29 = { class: "wy-palette" };
+var _hoisted_1$30 = { class: "wy-palette" };
 var _hoisted_2$25 = { class: "wy-menu-heading" };
 var _hoisted_3$25 = ["aria-label"];
 var _hoisted_4$22 = [
@@ -4351,7 +4351,7 @@ var PalettePicker_default = /* @__PURE__ */ defineComponent({
 		}] : []];
 		const name = (token) => props.t(`palette.${token.replace(/_bg$/, "")}`);
 		return (_ctx, _cache) => {
-			return openBlock(), createElementBlock("div", _hoisted_1$29, [(openBlock(), createElementBlock(Fragment$1, null, renderList(rows, (row) => {
+			return openBlock(), createElementBlock("div", _hoisted_1$30, [(openBlock(), createElementBlock(Fragment$1, null, renderList(rows, (row) => {
 				return openBlock(), createElementBlock(Fragment$1, { key: row.heading }, [createElementVNode("div", _hoisted_2$25, toDisplayString(__props.t(row.heading)), 1), createElementVNode("div", {
 					class: "wy-palette-row",
 					role: "group",
@@ -4382,7 +4382,7 @@ var PalettePicker_default = /* @__PURE__ */ defineComponent({
 	}
 });
 // src/nodes/TocView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$28 = ["aria-label"];
+var _hoisted_1$29 = ["aria-label"];
 var _hoisted_2$24 = {
 	key: 0,
 	class: "wy-toc-empty"
@@ -4457,7 +4457,7 @@ var TocView_default = /* @__PURE__ */ defineComponent({
 							onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
 							onClick: ($event) => go(e, $event)
 						}, toDisplayString(e.text), 45, _hoisted_3$24);
-					}), 128))], 14, _hoisted_1$28)]),
+					}), 128))], 14, _hoisted_1$29)]),
 					_: 1
 				}, 8, [
 					"label",
@@ -4548,7 +4548,7 @@ var tocExtension = {
 	}]
 };
 // src/nodes/PageLinkView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$27 = ["href"];
+var _hoisted_1$28 = ["href"];
 var _hoisted_2$23 = {
 	class: "wy-page-link-icon",
 	"aria-hidden": "true"
@@ -4623,7 +4623,7 @@ var PageLinkView_default = /* @__PURE__ */ defineComponent({
 					}, null, 8, _hoisted_3$23)) : icon.value ? (openBlock(), createElementBlock(Fragment$1, { key: 1 }, [createTextVNode(toDisplayString(icon.value), 1)], 64)) : (openBlock(), createBlock(unref(FileText), {
 						key: 2,
 						size: 18
-					}))]), createElementVNode("span", _hoisted_4$21, toDisplayString(title.value), 1)], 14, _hoisted_1$27)]),
+					}))]), createElementVNode("span", _hoisted_4$21, toDisplayString(title.value), 1)], 14, _hoisted_1$28)]),
 					_: 1
 				}, 8, [
 					"label",
@@ -4638,7 +4638,7 @@ var PageLinkView_default = /* @__PURE__ */ defineComponent({
 	}
 });
 // src/components/SuggestionList.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$26 = ["aria-label", "aria-busy"];
+var _hoisted_1$27 = ["aria-label", "aria-busy"];
 var _hoisted_2$22 = {
 	key: 0,
 	class: "wy-menu-heading",
@@ -4737,12 +4737,12 @@ var SuggestionList_default = /* @__PURE__ */ defineComponent({
 					src: item.icon,
 					alt: ""
 				}, null, 8, _hoisted_5$19)) : item.icon ? (openBlock(), createElementBlock("span", _hoisted_6$14, toDisplayString(item.icon), 1)) : createCommentVNode("", true)]), createElementVNode("span", _hoisted_7$10, [createElementVNode("span", _hoisted_8$9, toDisplayString(item.title), 1), item.detail ? (openBlock(), createElementBlock("span", _hoisted_9$7, toDisplayString(item.detail), 1)) : createCommentVNode("", true)])], 42, _hoisted_3$22)], 64);
-			}), 128)), !__props.items.length && __props.empty ? (openBlock(), createElementBlock("p", _hoisted_10$7, toDisplayString(__props.empty), 1)) : createCommentVNode("", true)], 8, _hoisted_1$26);
+			}), 128)), !__props.items.length && __props.empty ? (openBlock(), createElementBlock("p", _hoisted_10$7, toDisplayString(__props.empty), 1)) : createCommentVNode("", true)], 8, _hoisted_1$27);
 		};
 	}
 });
 // src/components/PageSearch.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$25 = ["placeholder", "aria-label"];
+var _hoisted_1$26 = ["placeholder", "aria-label"];
 // src/components/PageSearch.vue
 var PageSearch_default = /* @__PURE__ */ defineComponent({
 	__name: "PageSearch",
@@ -4822,7 +4822,7 @@ var PageSearch_default = /* @__PURE__ */ defineComponent({
 				"aria-label": __props.label,
 				onInput: run,
 				onKeydown: onKey
-			}, null, 40, _hoisted_1$25), [[vModelText, query.value]]), createVNode(SuggestionList_default, {
+			}, null, 40, _hoisted_1$26), [[vModelText, query.value]]), createVNode(SuggestionList_default, {
 				ref_key: "list",
 				ref: list,
 				items: items.value,
@@ -4918,14 +4918,17 @@ function parseDate(v) {
 		time: t !== void 0
 	};
 }
-/** "May 1, 2024", "May 1, 2024 10:00" or a range of them in the editor's locale */
+/**
+* "May 1, 2024", "May 1, 2024, 10:00 AM" or a range of them joined by " → ", in the editor's locale. date and
+* time are formatted apart and joined by ", " with plain spaces: engines differ in how they join them ("at" in
+* Safari) and in the space before AM, and an importer has to write the same label
+*/
 function dateLabel(start, end, locale) {
+	const day = new Intl.DateTimeFormat(locale, { dateStyle: "medium" });
+	const hour = new Intl.DateTimeFormat(locale, { timeStyle: "short" });
 	const fmt = (v) => {
 		const { date, time } = parseDate(v);
-		return new Intl.DateTimeFormat(locale, time ? {
-			dateStyle: "medium",
-			timeStyle: "short"
-		} : { dateStyle: "medium" }).format(date);
+		return (time ? `${day.format(date)}, ${hour.format(date)}` : day.format(date)).replace(/\s/g, " ");
 	};
 	return end ? `${fmt(start)} → ${fmt(end)}` : fmt(start);
 }
@@ -5258,7 +5261,7 @@ var AnchoredPopover_default = /* @__PURE__ */ defineComponent({
 	}
 });
 // src/nodes/MentionView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$24 = ["href"];
+var _hoisted_1$25 = ["href"];
 var _hoisted_2$21 = {
 	class: "wy-mention-icon",
 	"aria-hidden": "true"
@@ -5344,7 +5347,7 @@ var MentionView_default = /* @__PURE__ */ defineComponent({
 				}, [createElementVNode("span", _hoisted_2$21, [icon.value ? (openBlock(), createElementBlock(Fragment$1, { key: 0 }, [createTextVNode(toDisplayString(icon.value), 1)], 64)) : (openBlock(), createBlock(unref(FileText), {
 					key: 1,
 					size: 14
-				}))]), createTextVNode(toDisplayString(text.value), 1)], 8, _hoisted_1$24)) : (openBlock(), createElementBlock("span", {
+				}))]), createTextVNode(toDisplayString(text.value), 1)], 8, _hoisted_1$25)) : (openBlock(), createElementBlock("span", {
 					key: 1,
 					ref_key: "anchor",
 					ref: anchor,
@@ -5676,6 +5679,14 @@ var ALL_LEVELS = [
 	5,
 	6
 ];
+/**
+* inline code takes every other mark (bold, colours, links), as in Notion. lowest priority makes it the innermost
+* mark, which the markdown serialiser needs to write its backticks inside the other marks' delimiters
+*/
+var InnerCode = Code.extend({
+	priority: 1,
+	excludes: "code"
+});
 function resolveBase(format, base = {}) {
 	const html = format === "html";
 	const callouts = base.callouts ?? true;
@@ -5741,7 +5752,7 @@ function coreExtensions(config, inline, history) {
 	const out = [Bold];
 	if (!inline && (b.blockquote || b.callouts.length > 0)) out.push(Blockquote);
 	if (listItems) out.push(BulletList);
-	out.push(Code);
+	out.push(InnerCode);
 	if (!inline) out.push(Document, Dropcursor.configure({
 		color: "var(--vc-accent)",
 		width: 2
@@ -5830,28 +5841,75 @@ function parseSpanAttrs(fields) {
 	return out;
 }
 var SPAN_ATTRS_RE = /^\{[^{}\n]*\}/;
-/** `[text]{color=red bg=yellow}`: text colour and background colour marks around the bracketed inline content */
+/**
+* `[text]{color=red bg=yellow}`: text colour and background colour marks around the bracketed inline content.
+* silent mode (markdown-it scanning a link label) never matches, so a link label may hold a span:
+* `[[a]{color=red} b](/p/1)`. a matched span would read as a nested link and void the outer link
+*/
 function colorSpanRule(state, silent) {
-	if (state.src.charCodeAt(state.pos) !== 91) return false;
+	if (silent || state.src.charCodeAt(state.pos) !== 91) return false;
 	const labelEnd = state.md.helpers.parseLinkLabel(state, state.pos, false);
 	if (labelEnd < 0) return false;
 	const m = SPAN_ATTRS_RE.exec(state.src.slice(labelEnd + 1, state.posMax));
 	const fields = m ? parseAttrLine(m[0]) : null;
 	const span = fields && parseSpanAttrs(fields);
 	if (!m || !span) return false;
-	if (!silent) {
-		const max = state.posMax;
-		state.pos += 1;
-		state.posMax = labelEnd;
-		if (span.color) state.push("text_color_open", "span", 1).meta = { color: span.color };
-		if (span.bg) state.push("bg_color_open", "mark", 1).meta = { color: span.bg };
-		state.md.inline.tokenize(state);
-		if (span.bg) state.push("bg_color_close", "mark", -1);
-		if (span.color) state.push("text_color_close", "span", -1);
-		state.posMax = max;
-	}
+	const max = state.posMax;
+	state.pos += 1;
+	state.posMax = labelEnd;
+	if (span.color) state.push("text_color_open", "span", 1).meta = { color: span.color };
+	if (span.bg) state.push("bg_color_open", "mark", 1).meta = { color: span.bg };
+	state.md.inline.tokenize(state);
+	if (span.bg) state.push("bg_color_close", "mark", -1);
+	if (span.color) state.push("text_color_close", "span", -1);
+	state.posMax = max;
 	state.pos = labelEnd + 1 + m[0].length;
 	return true;
+}
+/** inline tokens that become the same editor mark; a document holds one mark of each type per character */
+var MARK_GROUPS = {
+	text_color: "textStyle",
+	bg_color: "highlight",
+	mark: "highlight"
+};
+/**
+* a span nested in a span of the same mark (`[a [b]{color=red} c]{color=blue}`, `==a [b]{bg=yellow} c==`):
+* the inner one wins over its own text and the outer one resumes after it. the parser would otherwise drop
+* the outer mark at the inner close
+*/
+function sameMarkNestingRule(state) {
+	for (const block of state.tokens) {
+		if (block.type !== "inline" || !block.children) continue;
+		const open = {};
+		const out = [];
+		for (const tok of block.children) {
+			const kind = tok.type.replace(/_(open|close)$/, "");
+			const group = tok.nesting !== 0 ? MARK_GROUPS[kind] : void 0;
+			if (!group) {
+				out.push(tok);
+				continue;
+			}
+			const stack = open[group] ??= [];
+			if (tok.nesting === 1) {
+				const outer = stack[stack.length - 1];
+				if (outer) out.push(markToken(state, outer, -1));
+				stack.push(tok);
+				out.push(tok);
+			} else {
+				stack.pop();
+				out.push(tok);
+				const outer = stack[stack.length - 1];
+				if (outer) out.push(markToken(state, outer, 1));
+			}
+		}
+		block.children = out;
+	}
+}
+function markToken(state, like, nesting) {
+	const tok = new state.Token(like.type.replace(/_open$/, nesting === 1 ? "_open" : "_close"), like.tag, nesting);
+	tok.meta = like.meta;
+	tok.markup = like.markup;
+	return tok;
 }
 function figureRule(state) {
 	const tokens = state.tokens;
@@ -6159,6 +6217,67 @@ function pairedColors(parent, index) {
 		bg: String(bg.attrs.color)
 	};
 }
+/** where each of a child's marks starts (`dir` -1) or ends (`dir` 1, exclusive) in its run of siblings */
+function runEdges(parent, dir) {
+	const n = parent.childCount;
+	const out = new Array(n);
+	for (let k = 0; k < n; k++) {
+		const i = dir < 0 ? k : n - 1 - k;
+		const marks = parent.child(i).marks;
+		const near = i + dir >= 0 && i + dir < n ? parent.child(i + dir) : null;
+		out[i] = marks.map((m) => {
+			const j = near ? near.marks.findIndex((x) => x.eq(m)) : -1;
+			return j < 0 ? dir < 0 ? i : i + 1 : out[i + dir][j];
+		});
+	}
+	return out;
+}
+/**
+* reorders each child's marks outermost first, as markdown has to nest them: a mark that starts earlier, or that
+* runs further, wraps the others, and unescaped marks (code) stay innermost. prosemirror-markdown otherwise opens
+* marks in schema order, which splits a long bold or background run around a shorter coloured or linked run.
+* the reordered mark arrays only feed the serialiser
+*/
+function nestMarks(parent, innermost) {
+	if (parent.childCount < 2) return parent;
+	const starts = runEdges(parent, -1);
+	const ends = runEdges(parent, 1);
+	const children = [];
+	let changed = false;
+	parent.forEach((child, _, i) => {
+		if (child.marks.length < 2) {
+			children.push(child);
+			return;
+		}
+		const keyed = child.marks.map((m, k) => ({
+			m,
+			inner: innermost(m) ? 1 : 0,
+			start: starts[i][k],
+			end: ends[i][k],
+			rank: k
+		}));
+		keyed.sort((a, b) => a.inner - b.inner || a.start - b.start || b.end - a.end || a.rank - b.rank);
+		const marks = keyed.map((x) => x.m);
+		if (marks.every((m, k) => m === child.marks[k])) children.push(child);
+		else {
+			changed = true;
+			children.push(child.mark(marks));
+		}
+	});
+	return changed ? parent.copy(Fragment.fromArray(children)) : parent;
+}
+function nestDoc(node, innermost) {
+	if (node.inlineContent) return nestMarks(node, innermost);
+	if (!node.childCount) return node;
+	const children = [];
+	let changed = false;
+	node.forEach((child) => {
+		const next = nestDoc(child, innermost);
+		if (next !== child) changed = true;
+		children.push(next);
+	});
+	return changed ? node.copy(Fragment.fromArray(children)) : node;
+}
 function cellAttrs(tok) {
 	const m = /text-align:\s*(left|center|right)/.exec(String(tok.attrGet("style") ?? ""));
 	return { align: m ? m[1] : null };
@@ -6333,7 +6452,10 @@ function buildConverter(config) {
 		});
 		if (b.highlight) md.use(mark);
 		if (b.underline) md.use(ins);
-		if (b.color || b.highlight) md.inline.ruler.before("link", "color_span", colorSpanRule);
+		if (b.color || b.highlight) {
+			md.inline.ruler.before("link", "color_span", colorSpanRule);
+			md.core.ruler.after("inline", "same_mark_nesting", sameMarkNestingRule);
+		}
 		if (!b.images) md.disable("image");
 		else md.inline.ruler.after("image", "image_attrs", imageAttrsRule);
 		if (b.images && schema.nodes.figure) md.core.ruler.after("inline", "figures", figureRule);
@@ -6702,11 +6824,12 @@ function buildConverter(config) {
 		};
 	}
 	const serializer = new MarkdownSerializer(nodes, marks, options);
+	const unescaped = (m) => marks[m.type.name]?.escape === false;
 	function serialize(doc) {
-		return serializer.serialize(doc, { tightLists: true }).trimEnd() + "\n";
+		return serializer.serialize(nestDoc(doc, unescaped), { tightLists: true }).trimEnd() + "\n";
 	}
 	function serializeInline(doc) {
-		return serializer.serialize(doc, { tightLists: true }).replace(/\s*\n\s*/g, " ").trim();
+		return serializer.serialize(nestDoc(doc, unescaped), { tightLists: true }).replace(/\s*\n\s*/g, " ").trim();
 	}
 	function serializeNode(node) {
 		const schema = node.type.schema;
@@ -8301,7 +8424,7 @@ var ServerHistory = Extension.create({
 	}
 });
 // src/components/EmojiPicker.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$23 = { class: "wy-emoji-picker" };
+var _hoisted_1$24 = { class: "wy-emoji-picker" };
 var _hoisted_2$20 = ["aria-label"];
 var _hoisted_3$20 = [
 	"aria-selected",
@@ -8378,7 +8501,7 @@ var EmojiPicker_default = /* @__PURE__ */ defineComponent({
 			if (validIcon(v)) emit("pick", v);
 		}
 		return (_ctx, _cache) => {
-			return openBlock(), createElementBlock("div", _hoisted_1$23, [
+			return openBlock(), createElementBlock("div", _hoisted_1$24, [
 				createElementVNode("div", {
 					class: "wy-emoji-grid",
 					role: "listbox",
@@ -8421,7 +8544,7 @@ var EmojiPicker_default = /* @__PURE__ */ defineComponent({
 	}
 });
 // src/nodes/CalloutIcon.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$22 = ["width", "height"];
+var _hoisted_1$23 = ["width", "height"];
 // src/nodes/CalloutIcon.vue
 var CalloutIcon_default = /* @__PURE__ */ defineComponent({
 	__name: "CalloutIcon",
@@ -8443,12 +8566,12 @@ var CalloutIcon_default = /* @__PURE__ */ defineComponent({
 				"aria-hidden": "true"
 			}, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(CALLOUT_ICONS)[__props.type] ?? unref(CALLOUT_ICONS).note, ([tag, attrs], i) => {
 				return openBlock(), createBlock(resolveDynamicComponent(tag), mergeProps({ key: i }, { ref_for: true }, attrs), null, 16);
-			}), 128))], 8, _hoisted_1$22);
+			}), 128))], 8, _hoisted_1$23);
 		};
 	}
 });
 // src/nodes/CalloutView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$21 = ["data-variant", "data-color"];
+var _hoisted_1$22 = ["data-variant", "data-color"];
 var _hoisted_2$19 = {
 	class: "wy-callout-title",
 	contenteditable: "false"
@@ -8606,7 +8729,7 @@ var CalloutView_default = /* @__PURE__ */ defineComponent({
 						onFocus: _cache[3] || (_cache[3] = ($event) => titleFocused.value = true),
 						onBlur: _cache[4] || (_cache[4] = ($event) => titleFocused.value = false),
 						onKeydown: _cache[5] || (_cache[5] = (...args) => unref(onHeaderKey) && unref(onHeaderKey)(...args))
-					}, null, 40, _hoisted_5$16), [[vShow, titled.value]])]), createVNode(unref(NodeViewContent), { class: "wy-callout-body" })], 14, _hoisted_1$21), picker.value ? (openBlock(), createBlock(AnchoredPopover_default, {
+					}, null, 40, _hoisted_5$16), [[vShow, titled.value]])]), createVNode(unref(NodeViewContent), { class: "wy-callout-body" })], 14, _hoisted_1$22), picker.value ? (openBlock(), createBlock(AnchoredPopover_default, {
 						key: 0,
 						anchor: iconButton.value,
 						class: "wy-menu wy-callout-picker",
@@ -8727,7 +8850,7 @@ function renderMermaid(source, dark) {
 	return job;
 }
 // src/nodes/DiagramView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$20 = ["data-language"];
+var _hoisted_1$21 = ["data-language"];
 var _hoisted_2$18 = {
 	key: 0,
 	class: "wy-diagram-error",
@@ -8841,12 +8964,12 @@ var DiagramView_default = /* @__PURE__ */ defineComponent({
 				src: img.value,
 				alt: __props.t("diagram.alt"),
 				onError: _cache[0] || (_cache[0] = ($event) => error.value = __props.t("diagram.failed"))
-			}, null, 40, _hoisted_4$16)) : loading.value ? (openBlock(), createElementBlock("p", _hoisted_5$15, toDisplayString(__props.t("diagram.loading")), 1)) : (openBlock(), createElementBlock("p", _hoisted_6$11, toDisplayString(__props.t("diagram.empty")), 1))], 10, _hoisted_1$20);
+			}, null, 40, _hoisted_4$16)) : loading.value ? (openBlock(), createElementBlock("p", _hoisted_5$15, toDisplayString(__props.t("diagram.loading")), 1)) : (openBlock(), createElementBlock("p", _hoisted_6$11, toDisplayString(__props.t("diagram.empty")), 1))], 10, _hoisted_1$21);
 		};
 	}
 });
 // src/nodes/CodeBlockView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$19 = { class: "wy-code" };
+var _hoisted_1$20 = { class: "wy-code" };
 var _hoisted_2$17 = ["innerHTML"];
 var _hoisted_3$17 = { class: "wy-field" };
 var _hoisted_4$15 = { class: "wy-label" };
@@ -8955,7 +9078,7 @@ var CodeBlockView_default = /* @__PURE__ */ defineComponent({
 						_: 1
 					}, 8, ["open", "convert"])]),
 					default: withCtx(() => [
-						createElementVNode("pre", _hoisted_1$19, [!editing.value ? (openBlock(), createElementBlock("code", {
+						createElementVNode("pre", _hoisted_1$20, [!editing.value ? (openBlock(), createElementBlock("code", {
 							key: 0,
 							class: "wy-code-highlight",
 							"aria-hidden": "true",
@@ -9008,7 +9131,7 @@ var CodeBlockView_default = /* @__PURE__ */ defineComponent({
 	}
 });
 // src/nodes/DetailsView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$18 = [
+var _hoisted_1$19 = [
 	"data-open",
 	"data-heading",
 	"data-block-color"
@@ -9078,7 +9201,7 @@ var DetailsView_default = /* @__PURE__ */ defineComponent({
 						readonly: unref(readonly),
 						onInput: _cache[1] || (_cache[1] = ($event) => unref(update)({ title: $event.target.value })),
 						onKeydown: _cache[2] || (_cache[2] = (...args) => unref(onHeaderKey) && unref(onHeaderKey)(...args))
-					}, null, 40, _hoisted_4$14)]), withDirectives(createVNode(unref(NodeViewContent), { class: "wy-details-body" }, null, 512), [[vShow, open.value]])], 12, _hoisted_1$18)]),
+					}, null, 40, _hoisted_4$14)]), withDirectives(createVNode(unref(NodeViewContent), { class: "wy-details-body" }, null, 512), [[vShow, open.value]])], 12, _hoisted_1$19)]),
 					_: 1
 				}, 8, [
 					"label",
@@ -9093,7 +9216,7 @@ var DetailsView_default = /* @__PURE__ */ defineComponent({
 	}
 });
 // src/nodes/DividerView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$17 = { class: "wy-divider-hit" };
+var _hoisted_1$18 = { class: "wy-divider-hit" };
 var _hoisted_2$15 = {
 	class: "wy-divider-ornament",
 	"aria-hidden": "true"
@@ -9281,7 +9404,7 @@ var DividerView_default = /* @__PURE__ */ defineComponent({
 						]),
 						_: 1
 					}, 8, ["open"])]),
-					default: withCtx(() => [createElementVNode("div", _hoisted_1$17, [!ornament.value ? (openBlock(), createElementBlock("hr", {
+					default: withCtx(() => [createElementVNode("div", _hoisted_1$18, [!ornament.value ? (openBlock(), createElementBlock("hr", {
 						key: 0,
 						class: "wy-divider",
 						style: normalizeStyle(look.value)
@@ -9305,7 +9428,7 @@ var DividerView_default = /* @__PURE__ */ defineComponent({
 	}
 });
 // src/nodes/FigureView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$16 = { class: "wy-figure-inner" };
+var _hoisted_1$17 = { class: "wy-figure-inner" };
 var _hoisted_2$14 = { class: "wy-figure-media" };
 var _hoisted_3$14 = ["src", "aria-label"];
 var _hoisted_4$12 = ["src", "aria-label"];
@@ -9480,7 +9603,7 @@ var FigureView_default = /* @__PURE__ */ defineComponent({
 					onEdit: unref(startEdit),
 					onDelete: unref(remove)
 				}, {
-					default: withCtx(() => [createElementVNode("figure", _hoisted_1$16, [createElementVNode("span", _hoisted_2$14, [media.value === "video" ? (openBlock(), createElementBlock("video", {
+					default: withCtx(() => [createElementVNode("figure", _hoisted_1$17, [createElementVNode("span", _hoisted_2$14, [media.value === "video" ? (openBlock(), createElementBlock("video", {
 						key: 0,
 						src: _ctx.node.attrs.src,
 						controls: "",
@@ -9624,7 +9747,7 @@ var FigureView_default = /* @__PURE__ */ defineComponent({
 	}
 });
 // src/nodes/InlineImageView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$15 = [
+var _hoisted_1$16 = [
 	"src",
 	"alt",
 	"title"
@@ -9696,7 +9819,7 @@ var InlineImageView_default = /* @__PURE__ */ defineComponent({
 						src: _ctx.node.attrs.src,
 						alt: _ctx.node.attrs.alt || ""
 					}))
-				}, null, 14, _hoisted_1$15), unref(editing) ? (openBlock(), createBlock(AnchoredPopover_default, {
+				}, null, 14, _hoisted_1$16), unref(editing) ? (openBlock(), createBlock(AnchoredPopover_default, {
 					key: 0,
 					anchor: image.value,
 					class: "wy-popover",
@@ -9745,7 +9868,7 @@ function applyMathEdit(area, tex, write, edit) {
 	});
 }
 // src/nodes/MathBlockView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$14 = ["innerHTML"];
+var _hoisted_1$15 = ["innerHTML"];
 var _hoisted_2$12 = {
 	key: 1,
 	class: "wy-block-empty"
@@ -9809,7 +9932,7 @@ var MathBlockView_default = /* @__PURE__ */ defineComponent({
 						key: 0,
 						class: "wy-math-block",
 						innerHTML: html.value
-					}, null, 8, _hoisted_1$14)) : (openBlock(), createElementBlock("p", _hoisted_2$12, toDisplayString(unref(t)("math.empty")), 1))])) : (openBlock(), createElementBlock("div", {
+					}, null, 8, _hoisted_1$15)) : (openBlock(), createElementBlock("p", _hoisted_2$12, toDisplayString(unref(t)("math.empty")), 1))])) : (openBlock(), createElementBlock("div", {
 						key: 1,
 						class: "wy-math-editor",
 						contenteditable: "false",
@@ -9854,7 +9977,7 @@ var MathBlockView_default = /* @__PURE__ */ defineComponent({
 	}
 });
 // src/nodes/MathInlineView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$13 = ["title"];
+var _hoisted_1$14 = ["title"];
 var _hoisted_2$11 = ["innerHTML"];
 var _hoisted_3$11 = {
 	key: 1,
@@ -9911,7 +10034,7 @@ var MathInlineView_default = /* @__PURE__ */ defineComponent({
 				}, [html.value ? (openBlock(), createElementBlock("span", {
 					key: 0,
 					innerHTML: html.value
-				}, null, 8, _hoisted_2$11)) : (openBlock(), createElementBlock("span", _hoisted_3$11, toDisplayString(unref(t)("math.empty")), 1))], 8, _hoisted_1$13), unref(editing) ? (openBlock(), createBlock(AnchoredPopover_default, {
+				}, null, 8, _hoisted_2$11)) : (openBlock(), createElementBlock("span", _hoisted_3$11, toDisplayString(unref(t)("math.empty")), 1))], 8, _hoisted_1$14), unref(editing) ? (openBlock(), createBlock(AnchoredPopover_default, {
 					key: 0,
 					anchor: anchor.value,
 					class: normalizeClass(["wy-popover", { "is-wide": unref(palettes).length }]),
@@ -10649,7 +10772,7 @@ function setBlockColor(editor, run, token) {
 	if (tr.docChanged) editor.view.dispatch(tr);
 }
 // src/components/ColorMenu.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$12 = ["aria-label"];
+var _hoisted_1$13 = ["aria-label"];
 var _hoisted_2$10 = { class: "wy-menu-heading" };
 var _hoisted_3$10 = ["aria-label"];
 var _hoisted_4$8 = [
@@ -10878,12 +11001,12 @@ var ColorMenu_default = /* @__PURE__ */ defineComponent({
 					size: 15,
 					"aria-hidden": "true"
 				}), createTextVNode(toDisplayString(unref(t)("colors.reset")), 1)], 40, _hoisted_8$4)
-			], 8, _hoisted_1$12);
+			], 8, _hoisted_1$13);
 		};
 	}
 });
 // src/components/BlockActionsMenu.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$11 = ["aria-label"];
+var _hoisted_1$12 = ["aria-label"];
 var _hoisted_2$9 = ["aria-expanded"];
 var _hoisted_3$9 = { class: "wy-grow" };
 var _hoisted_4$7 = ["aria-expanded"];
@@ -11108,7 +11231,7 @@ var BlockActionsMenu_default = /* @__PURE__ */ defineComponent({
 						size: 16,
 						"aria-hidden": "true"
 					}), createTextVNode(toDisplayString(unref(t)("blockMenu.delete")), 1)], 32)
-				], 64))], 40, _hoisted_1$11)]),
+				], 64))], 40, _hoisted_1$12)]),
 				_: 1
 			}, 8, ["anchor"]), sub.value && trigger.value ? (openBlock(), createBlock(AnchoredPopover_default, {
 				key: 0,
@@ -11231,6 +11354,65 @@ var Dropdown_default = /* @__PURE__ */ defineComponent({
 				"side",
 				"class"
 			])) : createCommentVNode("", true)], 512);
+		};
+	}
+});
+// src/components/ColorTool.vue?vue&type=script&setup=true&lang.ts
+var _hoisted_1$11 = [
+	"aria-label",
+	"aria-expanded",
+	"onClick"
+];
+// src/components/ColorTool.vue
+var ColorTool_default = /* @__PURE__ */ defineComponent({
+	__name: "ColorTool",
+	props: {
+		editor: {},
+		tick: {},
+		small: {
+			type: Boolean,
+			default: false
+		}
+	},
+	setup(__props) {
+		const props = __props;
+		const ctx = useEditorContext();
+		const t = ctx.t;
+		const html = ctx.config.format === "html";
+		const state = computed(() => {
+			props.tick;
+			return {
+				color: String(props.editor.getAttributes("textStyle").color ?? ""),
+				mark: String(props.editor.getAttributes("highlight").color ?? "")
+			};
+		});
+		return (_ctx, _cache) => {
+			return openBlock(), createBlock(Dropdown_default, { "panel-class": "wy-color-panel" }, {
+				trigger: withCtx(({ open, toggle }) => [withDirectives((openBlock(), createElementBlock("button", {
+					type: "button",
+					class: normalizeClass(["wy-tool", { "is-sm": __props.small }]),
+					"aria-label": unref(t)("toolbar.color"),
+					"aria-haspopup": "menu",
+					"aria-expanded": open,
+					onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
+					onClick: toggle
+				}, [createVNode(unref(Baseline), {
+					size: __props.small ? 15 : 18,
+					style: normalizeStyle({ color: (html ? state.value.color : unref(tokenCss)(state.value.color)) || void 0 })
+				}, null, 8, ["size", "style"])], 42, _hoisted_1$11)), [[unref(vTooltip), unref(t)("toolbar.color")]])]),
+				default: withCtx(({ close }) => [createVNode(ColorMenu_default, {
+					editor: __props.editor,
+					color: state.value.color,
+					highlight: state.value.mark,
+					onDone: close
+				}, null, 8, [
+					"editor",
+					"color",
+					"highlight",
+					"onDone"
+				])]),
+				_: 1
+			});
 		};
 	}
 });
@@ -13008,25 +13190,25 @@ var _hoisted_11 = { class: "wy-group" };
 var _hoisted_12 = [
 	"aria-label",
 	"aria-expanded",
-	"onClick"
-];
-var _hoisted_13 = [
-	"aria-label",
-	"aria-expanded",
 	"disabled",
 	"onClick"
 ];
-var _hoisted_14 = {
+var _hoisted_13 = {
 	role: "menu",
 	class: "wy-menu-row"
 };
-var _hoisted_15 = [
+var _hoisted_14 = [
 	"aria-label",
 	"aria-checked",
 	"aria-pressed",
 	"onClick"
 ];
-var _hoisted_16 = { class: "wy-group" };
+var _hoisted_15 = { class: "wy-group" };
+var _hoisted_16 = [
+	"aria-label",
+	"aria-pressed",
+	"disabled"
+];
 var _hoisted_17 = [
 	"aria-label",
 	"aria-pressed",
@@ -13034,39 +13216,39 @@ var _hoisted_17 = [
 ];
 var _hoisted_18 = [
 	"aria-label",
-	"aria-pressed",
-	"disabled"
-];
-var _hoisted_19 = [
-	"aria-label",
 	"aria-expanded",
 	"disabled",
 	"onClick"
 ];
-var _hoisted_20 = ["aria-label"];
-var _hoisted_21 = { class: "wy-menu-heading" };
-var _hoisted_22 = ["aria-checked", "onClick"];
-var _hoisted_23 = {
+var _hoisted_19 = ["aria-label"];
+var _hoisted_20 = { class: "wy-menu-heading" };
+var _hoisted_21 = ["aria-checked", "onClick"];
+var _hoisted_22 = {
 	class: "wy-menu-sample",
 	"aria-hidden": "true"
 };
-var _hoisted_24 = { class: "wy-menu-heading" };
-var _hoisted_25 = ["aria-checked", "onClick"];
-var _hoisted_26 = {
+var _hoisted_23 = { class: "wy-menu-heading" };
+var _hoisted_24 = ["aria-checked", "onClick"];
+var _hoisted_25 = {
 	class: "wy-menu-sample",
 	"aria-hidden": "true"
 };
-var _hoisted_27 = { class: "wy-menu-heading" };
-var _hoisted_28 = ["onSubmit"];
-var _hoisted_29 = ["aria-label", "aria-invalid"];
-var _hoisted_30 = {
+var _hoisted_26 = { class: "wy-menu-heading" };
+var _hoisted_27 = ["onSubmit"];
+var _hoisted_28 = ["aria-label", "aria-invalid"];
+var _hoisted_29 = {
 	type: "submit",
 	class: "wy-btn is-sm"
 };
-var _hoisted_31 = {
+var _hoisted_30 = {
 	key: 0,
 	class: "wy-menu-hint is-danger"
 };
+var _hoisted_31 = [
+	"aria-label",
+	"aria-pressed",
+	"disabled"
+];
 var _hoisted_32 = [
 	"aria-label",
 	"aria-pressed",
@@ -13077,41 +13259,36 @@ var _hoisted_33 = [
 	"aria-pressed",
 	"disabled"
 ];
-var _hoisted_34 = [
-	"aria-label",
-	"aria-pressed",
-	"disabled"
-];
-var _hoisted_35 = { class: "wy-group" };
-var _hoisted_36 = [
+var _hoisted_34 = { class: "wy-group" };
+var _hoisted_35 = [
 	"aria-label",
 	"aria-expanded",
 	"onClick"
 ];
-var _hoisted_37 = { class: "wy-tool-text" };
-var _hoisted_38 = { class: "wy-menu-heading" };
-var _hoisted_39 = [
+var _hoisted_36 = { class: "wy-tool-text" };
+var _hoisted_37 = { class: "wy-menu-heading" };
+var _hoisted_38 = [
 	"aria-disabled",
 	"title",
 	"onClick"
 ];
-var _hoisted_40 = ["aria-label", "aria-pressed"];
+var _hoisted_39 = ["aria-label", "aria-pressed"];
+var _hoisted_40 = ["aria-label"];
 var _hoisted_41 = ["aria-label"];
-var _hoisted_42 = ["aria-label"];
-var _hoisted_43 = [
+var _hoisted_42 = [
 	"aria-label",
 	"aria-pressed",
 	"disabled",
 	"onClick"
 ];
-var _hoisted_44 = { class: "wy-toolbar-end" };
-var _hoisted_45 = {
+var _hoisted_43 = { class: "wy-toolbar-end" };
+var _hoisted_44 = {
 	key: 0,
 	class: "wy-group wy-toolbar-actions"
 };
-var _hoisted_46 = { class: "wy-group" };
+var _hoisted_45 = { class: "wy-group" };
+var _hoisted_46 = ["aria-label", "aria-pressed"];
 var _hoisted_47 = ["aria-label", "aria-pressed"];
-var _hoisted_48 = ["aria-label", "aria-pressed"];
 // src/components/Toolbar.vue
 var Toolbar_default = /* @__PURE__ */ defineComponent({
 	__name: "Toolbar",
@@ -13138,7 +13315,6 @@ var Toolbar_default = /* @__PURE__ */ defineComponent({
 		const ctx = useEditorContext();
 		const t = ctx.t;
 		const b = ctx.config.base;
-		const html = ctx.config.format === "html";
 		const canUpload = !!ctx.services.upload;
 		function innermostList(e) {
 			const $from = e.state.selection.$from;
@@ -13166,8 +13342,6 @@ var Toolbar_default = /* @__PURE__ */ defineComponent({
 			return {
 				block: e.isActive("codeBlock") ? "code" : level ? `h${level}` : "p",
 				link: e.isActive("link"),
-				color: String(e.getAttributes("textStyle").color ?? ""),
-				mark: String(e.getAttributes("highlight").color ?? ""),
 				bulletList: e.isActive("bulletList"),
 				orderedList: e.isActive("orderedList"),
 				taskList: e.isActive("taskList"),
@@ -13309,7 +13483,7 @@ var Toolbar_default = /* @__PURE__ */ defineComponent({
 						onClick: _cache[5] || (_cache[5] = ($event) => emit("block-menu", $event.currentTarget))
 					}, [createVNode(unref(MoreHorizontal), { size: 18 })], 40, _hoisted_6$1)), [[unref(vTooltip), unref(t)("blockMenu.label")]])
 				]),
-				unref(b).headings.length || unref(b).codeBlocks ? (openBlock(), createElementBlock(Fragment$1, { key: 0 }, [_cache[37] || (_cache[37] = createElementVNode("span", { class: "wy-sep" }, null, -1)), createElementVNode("select", {
+				unref(b).headings.length || unref(b).codeBlocks ? (openBlock(), createElementBlock(Fragment$1, { key: 0 }, [_cache[36] || (_cache[36] = createElementVNode("span", { class: "wy-sep" }, null, -1)), createElementVNode("select", {
 					class: "wy-select",
 					value: state.value.block,
 					"aria-label": unref(t)("toolbar.textStyle"),
@@ -13326,41 +13500,17 @@ var Toolbar_default = /* @__PURE__ */ defineComponent({
 					}), 128)),
 					unref(b).codeBlocks ? (openBlock(), createElementBlock("option", _hoisted_10, toDisplayString(unref(t)("toolbar.codeBlock")), 1)) : createCommentVNode("", true)
 				], 40, _hoisted_7)], 64)) : createCommentVNode("", true),
-				_cache[39] || (_cache[39] = createElementVNode("span", { class: "wy-sep" }, null, -1)),
+				_cache[38] || (_cache[38] = createElementVNode("span", { class: "wy-sep" }, null, -1)),
 				createElementVNode("div", _hoisted_11, [
 					createVNode(MarkButtons_default, {
 						editor: __props.editor,
 						tick: __props.tick
 					}, null, 8, ["editor", "tick"]),
-					unref(b).color || unref(b).highlight ? (openBlock(), createBlock(Dropdown_default, {
+					unref(b).color || unref(b).highlight ? (openBlock(), createBlock(ColorTool_default, {
 						key: 0,
-						"panel-class": "wy-color-panel"
-					}, {
-						trigger: withCtx(({ open, toggle }) => [withDirectives((openBlock(), createElementBlock("button", {
-							type: "button",
-							class: "wy-tool",
-							"aria-label": unref(t)("toolbar.color"),
-							"aria-haspopup": "menu",
-							"aria-expanded": open,
-							onMousedown: _cache[7] || (_cache[7] = withModifiers(() => {}, ["prevent"])),
-							onClick: toggle
-						}, [createVNode(unref(Baseline), {
-							size: 18,
-							style: normalizeStyle({ color: (html ? state.value.color : unref(tokenCss)(state.value.color)) || void 0 })
-						}, null, 8, ["style"])], 40, _hoisted_12)), [[unref(vTooltip), unref(t)("toolbar.color")]])]),
-						default: withCtx(({ close }) => [createVNode(ColorMenu_default, {
-							editor: __props.editor,
-							color: state.value.color,
-							highlight: state.value.mark,
-							onDone: close
-						}, null, 8, [
-							"editor",
-							"color",
-							"highlight",
-							"onDone"
-						])]),
-						_: 1
-					})) : createCommentVNode("", true),
+						editor: __props.editor,
+						tick: __props.tick
+					}, null, 8, ["editor", "tick"])) : createCommentVNode("", true),
 					unref(b).textAlign ? (openBlock(), createBlock(Dropdown_default, { key: 1 }, {
 						trigger: withCtx(({ open, toggle }) => [withDirectives((openBlock(), createElementBlock("button", {
 							type: "button",
@@ -13369,10 +13519,10 @@ var Toolbar_default = /* @__PURE__ */ defineComponent({
 							"aria-haspopup": "menu",
 							"aria-expanded": open,
 							disabled: state.value.inCell,
-							onMousedown: _cache[8] || (_cache[8] = withModifiers(() => {}, ["prevent"])),
+							onMousedown: _cache[7] || (_cache[7] = withModifiers(() => {}, ["prevent"])),
 							onClick: toggle
-						}, [(openBlock(), createBlock(resolveDynamicComponent(ALIGNS.find((a) => a.id === state.value.align)?.icon ?? unref(AlignLeft)), { size: 18 }))], 40, _hoisted_13)), [[unref(vTooltip), unref(t)("toolbar.align")]])]),
-						default: withCtx(({ close }) => [createElementVNode("div", _hoisted_14, [(openBlock(), createElementBlock(Fragment$1, null, renderList(ALIGNS, (a) => {
+						}, [(openBlock(), createBlock(resolveDynamicComponent(ALIGNS.find((a) => a.id === state.value.align)?.icon ?? unref(AlignLeft)), { size: 18 }))], 40, _hoisted_12)), [[unref(vTooltip), unref(t)("toolbar.align")]])]),
+						default: withCtx(({ close }) => [createElementVNode("div", _hoisted_13, [(openBlock(), createElementBlock(Fragment$1, null, renderList(ALIGNS, (a) => {
 							return withDirectives((openBlock(), createElementBlock("button", {
 								key: a.id,
 								type: "button",
@@ -13381,14 +13531,14 @@ var Toolbar_default = /* @__PURE__ */ defineComponent({
 								"aria-label": unref(t)(a.label),
 								"aria-checked": state.value.align === a.id,
 								"aria-pressed": state.value.align === a.id,
-								onMousedown: _cache[9] || (_cache[9] = withModifiers(() => {}, ["prevent"])),
+								onMousedown: _cache[8] || (_cache[8] = withModifiers(() => {}, ["prevent"])),
 								onClick: ($event) => (__props.editor.chain().focus().setTextAlign(a.id).run(), close())
-							}, [(openBlock(), createBlock(resolveDynamicComponent(a.icon), { size: 18 }))], 40, _hoisted_15)), [[unref(vTooltip), unref(t)(a.label)]]);
+							}, [(openBlock(), createBlock(resolveDynamicComponent(a.icon), { size: 18 }))], 40, _hoisted_14)), [[unref(vTooltip), unref(t)(a.label)]]);
 						}), 64))])]),
 						_: 1
 					})) : createCommentVNode("", true)
 				]),
-				unref(b).lists || unref(b).taskLists || unref(b).blockquote || unref(b).callouts.length ? (openBlock(), createElementBlock(Fragment$1, { key: 1 }, [_cache[38] || (_cache[38] = createElementVNode("span", { class: "wy-sep" }, null, -1)), createElementVNode("div", _hoisted_16, [
+				unref(b).lists || unref(b).taskLists || unref(b).blockquote || unref(b).callouts.length ? (openBlock(), createElementBlock(Fragment$1, { key: 1 }, [_cache[37] || (_cache[37] = createElementVNode("span", { class: "wy-sep" }, null, -1)), createElementVNode("div", _hoisted_15, [
 					unref(b).lists ? withDirectives((openBlock(), createElementBlock("button", {
 						key: 0,
 						type: "button",
@@ -13396,9 +13546,9 @@ var Toolbar_default = /* @__PURE__ */ defineComponent({
 						"aria-label": unref(t)("toolbar.bulletList"),
 						"aria-pressed": state.value.bulletList,
 						disabled: state.value.inCell,
-						onMousedown: _cache[10] || (_cache[10] = withModifiers(() => {}, ["prevent"])),
-						onClick: _cache[11] || (_cache[11] = ($event) => __props.editor.chain().focus().toggleBulletList().run())
-					}, [createVNode(unref(List), { size: 18 })], 40, _hoisted_17)), [[unref(vTooltip), unref(t)("toolbar.bulletList")]]) : createCommentVNode("", true),
+						onMousedown: _cache[9] || (_cache[9] = withModifiers(() => {}, ["prevent"])),
+						onClick: _cache[10] || (_cache[10] = ($event) => __props.editor.chain().focus().toggleBulletList().run())
+					}, [createVNode(unref(List), { size: 18 })], 40, _hoisted_16)), [[unref(vTooltip), unref(t)("toolbar.bulletList")]]) : createCommentVNode("", true),
 					unref(b).lists ? withDirectives((openBlock(), createElementBlock("button", {
 						key: 1,
 						type: "button",
@@ -13406,13 +13556,13 @@ var Toolbar_default = /* @__PURE__ */ defineComponent({
 						"aria-label": unref(t)("toolbar.orderedList"),
 						"aria-pressed": state.value.orderedList,
 						disabled: state.value.inCell,
-						onMousedown: _cache[12] || (_cache[12] = withModifiers(() => {}, ["prevent"])),
-						onClick: _cache[13] || (_cache[13] = ($event) => __props.editor.chain().focus().toggleOrderedList().run())
-					}, [createVNode(unref(ListOrdered), { size: 18 })], 40, _hoisted_18)), [[unref(vTooltip), unref(t)("toolbar.orderedList")]]) : createCommentVNode("", true),
+						onMousedown: _cache[11] || (_cache[11] = withModifiers(() => {}, ["prevent"])),
+						onClick: _cache[12] || (_cache[12] = ($event) => __props.editor.chain().focus().toggleOrderedList().run())
+					}, [createVNode(unref(ListOrdered), { size: 18 })], 40, _hoisted_17)), [[unref(vTooltip), unref(t)("toolbar.orderedList")]]) : createCommentVNode("", true),
 					unref(b).listStyles && unref(b).lists ? (openBlock(), createBlock(Dropdown_default, {
 						key: 2,
 						"panel-class": "wy-list-style-panel",
-						onOpen: _cache[18] || (_cache[18] = ($event) => (markerInput.value = state.value.list?.marker ?? "", markerInvalid.value = false))
+						onOpen: _cache[17] || (_cache[17] = ($event) => (markerInput.value = state.value.list?.marker ?? "", markerInvalid.value = false))
 					}, {
 						trigger: withCtx(({ open, toggle }) => [withDirectives((openBlock(), createElementBlock("button", {
 							type: "button",
@@ -13421,15 +13571,15 @@ var Toolbar_default = /* @__PURE__ */ defineComponent({
 							"aria-haspopup": "menu",
 							"aria-expanded": open,
 							disabled: !state.value.list,
-							onMousedown: _cache[14] || (_cache[14] = withModifiers(() => {}, ["prevent"])),
+							onMousedown: _cache[13] || (_cache[13] = withModifiers(() => {}, ["prevent"])),
 							onClick: toggle
-						}, [createVNode(unref(ChevronDown), { size: 14 })], 40, _hoisted_19)), [[unref(vTooltip), unref(t)("toolbar.listStyle")]])]),
+						}, [createVNode(unref(ChevronDown), { size: 14 })], 40, _hoisted_18)), [[unref(vTooltip), unref(t)("toolbar.listStyle")]])]),
 						default: withCtx(({ close }) => [state.value.list ? (openBlock(), createElementBlock("div", {
 							key: 0,
 							role: "menu",
 							"aria-label": unref(t)("toolbar.listStyle")
 						}, [
-							createElementVNode("div", _hoisted_21, toDisplayString(unref(t)("listStyle.numbering")), 1),
+							createElementVNode("div", _hoisted_20, toDisplayString(unref(t)("listStyle.numbering")), 1),
 							(openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(ORDERED_STYLES), (s) => {
 								return openBlock(), createElementBlock("button", {
 									key: s,
@@ -13437,11 +13587,11 @@ var Toolbar_default = /* @__PURE__ */ defineComponent({
 									class: "wy-menu-item",
 									role: "menuitemradio",
 									"aria-checked": state.value.list.kind === "ordered" && state.value.list.style === s,
-									onMousedown: _cache[15] || (_cache[15] = withModifiers(() => {}, ["prevent"])),
+									onMousedown: _cache[14] || (_cache[14] = withModifiers(() => {}, ["prevent"])),
 									onClick: ($event) => (setListStyle("ordered", s), close())
-								}, [createElementVNode("span", _hoisted_23, toDisplayString(LIST_SAMPLES[s]), 1), createTextVNode(toDisplayString(unref(t)(`listStyle.styles.${s}`)), 1)], 40, _hoisted_22);
+								}, [createElementVNode("span", _hoisted_22, toDisplayString(LIST_SAMPLES[s]), 1), createTextVNode(toDisplayString(unref(t)(`listStyle.styles.${s}`)), 1)], 40, _hoisted_21);
 							}), 128)),
-							createElementVNode("div", _hoisted_24, toDisplayString(unref(t)("listStyle.bullets")), 1),
+							createElementVNode("div", _hoisted_23, toDisplayString(unref(t)("listStyle.bullets")), 1),
 							(openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(BULLET_STYLES), (s) => {
 								return openBlock(), createElementBlock("button", {
 									key: s,
@@ -13449,24 +13599,24 @@ var Toolbar_default = /* @__PURE__ */ defineComponent({
 									class: "wy-menu-item",
 									role: "menuitemradio",
 									"aria-checked": state.value.list.kind === "bullet" && !state.value.list.marker && state.value.list.style === s,
-									onMousedown: _cache[16] || (_cache[16] = withModifiers(() => {}, ["prevent"])),
+									onMousedown: _cache[15] || (_cache[15] = withModifiers(() => {}, ["prevent"])),
 									onClick: ($event) => (setListStyle("bullet", s), close())
-								}, [createElementVNode("span", _hoisted_26, toDisplayString(LIST_SAMPLES[s]), 1), createTextVNode(toDisplayString(unref(t)(`listStyle.styles.${s}`)), 1)], 40, _hoisted_25);
+								}, [createElementVNode("span", _hoisted_25, toDisplayString(LIST_SAMPLES[s]), 1), createTextVNode(toDisplayString(unref(t)(`listStyle.styles.${s}`)), 1)], 40, _hoisted_24);
 							}), 128)),
-							createElementVNode("div", _hoisted_27, toDisplayString(unref(t)("listStyle.custom")), 1),
+							createElementVNode("div", _hoisted_26, toDisplayString(unref(t)("listStyle.custom")), 1),
 							createElementVNode("form", {
 								class: "wy-menu-form",
 								onSubmit: withModifiers(($event) => applyMarker(close), ["prevent"])
 							}, [withDirectives(createElementVNode("input", {
-								"onUpdate:modelValue": _cache[17] || (_cache[17] = ($event) => markerInput.value = $event),
+								"onUpdate:modelValue": _cache[16] || (_cache[16] = ($event) => markerInput.value = $event),
 								class: "wy-input is-sm",
 								maxlength: "16",
 								spellcheck: "false",
 								"aria-label": unref(t)("listStyle.custom"),
 								"aria-invalid": markerInvalid.value || void 0
-							}, null, 8, _hoisted_29), [[vModelText, markerInput.value]]), createElementVNode("button", _hoisted_30, toDisplayString(unref(t)("listStyle.apply")), 1)], 40, _hoisted_28),
-							markerInvalid.value ? (openBlock(), createElementBlock("p", _hoisted_31, toDisplayString(unref(t)("listStyle.customHint")), 1)) : createCommentVNode("", true)
-						], 8, _hoisted_20)) : createCommentVNode("", true)]),
+							}, null, 8, _hoisted_28), [[vModelText, markerInput.value]]), createElementVNode("button", _hoisted_29, toDisplayString(unref(t)("listStyle.apply")), 1)], 40, _hoisted_27),
+							markerInvalid.value ? (openBlock(), createElementBlock("p", _hoisted_30, toDisplayString(unref(t)("listStyle.customHint")), 1)) : createCommentVNode("", true)
+						], 8, _hoisted_19)) : createCommentVNode("", true)]),
 						_: 1
 					})) : createCommentVNode("", true),
 					unref(b).taskLists ? withDirectives((openBlock(), createElementBlock("button", {
@@ -13476,9 +13626,9 @@ var Toolbar_default = /* @__PURE__ */ defineComponent({
 						"aria-label": unref(t)("toolbar.taskList"),
 						"aria-pressed": state.value.taskList,
 						disabled: state.value.inCell,
-						onMousedown: _cache[19] || (_cache[19] = withModifiers(() => {}, ["prevent"])),
-						onClick: _cache[20] || (_cache[20] = ($event) => __props.editor.chain().focus().toggleTaskList().run())
-					}, [createVNode(unref(ListTodo), { size: 18 })], 40, _hoisted_32)), [[unref(vTooltip), unref(t)("toolbar.taskList")]]) : createCommentVNode("", true),
+						onMousedown: _cache[18] || (_cache[18] = withModifiers(() => {}, ["prevent"])),
+						onClick: _cache[19] || (_cache[19] = ($event) => __props.editor.chain().focus().toggleTaskList().run())
+					}, [createVNode(unref(ListTodo), { size: 18 })], 40, _hoisted_31)), [[unref(vTooltip), unref(t)("toolbar.taskList")]]) : createCommentVNode("", true),
 					unref(b).blockquote ? withDirectives((openBlock(), createElementBlock("button", {
 						key: 4,
 						type: "button",
@@ -13486,9 +13636,9 @@ var Toolbar_default = /* @__PURE__ */ defineComponent({
 						"aria-label": unref(t)("toolbar.quote"),
 						"aria-pressed": state.value.blockquote,
 						disabled: state.value.inCell,
-						onMousedown: _cache[21] || (_cache[21] = withModifiers(() => {}, ["prevent"])),
-						onClick: _cache[22] || (_cache[22] = ($event) => __props.editor.chain().focus().toggleBlockquote().run())
-					}, [createVNode(unref(Quote), { size: 18 })], 40, _hoisted_33)), [[unref(vTooltip), unref(t)("toolbar.quote")]]) : createCommentVNode("", true),
+						onMousedown: _cache[20] || (_cache[20] = withModifiers(() => {}, ["prevent"])),
+						onClick: _cache[21] || (_cache[21] = ($event) => __props.editor.chain().focus().toggleBlockquote().run())
+					}, [createVNode(unref(Quote), { size: 18 })], 40, _hoisted_32)), [[unref(vTooltip), unref(t)("toolbar.quote")]]) : createCommentVNode("", true),
 					unref(b).callouts.length ? withDirectives((openBlock(), createElementBlock("button", {
 						key: 5,
 						type: "button",
@@ -13496,12 +13646,12 @@ var Toolbar_default = /* @__PURE__ */ defineComponent({
 						"aria-label": unref(t)("toolbar.callout"),
 						"aria-pressed": state.value.callout,
 						disabled: state.value.inCell,
-						onMousedown: _cache[23] || (_cache[23] = withModifiers(() => {}, ["prevent"])),
+						onMousedown: _cache[22] || (_cache[22] = withModifiers(() => {}, ["prevent"])),
 						onClick: toggleCallout
-					}, [createVNode(unref(MessageSquareQuote), { size: 18 })], 40, _hoisted_34)), [[unref(vTooltip), unref(t)("toolbar.callout")]]) : createCommentVNode("", true)
+					}, [createVNode(unref(MessageSquareQuote), { size: 18 })], 40, _hoisted_33)), [[unref(vTooltip), unref(t)("toolbar.callout")]]) : createCommentVNode("", true)
 				])], 64)) : createCommentVNode("", true),
-				_cache[40] || (_cache[40] = createElementVNode("span", { class: "wy-sep" }, null, -1)),
-				createElementVNode("div", _hoisted_35, [
+				_cache[39] || (_cache[39] = createElementVNode("span", { class: "wy-sep" }, null, -1)),
+				createElementVNode("div", _hoisted_34, [
 					unref(ctx).slashItems.length ? (openBlock(), createBlock(Dropdown_default, {
 						key: 0,
 						"panel-class": "wy-insert-panel"
@@ -13512,18 +13662,18 @@ var Toolbar_default = /* @__PURE__ */ defineComponent({
 							"aria-label": unref(t)("toolbar.insert"),
 							"aria-haspopup": "menu",
 							"aria-expanded": open,
-							onMousedown: _cache[24] || (_cache[24] = withModifiers(() => {}, ["prevent"])),
+							onMousedown: _cache[23] || (_cache[23] = withModifiers(() => {}, ["prevent"])),
 							onClick: toggle
 						}, [
 							createVNode(unref(Plus), { size: 18 }),
-							createElementVNode("span", _hoisted_37, toDisplayString(unref(t)("toolbar.insert")), 1),
+							createElementVNode("span", _hoisted_36, toDisplayString(unref(t)("toolbar.insert")), 1),
 							createVNode(unref(ChevronDown), { size: 14 })
-						], 40, _hoisted_36)), [[unref(vTooltip), unref(t)("toolbar.insert")]])]),
+						], 40, _hoisted_35)), [[unref(vTooltip), unref(t)("toolbar.insert")]])]),
 						default: withCtx(({ close }) => [(openBlock(true), createElementBlock(Fragment$1, null, renderList(groups.value, (g) => {
 							return openBlock(), createElementBlock("div", {
 								key: g.group,
 								role: "group"
-							}, [createElementVNode("div", _hoisted_38, toDisplayString(g.label), 1), (openBlock(true), createElementBlock(Fragment$1, null, renderList(g.items, (a) => {
+							}, [createElementVNode("div", _hoisted_37, toDisplayString(g.label), 1), (openBlock(true), createElementBlock(Fragment$1, null, renderList(g.items, (a) => {
 								return openBlock(), createElementBlock("button", {
 									key: a.id,
 									type: "button",
@@ -13531,14 +13681,14 @@ var Toolbar_default = /* @__PURE__ */ defineComponent({
 									role: "menuitem",
 									"aria-disabled": state.value.inCell && !a.inline || !a.enabled(__props.editor) || void 0,
 									title: state.value.inCell && !a.inline ? unref(t)("editor.inlineOnly") : void 0,
-									onMousedown: _cache[25] || (_cache[25] = withModifiers(() => {}, ["prevent"])),
+									onMousedown: _cache[24] || (_cache[24] = withModifiers(() => {}, ["prevent"])),
 									onClick: ($event) => (!state.value.inCell || a.inline) && a.enabled(__props.editor) && (a.run(__props.editor), close())
 								}, [a.icon ? (openBlock(), createBlock(resolveDynamicComponent(a.icon), {
 									key: 0,
 									class: "wy-menu-icon",
 									size: 16,
 									"aria-hidden": "true"
-								})) : createCommentVNode("", true), createTextVNode(toDisplayString(a.label), 1)], 40, _hoisted_39);
+								})) : createCommentVNode("", true), createTextVNode(toDisplayString(a.label), 1)], 40, _hoisted_38);
 							}), 128))]);
 						}), 128))]),
 						_: 1
@@ -13549,9 +13699,9 @@ var Toolbar_default = /* @__PURE__ */ defineComponent({
 						class: "wy-tool",
 						"aria-label": unref(t)("toolbar.link"),
 						"aria-pressed": state.value.link,
-						onMousedown: _cache[26] || (_cache[26] = withModifiers(() => {}, ["prevent"])),
-						onClick: _cache[27] || (_cache[27] = ($event) => emit("link"))
-					}, [createVNode(unref(Link$1), { size: 18 })], 40, _hoisted_40)), [[unref(vTooltip), {
+						onMousedown: _cache[25] || (_cache[25] = withModifiers(() => {}, ["prevent"])),
+						onClick: _cache[26] || (_cache[26] = ($event) => emit("link"))
+					}, [createVNode(unref(Link$1), { size: 18 })], 40, _hoisted_39)), [[unref(vTooltip), {
 						text: unref(t)("toolbar.link"),
 						keys: "Mod-k"
 					}]]) : createCommentVNode("", true),
@@ -13560,17 +13710,17 @@ var Toolbar_default = /* @__PURE__ */ defineComponent({
 						type: "button",
 						class: "wy-tool",
 						"aria-label": unref(t)("toolbar.image"),
-						onMousedown: _cache[28] || (_cache[28] = withModifiers(() => {}, ["prevent"])),
-						onClick: _cache[29] || (_cache[29] = ($event) => unref(ctx).files.pick("image"))
-					}, [createVNode(unref(Image$1), { size: 18 })], 40, _hoisted_41)), [[unref(vTooltip), unref(t)("toolbar.image")]]) : createCommentVNode("", true),
+						onMousedown: _cache[27] || (_cache[27] = withModifiers(() => {}, ["prevent"])),
+						onClick: _cache[28] || (_cache[28] = ($event) => unref(ctx).files.pick("image"))
+					}, [createVNode(unref(Image$1), { size: 18 })], 40, _hoisted_40)), [[unref(vTooltip), unref(t)("toolbar.image")]]) : createCommentVNode("", true),
 					unref(b).files && canUpload ? withDirectives((openBlock(), createElementBlock("button", {
 						key: 3,
 						type: "button",
 						class: "wy-tool",
 						"aria-label": unref(t)("toolbar.file"),
-						onMousedown: _cache[30] || (_cache[30] = withModifiers(() => {}, ["prevent"])),
-						onClick: _cache[31] || (_cache[31] = ($event) => unref(ctx).files.pick("file"))
-					}, [createVNode(unref(Paperclip), { size: 18 })], 40, _hoisted_42)), [[unref(vTooltip), unref(t)("toolbar.file")]]) : createCommentVNode("", true),
+						onMousedown: _cache[29] || (_cache[29] = withModifiers(() => {}, ["prevent"])),
+						onClick: _cache[30] || (_cache[30] = ($event) => unref(ctx).files.pick("file"))
+					}, [createVNode(unref(Paperclip), { size: 18 })], 40, _hoisted_41)), [[unref(vTooltip), unref(t)("toolbar.file")]]) : createCommentVNode("", true),
 					(openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(ctx).toolbar, (item) => {
 						return withDirectives((openBlock(), createElementBlock("button", {
 							key: item.id,
@@ -13579,40 +13729,40 @@ var Toolbar_default = /* @__PURE__ */ defineComponent({
 							"aria-label": unref(ctx).text(item.label),
 							"aria-pressed": item.active?.(__props.editor) ?? void 0,
 							disabled: item.enabled ? !item.enabled(__props.editor) : false,
-							onMousedown: _cache[32] || (_cache[32] = withModifiers(() => {}, ["prevent"])),
+							onMousedown: _cache[31] || (_cache[31] = withModifiers(() => {}, ["prevent"])),
 							onClick: ($event) => item.run(__props.editor, unref(ctx).services)
-						}, [(openBlock(), createBlock(resolveDynamicComponent(item.icon), { size: 18 }))], 40, _hoisted_43)), [[unref(vTooltip), {
+						}, [(openBlock(), createBlock(resolveDynamicComponent(item.icon), { size: 18 }))], 40, _hoisted_42)), [[unref(vTooltip), {
 							text: unref(ctx).text(item.label),
 							keys: item.shortcut
 						}]]);
 					}), 128))
 				])
-			], 64)) : createCommentVNode("", true)]), createElementVNode("div", _hoisted_44, [
+			], 64)) : createCommentVNode("", true)]), createElementVNode("div", _hoisted_43, [
 				renderSlot(_ctx.$slots, "status"),
-				__props.fullscreen && _ctx.$slots.actions ? (openBlock(), createElementBlock("div", _hoisted_45, [renderSlot(_ctx.$slots, "actions")])) : createCommentVNode("", true),
-				createElementVNode("div", _hoisted_46, [__props.showSource ? withDirectives((openBlock(), createElementBlock("button", {
+				__props.fullscreen && _ctx.$slots.actions ? (openBlock(), createElementBlock("div", _hoisted_44, [renderSlot(_ctx.$slots, "actions")])) : createCommentVNode("", true),
+				createElementVNode("div", _hoisted_45, [__props.showSource ? withDirectives((openBlock(), createElementBlock("button", {
 					key: 0,
 					type: "button",
 					class: "wy-tool",
 					"aria-label": unref(t)("toolbar.source"),
 					"aria-pressed": __props.mode === "source",
-					onMousedown: _cache[33] || (_cache[33] = withModifiers(() => {}, ["prevent"])),
-					onClick: _cache[34] || (_cache[34] = ($event) => emit("set-mode", __props.mode === "source" ? "visual" : "source"))
-				}, [createVNode(unref(FileCode), { size: 18 })], 40, _hoisted_47)), [[unref(vTooltip), __props.mode === "source" ? unref(t)("toolbar.visual") : unref(t)("toolbar.source")]]) : createCommentVNode("", true), __props.showFocus ? withDirectives((openBlock(), createElementBlock("button", {
+					onMousedown: _cache[32] || (_cache[32] = withModifiers(() => {}, ["prevent"])),
+					onClick: _cache[33] || (_cache[33] = ($event) => emit("set-mode", __props.mode === "source" ? "visual" : "source"))
+				}, [createVNode(unref(FileCode), { size: 18 })], 40, _hoisted_46)), [[unref(vTooltip), __props.mode === "source" ? unref(t)("toolbar.visual") : unref(t)("toolbar.source")]]) : createCommentVNode("", true), __props.showFocus ? withDirectives((openBlock(), createElementBlock("button", {
 					key: 1,
 					type: "button",
 					class: "wy-tool",
 					"aria-label": __props.fullscreen ? unref(t)("toolbar.exitFocus") : unref(t)("toolbar.focus"),
 					"aria-pressed": __props.fullscreen,
-					onMousedown: _cache[35] || (_cache[35] = withModifiers(() => {}, ["prevent"])),
-					onClick: _cache[36] || (_cache[36] = ($event) => emit("toggle-fullscreen"))
+					onMousedown: _cache[34] || (_cache[34] = withModifiers(() => {}, ["prevent"])),
+					onClick: _cache[35] || (_cache[35] = ($event) => emit("toggle-fullscreen"))
 				}, [__props.fullscreen ? (openBlock(), createBlock(unref(Minimize2), {
 					key: 0,
 					size: 18
 				})) : (openBlock(), createBlock(unref(Maximize2), {
 					key: 1,
 					size: 18
-				}))], 40, _hoisted_48)), [[unref(vTooltip), __props.fullscreen ? unref(t)("toolbar.exitFocus") : unref(t)("toolbar.focus")]]) : createCommentVNode("", true)])
+				}))], 40, _hoisted_47)), [[unref(vTooltip), __props.fullscreen ? unref(t)("toolbar.exitFocus") : unref(t)("toolbar.focus")]]) : createCommentVNode("", true)])
 			])], 8, _hoisted_1$1);
 		};
 	}
@@ -14034,10 +14184,12 @@ var WysiwygEditor_default = /* @__PURE__ */ defineComponent({
 			if (on && mode.value === "visual") editor.value?.commands.focus();
 		}
 		function onKeydown(e) {
-			if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key === "/" && full && editor.value?.view.dom.contains(e.target)) {
+			if (!editor.value?.view.dom.contains(e.target)) return;
+			if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key === "/" && full) {
 				e.preventDefault();
 				openCaretMenu();
 			}
+			if (e.defaultPrevented) e.stopPropagation();
 		}
 		function onEscape(e) {
 			if (e.key !== "Escape" || !fullscreen.value) return;
@@ -14308,6 +14460,13 @@ var WysiwygEditor_default = /* @__PURE__ */ defineComponent({
 					})), 1)) : createCommentVNode("", true),
 					renderSlot(_ctx.$slots, "footer")
 				], 64)) : (openBlock(), createElementBlock(Fragment$1, { key: 1 }, [
+					createElementVNode("div", {
+						class: "wy-field-body",
+						onMousedown: onFieldMouseDown
+					}, [createVNode(unref(EditorContent), {
+						editor: unref(editor),
+						class: "wy-host"
+					}, null, 8, ["editor"])], 32),
 					withDirectives(createElementVNode("div", {
 						class: "wy-field-tools",
 						role: "toolbar",
@@ -14320,8 +14479,14 @@ var WysiwygEditor_default = /* @__PURE__ */ defineComponent({
 							tick: tick.value,
 							small: ""
 						}, null, 8, ["editor", "tick"])) : createCommentVNode("", true),
-						unref(config).base.links ? withDirectives((openBlock(), createElementBlock("button", {
+						unref(editor) && (unref(config).base.color || unref(config).base.highlight) ? (openBlock(), createBlock(ColorTool_default, {
 							key: 1,
+							editor: unref(editor),
+							tick: tick.value,
+							small: ""
+						}, null, 8, ["editor", "tick"])) : createCommentVNode("", true),
+						unref(config).base.links ? withDirectives((openBlock(), createElementBlock("button", {
+							key: 2,
 							type: "button",
 							class: "wy-tool is-sm",
 							"aria-label": unref(t)("toolbar.link"),
@@ -14332,27 +14497,20 @@ var WysiwygEditor_default = /* @__PURE__ */ defineComponent({
 							keys: "Mod-k"
 						}]]) : createCommentVNode("", true),
 						unref(config).base.math ? withDirectives((openBlock(), createElementBlock("button", {
-							key: 2,
+							key: 3,
 							type: "button",
 							class: "wy-tool is-sm",
 							"aria-label": unref(t)("slash.items.mathInline.label"),
 							onClick: toMath
 						}, [createVNode(unref(SquareFunction), { size: 15 })], 8, _hoisted_5)), [[unref(vTooltip), unref(t)("slash.items.mathInline.label")]]) : createCommentVNode("", true),
 						__props.expandable && !unref(isInline) && !unref(shared) ? withDirectives((openBlock(), createElementBlock("button", {
-							key: 3,
+							key: 4,
 							type: "button",
 							class: "wy-tool is-sm",
 							"aria-label": unref(t)("field.expand"),
 							onClick: _cache[2] || (_cache[2] = ($event) => expanded.value = true)
 						}, [createVNode(unref(Maximize2), { size: 15 })], 8, _hoisted_6)), [[unref(vTooltip), unref(t)("field.expand")]]) : createCommentVNode("", true)
 					], 40, _hoisted_3), [[vShow, focused.value && !__props.readonly && __props.toolbar !== "floating"]]),
-					createElementVNode("div", {
-						class: "wy-field-body",
-						onMousedown: onFieldMouseDown
-					}, [createVNode(unref(EditorContent), {
-						editor: unref(editor),
-						class: "wy-host"
-					}, null, 8, ["editor"])], 32),
 					unref(editor) && __props.toolbar !== "fixed" && (!__props.readonly || unref(readonlyBubble)) ? (openBlock(), createBlock(FloatingToolbar_default, {
 						key: 0,
 						ref_key: "floatingBar",

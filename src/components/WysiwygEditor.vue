@@ -22,6 +22,7 @@ import { replaceDocument, type HistoryBridge } from "../editor/history";
 import { editorExtensions } from "../editor/setup";
 import { WYSIWYG_DEFAULTS, useHandleRegistry } from "../plugin";
 import BlockActionsMenu from "./BlockActionsMenu.vue";
+import ColorTool from "./ColorTool.vue";
 import FloatingToolbar from "./FloatingToolbar.vue";
 import ImageLightbox from "./ImageLightbox.vue";
 import LinkDialog from "./LinkDialog.vue";
@@ -431,12 +432,16 @@ function setFullscreen(on: boolean) {
   if (on && mode.value === "visual") editor.value?.commands.focus();
 }
 
+// runs after prosemirror, which prevents the default of every key it handles (its shortcuts, Mod-k, Enter …).
+// those keys stay in the editor, so a host's own shortcut for the same key (a global Mod-k search) does not fire too
 function onKeydown(e: KeyboardEvent) {
+  if (!editor.value?.view.dom.contains(e.target as Node)) return;
   const mod = (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey;
-  if (mod && e.key === "/" && full && editor.value?.view.dom.contains(e.target as Node)) {
+  if (mod && e.key === "/" && full) {
     e.preventDefault();
     openCaretMenu();
   }
+  if (e.defaultPrevented) e.stopPropagation();
 }
 
 // capture: prosemirror swallows Escape. a block edited in place and an open menu keep their own Esc
@@ -637,14 +642,15 @@ defineExpose(handle);
     </template>
 
     <template v-else>
+      <div class="wy-field-body" @mousedown="onFieldMouseDown">
+        <EditorContent :editor="editor" class="wy-host" />
+      </div>
       <div v-show="focused && !readonly && toolbar !== 'floating'" class="wy-field-tools" role="toolbar" :aria-label="t('field.tools')" @mousedown.prevent>
         <MarkButtons v-if="editor" :editor="editor" :tick="tick" small />
+        <ColorTool v-if="editor && (config.base.color || config.base.highlight)" :editor="editor" :tick="tick" small />
         <button v-if="config.base.links" v-tooltip="{ text: t('toolbar.link'), keys: 'Mod-k' }" type="button" class="wy-tool is-sm" :aria-label="t('toolbar.link')" :aria-pressed="linkActive" @click="openLink"><LinkIcon :size="15" /></button>
         <button v-if="config.base.math" v-tooltip="t('slash.items.mathInline.label')" type="button" class="wy-tool is-sm" :aria-label="t('slash.items.mathInline.label')" @click="toMath"><SquareFunction :size="15" /></button>
         <button v-if="expandable && !isInline && !shared" v-tooltip="t('field.expand')" type="button" class="wy-tool is-sm" :aria-label="t('field.expand')" @click="expanded = true"><Maximize2 :size="15" /></button>
-      </div>
-      <div class="wy-field-body" @mousedown="onFieldMouseDown">
-        <EditorContent :editor="editor" class="wy-host" />
       </div>
       <FloatingToolbar v-if="editor && toolbar !== 'fixed' && (!readonly || readonlyBubble)" ref="floatingBar" :editor="editor" :tick="tick" :readonly="readonly" :full="false" @link="openLink" />
       <LinkHoverCard v-if="editor && config.base.links" :editor="editor" :tick="tick" :readonly="readonly" :focused="focused" @edit="openLink" />

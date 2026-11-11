@@ -44,28 +44,74 @@ export function parseSpanAttrs(fields: Record<string, string>): SpanColors | nul
 
 const SPAN_ATTRS_RE = /^\{[^{}\n]*\}/;
 
-/** `[text]{color=red bg=yellow}`: text colour and background colour marks around the bracketed inline content */
+/**
+ * `[text]{color=red bg=yellow}`: text colour and background colour marks around the bracketed inline content.
+ * silent mode (markdown-it scanning a link label) never matches, so a link label may hold a span:
+ * `[[a]{color=red} b](/p/1)`. a matched span would read as a nested link and void the outer link
+ */
 export function colorSpanRule(state: StateInline, silent: boolean): boolean {
-  if (state.src.charCodeAt(state.pos) !== 0x5b) return false;
+  if (silent || state.src.charCodeAt(state.pos) !== 0x5b) return false;
   const labelEnd = state.md.helpers.parseLinkLabel(state, state.pos, false);
   if (labelEnd < 0) return false;
   const m = SPAN_ATTRS_RE.exec(state.src.slice(labelEnd + 1, state.posMax));
   const fields = m ? parseAttrLine(m[0]) : null;
   const span = fields && parseSpanAttrs(fields);
   if (!m || !span) return false;
-  if (!silent) {
-    const max = state.posMax;
-    state.pos += 1;
-    state.posMax = labelEnd;
-    if (span.color) state.push("text_color_open", "span", 1).meta = { color: span.color };
-    if (span.bg) state.push("bg_color_open", "mark", 1).meta = { color: span.bg };
-    state.md.inline.tokenize(state);
-    if (span.bg) state.push("bg_color_close", "mark", -1);
-    if (span.color) state.push("text_color_close", "span", -1);
-    state.posMax = max;
-  }
+  const max = state.posMax;
+  state.pos += 1;
+  state.posMax = labelEnd;
+  if (span.color) state.push("text_color_open", "span", 1).meta = { color: span.color };
+  if (span.bg) state.push("bg_color_open", "mark", 1).meta = { color: span.bg };
+  state.md.inline.tokenize(state);
+  if (span.bg) state.push("bg_color_close", "mark", -1);
+  if (span.color) state.push("text_color_close", "span", -1);
+  state.posMax = max;
   state.pos = labelEnd + 1 + m[0].length;
   return true;
+}
+
+/** inline tokens that become the same editor mark; a document holds one mark of each type per character */
+const MARK_GROUPS: Record<string, string> = { text_color: "textStyle", bg_color: "highlight", mark: "highlight" };
+
+/**
+ * a span nested in a span of the same mark (`[a [b]{color=red} c]{color=blue}`, `==a [b]{bg=yellow} c==`):
+ * the inner one wins over its own text and the outer one resumes after it. the parser would otherwise drop
+ * the outer mark at the inner close
+ */
+export function sameMarkNestingRule(state: StateCore) {
+  for (const block of state.tokens) {
+    if (block.type !== "inline" || !block.children) continue;
+    const open: Record<string, Token[]> = {};
+    const out: Token[] = [];
+    for (const tok of block.children) {
+      const kind = tok.type.replace(/_(open|close)$/, "");
+      const group = tok.nesting !== 0 ? MARK_GROUPS[kind] : undefined;
+      if (!group) {
+        out.push(tok);
+        continue;
+      }
+      const stack = (open[group] ??= []);
+      if (tok.nesting === 1) {
+        const outer = stack[stack.length - 1];
+        if (outer) out.push(markToken(state, outer, -1));
+        stack.push(tok);
+        out.push(tok);
+      } else {
+        stack.pop();
+        out.push(tok);
+        const outer = stack[stack.length - 1];
+        if (outer) out.push(markToken(state, outer, 1));
+      }
+    }
+    block.children = out;
+  }
+}
+
+function markToken(state: StateCore, like: Token, nesting: 1 | -1): Token {
+  const tok = new state.Token(like.type.replace(/_open$/, nesting === 1 ? "_open" : "_close"), like.tag, nesting);
+  tok.meta = like.meta;
+  tok.markup = like.markup;
+  return tok;
 }
 
 export function figureRule(state: StateCore) {
