@@ -3,7 +3,7 @@ import ins from "markdown-it-ins";
 import mark from "markdown-it-mark";
 import { MarkdownParser, MarkdownSerializer } from "prosemirror-markdown";
 import { DOMParser as DOMParser$1, DOMSerializer, Fragment, Slice } from "@tiptap/pm/model";
-import { Extension, Node as Node$1, createDocument, findParentNode, getSchema, mergeAttributes } from "@tiptap/core";
+import { Extension, InputRule, Node as Node$1, createDocument, findParentNode, getSchema, mergeAttributes } from "@tiptap/core";
 import Blockquote from "@tiptap/extension-blockquote";
 import Bold from "@tiptap/extension-bold";
 import Code from "@tiptap/extension-code";
@@ -46,7 +46,7 @@ import ruby from "highlight.js/lib/languages/ruby";
 import CodeBlock from "@tiptap/extension-code-block";
 import { HorizontalRule } from "@tiptap/extension-horizontal-rule";
 import Image from "@tiptap/extension-image";
-import { AlignCenter, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, AlignHorizontalJustifyStart, AlignJustify, AlignLeft, AlignRight, AppWindow, Baseline, BetweenHorizontalEnd, BetweenHorizontalStart, BetweenVerticalEnd, BetweenVerticalStart, Bold as Bold$1, Bookmark, CalendarDays, Check, ChevronDown, ChevronRight, ChevronsDownUp, Code as Code$1, Columns2, Columns3, Columns4, Copy, CopyPlus, Ellipsis, ExternalLink, FileCode, FileCode2, FileSymlink, FileText, Globe, GripHorizontal, GripVertical, Heading as Heading$1, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, Highlighter, Image as Image$1, ImagePlus, Italic as Italic$1, Link as Link$1, List, ListOrdered, ListTodo, ListTree, LoaderCircle, Maximize2, MessageSquareQuote, Minimize2, Minus, MoreHorizontal, Palette, PanelLeft, PanelRight, Paperclip, Pencil, Pilcrow, Plus, Quote, Redo2, RefreshCw, RotateCcw, Scaling, Sigma, Sparkles, SquareFunction, Strikethrough, Trash2, Underline as Underline$1, Undo2, Ungroup, Unlink, User, X, ZoomIn } from "@lucide/vue";
+import { AlignCenter, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, AlignHorizontalJustifyStart, AlignJustify, AlignLeft, AlignRight, AppWindow, Apple, ArrowDown, ArrowUp, AtSign, Baseline, Bell, BetweenHorizontalEnd, BetweenHorizontalStart, BetweenVerticalEnd, BetweenVerticalStart, Bold as Bold$1, Bookmark, CalendarClock, CalendarDays, Car, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsRight, Clock, Code as Code$1, Columns2, Columns3, Columns4, Copy, CopyPlus, Ellipsis, ExternalLink, FileCode, FileCode2, FileSymlink, FileText, Flag, Globe, GripHorizontal, GripVertical, Hand, Heading as Heading$1, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, Heart, Highlighter, Image as Image$1, ImagePlus, Italic as Italic$1, Lightbulb, Link as Link$1, List, ListOrdered, ListTodo, ListTree, LoaderCircle, Maximize2, MessageSquareQuote, Minimize2, Minus, MoreHorizontal, MousePointerClick, Palette, PanelLeft, PanelRight, PanelsTopLeft, Paperclip, PawPrint, Pencil, Pilcrow, Plus, Quote, Redo2, RefreshCw, RotateCcw, Scaling, Sigma, Smile, SmilePlus, Sparkles, SquareFunction, Strikethrough, TextCursorInput, Trash2, Underline as Underline$1, Undo2, Ungroup, Unlink, User, Volleyball, X, Zap, ZoomIn } from "@lucide/vue";
 import { Fragment as Fragment$1, Teleport, computed, createBlock, createCommentVNode, createElementBlock, createElementVNode, createSlots, createTextVNode, createVNode, defineComponent, getCurrentInstance, getCurrentScope, inject, mergeProps, nextTick, normalizeClass, normalizeStyle, onBeforeUnmount, onMounted, onScopeDispose, openBlock, provide, ref, renderList, renderSlot, resolveComponent, resolveDynamicComponent, shallowRef, toDisplayString, toRaw, toValue, unref, vModelText, vShow, watch, withCtx, withDirectives, withKeys, withModifiers } from "vue";
 import { EditorContent, NodeViewContent, NodeViewWrapper, VueNodeViewRenderer, VueRenderer, nodeViewProps, useEditor } from "@tiptap/vue-3";
 import { autoUpdate, computePosition, flip, offset, shift, size } from "@floating-ui/dom";
@@ -55,6 +55,7 @@ import Suggestion from "@tiptap/suggestion";
 import { CellSelection, TableMap, moveTableColumn, moveTableRow, selectedRect } from "@tiptap/pm/tables";
 import { redo, undo } from "@tiptap/pm/history";
 import { BubbleMenu } from "@tiptap/vue-3/menus";
+import { Decoration, DecorationSet } from "@tiptap/pm/view";
 // src/core/colors.ts
 var PALETTE = [
 	"gray",
@@ -1721,7 +1722,7 @@ var vTooltip = {
 	}
 };
 // src/nodes/ColumnView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$38 = ["aria-label"];
+var _hoisted_1$42 = ["aria-label"];
 // src/nodes/ColumnView.vue
 var ColumnView_default = /* @__PURE__ */ defineComponent({
 	__name: "ColumnView",
@@ -1819,24 +1820,24 @@ var ColumnView_default = /* @__PURE__ */ defineComponent({
 					onPointermove: onMove,
 					onPointerup: onUp,
 					onPointercancel: onUp
-				}, null, 40, _hoisted_1$38)), [[unref(vTooltip), unref(t)("columns.resize")]]) : createCommentVNode("", true)]),
+				}, null, 40, _hoisted_1$42)), [[unref(vTooltip), unref(t)("columns.resize")]]) : createCommentVNode("", true)]),
 				_: 1
 			}, 8, ["class", "style"]);
 		};
 	}
 });
 // src/blocks/BlockFrame.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$37 = {
+var _hoisted_1$41 = {
 	key: 0,
 	class: "wy-block-tools",
 	contenteditable: "false"
 };
-var _hoisted_2$29 = { class: "wy-block-label" };
-var _hoisted_3$29 = ["aria-label"];
-var _hoisted_4$26 = ["aria-label"];
-var _hoisted_5$24 = ["aria-label"];
-var _hoisted_6$18 = ["aria-label"];
-var _hoisted_7$14 = { class: "wy-block-body" };
+var _hoisted_2$33 = { class: "wy-block-label" };
+var _hoisted_3$33 = ["aria-label"];
+var _hoisted_4$30 = ["aria-label"];
+var _hoisted_5$28 = ["aria-label"];
+var _hoisted_6$23 = ["aria-label"];
+var _hoisted_7$18 = { class: "wy-block-body" };
 // src/blocks/BlockFrame.vue
 var BlockFrame_default = /* @__PURE__ */ defineComponent({
 	__name: "BlockFrame",
@@ -1888,8 +1889,8 @@ var BlockFrame_default = /* @__PURE__ */ defineComponent({
 				"is-readonly": __props.readonly,
 				"is-editable": __props.editable && !__props.readonly
 			}]) }, [
-				!__props.readonly ? (openBlock(), createElementBlock("div", _hoisted_1$37, [
-					createElementVNode("span", _hoisted_2$29, toDisplayString(__props.label), 1),
+				!__props.readonly ? (openBlock(), createElementBlock("div", _hoisted_1$41, [
+					createElementVNode("span", _hoisted_2$33, toDisplayString(__props.label), 1),
 					__props.editable && !__props.editing ? withDirectives((openBlock(), createElementBlock("button", {
 						key: 0,
 						type: "button",
@@ -1897,7 +1898,7 @@ var BlockFrame_default = /* @__PURE__ */ defineComponent({
 						"aria-label": t("block.edit", "Edit"),
 						onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
 						onClick: _cache[1] || (_cache[1] = ($event) => emit("edit"))
-					}, [createVNode(unref(Pencil), { size: 14 })], 40, _hoisted_3$29)), [[unref(vTooltip), t("block.edit", "Edit")]]) : createCommentVNode("", true),
+					}, [createVNode(unref(Pencil), { size: 14 })], 40, _hoisted_3$33)), [[unref(vTooltip), t("block.edit", "Edit")]]) : createCommentVNode("", true),
 					__props.copyText ? withDirectives((openBlock(), createElementBlock("button", {
 						key: 1,
 						type: "button",
@@ -1905,7 +1906,7 @@ var BlockFrame_default = /* @__PURE__ */ defineComponent({
 						"aria-label": t("block.copy", "Copy"),
 						onMousedown: _cache[2] || (_cache[2] = withModifiers(() => {}, ["prevent"])),
 						onClick: copy
-					}, [createVNode(unref(Copy), { size: 14 })], 40, _hoisted_4$26)), [[unref(vTooltip), t("block.copy", "Copy")]]) : createCommentVNode("", true),
+					}, [createVNode(unref(Copy), { size: 14 })], 40, _hoisted_4$30)), [[unref(vTooltip), t("block.copy", "Copy")]]) : createCommentVNode("", true),
 					__props.deletable ? withDirectives((openBlock(), createElementBlock("button", {
 						key: 2,
 						type: "button",
@@ -1913,7 +1914,7 @@ var BlockFrame_default = /* @__PURE__ */ defineComponent({
 						"aria-label": t("block.delete", "Delete"),
 						onMousedown: _cache[3] || (_cache[3] = withModifiers(() => {}, ["prevent"])),
 						onClick: _cache[4] || (_cache[4] = ($event) => emit("delete"))
-					}, [createVNode(unref(Trash2), { size: 14 })], 40, _hoisted_5$24)), [[unref(vTooltip), t("block.delete", "Delete")]]) : createCommentVNode("", true),
+					}, [createVNode(unref(Trash2), { size: 14 })], 40, _hoisted_5$28)), [[unref(vTooltip), t("block.delete", "Delete")]]) : createCommentVNode("", true),
 					_ctx.$slots.menu ? withDirectives((openBlock(), createElementBlock("button", {
 						key: 3,
 						type: "button",
@@ -1922,9 +1923,9 @@ var BlockFrame_default = /* @__PURE__ */ defineComponent({
 						"aria-label": t("block.more", "More"),
 						onMousedown: _cache[5] || (_cache[5] = withModifiers(() => {}, ["prevent"])),
 						onClick: _cache[6] || (_cache[6] = ($event) => emit("more", $event))
-					}, [createVNode(unref(Ellipsis), { size: 14 })], 40, _hoisted_6$18)), [[unref(vTooltip), t("block.more", "More")]]) : createCommentVNode("", true)
+					}, [createVNode(unref(Ellipsis), { size: 14 })], 40, _hoisted_6$23)), [[unref(vTooltip), t("block.more", "More")]]) : createCommentVNode("", true)
 				])) : createCommentVNode("", true),
-				createElementVNode("div", _hoisted_7$14, [renderSlot(_ctx.$slots, "default")]),
+				createElementVNode("div", _hoisted_7$18, [renderSlot(_ctx.$slots, "default")]),
 				renderSlot(_ctx.$slots, "menu")
 			], 2);
 		};
@@ -2419,7 +2420,7 @@ function convertRun(reg, state, run, target, selectAll = false) {
 	return tr.scrollIntoView();
 }
 // src/components/ConvertItems.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$36 = ["data-convert", "onClick"];
+var _hoisted_1$40 = ["data-convert", "onClick"];
 // src/components/ConvertItems.vue
 var ConvertItems_default = /* @__PURE__ */ defineComponent({
 	__name: "ConvertItems",
@@ -2446,13 +2447,13 @@ var ConvertItems_default = /* @__PURE__ */ defineComponent({
 					class: "wy-menu-icon",
 					size: 16,
 					"aria-hidden": "true"
-				})) : createCommentVNode("", true), createElementVNode("span", null, toDisplayString(label(target)), 1)], 40, _hoisted_1$36);
+				})) : createCommentVNode("", true), createElementVNode("span", null, toDisplayString(label(target)), 1)], 40, _hoisted_1$40);
 			}), 128);
 		};
 	}
 });
 // src/blocks/BlockMenu.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$35 = { class: "wy-menu-heading" };
+var _hoisted_1$39 = { class: "wy-menu-heading" };
 // src/blocks/BlockMenu.vue
 var BlockMenu_default = /* @__PURE__ */ defineComponent({
 	__name: "BlockMenu",
@@ -2513,7 +2514,7 @@ var BlockMenu_default = /* @__PURE__ */ defineComponent({
 				contenteditable: "false",
 				"data-block-portal": "",
 				onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["stop"]))
-			}, [renderSlot(_ctx.$slots, "default"), targets.value.length ? (openBlock(), createElementBlock(Fragment$1, { key: 0 }, [createElementVNode("div", _hoisted_1$35, toDisplayString(title.value), 1), createVNode(ConvertItems_default, {
+			}, [renderSlot(_ctx.$slots, "default"), targets.value.length ? (openBlock(), createElementBlock(Fragment$1, { key: 0 }, [createElementVNode("div", _hoisted_1$39, toDisplayString(title.value), 1), createVNode(ConvertItems_default, {
 				targets: targets.value,
 				onPick: pick
 			}, null, 8, ["targets"])], 64)) : createCommentVNode("", true)], 544)) : createCommentVNode("", true);
@@ -2521,16 +2522,16 @@ var BlockMenu_default = /* @__PURE__ */ defineComponent({
 	}
 });
 // src/components/SlashMenu.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$34 = ["aria-label"];
-var _hoisted_2$28 = {
+var _hoisted_1$38 = ["aria-label"];
+var _hoisted_2$32 = {
 	key: 0,
 	class: "wy-menu-empty"
 };
-var _hoisted_3$28 = {
+var _hoisted_3$32 = {
 	class: "wy-menu-heading",
 	role: "presentation"
 };
-var _hoisted_4$25 = [
+var _hoisted_4$29 = [
 	"aria-selected",
 	"aria-disabled",
 	"title",
@@ -2538,9 +2539,9 @@ var _hoisted_4$25 = [
 	"onMouseenter",
 	"onClick"
 ];
-var _hoisted_5$23 = { class: "wy-slash-text" };
-var _hoisted_6$17 = { class: "wy-slash-label" };
-var _hoisted_7$13 = {
+var _hoisted_5$27 = { class: "wy-slash-text" };
+var _hoisted_6$22 = { class: "wy-slash-label" };
+var _hoisted_7$17 = {
 	key: 0,
 	class: "wy-slash-desc"
 };
@@ -2614,13 +2615,13 @@ var SlashMenu_default = /* @__PURE__ */ defineComponent({
 				class: "wy-menu wy-slash",
 				role: "listbox",
 				"aria-label": __props.t("slash.title")
-			}, [__props.items.length === 0 ? (openBlock(), createElementBlock("div", _hoisted_2$28, toDisplayString(__props.t("slash.empty")), 1)) : (openBlock(), createElementBlock("div", {
+			}, [__props.items.length === 0 ? (openBlock(), createElementBlock("div", _hoisted_2$32, toDisplayString(__props.t("slash.empty")), 1)) : (openBlock(), createElementBlock("div", {
 				key: 1,
 				ref_key: "list",
 				ref: list,
 				class: "wy-slash-list"
 			}, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(groups.value, (g) => {
-				return openBlock(), createElementBlock(Fragment$1, { key: g.group }, [createElementVNode("div", _hoisted_3$28, toDisplayString(__props.groupLabel(g.group)), 1), (openBlock(true), createElementBlock(Fragment$1, null, renderList(g.items, ({ item, index }) => {
+				return openBlock(), createElementBlock(Fragment$1, { key: g.group }, [createElementVNode("div", _hoisted_3$32, toDisplayString(__props.groupLabel(g.group)), 1), (openBlock(true), createElementBlock(Fragment$1, null, renderList(g.items, ({ item, index }) => {
 					return openBlock(), createElementBlock("button", {
 						key: item.id,
 						type: "button",
@@ -2638,9 +2639,9 @@ var SlashMenu_default = /* @__PURE__ */ defineComponent({
 						class: "wy-menu-icon",
 						size: 18,
 						"aria-hidden": "true"
-					})) : createCommentVNode("", true), createElementVNode("span", _hoisted_5$23, [createElementVNode("span", _hoisted_6$17, toDisplayString(item.label), 1), item.description ? (openBlock(), createElementBlock("span", _hoisted_7$13, toDisplayString(item.description), 1)) : createCommentVNode("", true)])], 42, _hoisted_4$25);
+					})) : createCommentVNode("", true), createElementVNode("span", _hoisted_5$27, [createElementVNode("span", _hoisted_6$22, toDisplayString(item.label), 1), item.description ? (openBlock(), createElementBlock("span", _hoisted_7$17, toDisplayString(item.description), 1)) : createCommentVNode("", true)])], 42, _hoisted_4$29);
 				}), 128))], 64);
-			}), 128))], 512))], 8, _hoisted_1$34);
+			}), 128))], 512))], 8, _hoisted_1$38);
 		};
 	}
 });
@@ -3155,7 +3156,7 @@ function useBlockNode(props, opts = {}) {
 	};
 }
 // src/nodes/ColumnsView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$33 = ["title"];
+var _hoisted_1$37 = ["title"];
 // src/nodes/ColumnsView.vue
 var ColumnsView_default = /* @__PURE__ */ defineComponent({
 	__name: "ColumnsView",
@@ -3278,7 +3279,7 @@ var ColumnsView_default = /* @__PURE__ */ defineComponent({
 							}, [createVNode(unref(Minus), {
 								class: "wy-menu-icon",
 								size: 16
-							}), createTextVNode(toDisplayString(unref(t)("columns.remove")), 1)], 8, _hoisted_1$33),
+							}), createTextVNode(toDisplayString(unref(t)("columns.remove")), 1)], 8, _hoisted_1$37),
 							sized.value ? (openBlock(), createElementBlock("button", {
 								key: 0,
 								type: "button",
@@ -3617,25 +3618,25 @@ function resolveOnce(services, href) {
 	return result;
 }
 // src/nodes/BookmarkView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$32 = [
+var _hoisted_1$36 = [
 	"placeholder",
 	"aria-label",
 	"readonly",
 	"onKeydown"
 ];
-var _hoisted_2$27 = ["disabled"];
-var _hoisted_3$27 = ["href"];
-var _hoisted_4$24 = { class: "wy-bookmark-text" };
-var _hoisted_5$22 = { class: "wy-bookmark-title" };
-var _hoisted_6$16 = {
+var _hoisted_2$31 = ["disabled"];
+var _hoisted_3$31 = ["href"];
+var _hoisted_4$28 = { class: "wy-bookmark-text" };
+var _hoisted_5$26 = { class: "wy-bookmark-title" };
+var _hoisted_6$21 = {
 	key: 0,
 	class: "wy-bookmark-desc"
 };
-var _hoisted_7$12 = { class: "wy-bookmark-url" };
-var _hoisted_8$11 = ["src"];
-var _hoisted_9$9 = ["src"];
-var _hoisted_10$8 = ["disabled"];
-var _hoisted_11$6 = ["href"];
+var _hoisted_7$16 = { class: "wy-bookmark-url" };
+var _hoisted_8$15 = ["src"];
+var _hoisted_9$14 = ["src"];
+var _hoisted_10$12 = ["disabled"];
+var _hoisted_11$8 = ["href"];
 // src/nodes/BookmarkView.vue
 var BookmarkView_default = /* @__PURE__ */ defineComponent({
 	__name: "BookmarkView",
@@ -3758,7 +3759,7 @@ var BookmarkView_default = /* @__PURE__ */ defineComponent({
 							}, [createVNode(unref(RefreshCw), {
 								class: "wy-menu-icon",
 								size: 16
-							}), createTextVNode(toDisplayString(unref(t)("bookmark.refresh")), 1)], 8, _hoisted_10$8)) : createCommentVNode("", true),
+							}), createTextVNode(toDisplayString(unref(t)("bookmark.refresh")), 1)], 8, _hoisted_10$12)) : createCommentVNode("", true),
 							a.value.url ? (openBlock(), createElementBlock("a", {
 								key: 2,
 								class: "wy-menu-item",
@@ -3770,7 +3771,7 @@ var BookmarkView_default = /* @__PURE__ */ defineComponent({
 							}, [createVNode(unref(ExternalLink), {
 								class: "wy-menu-icon",
 								size: 16
-							}), createTextVNode(toDisplayString(unref(t)("bookmark.open")), 1)], 8, _hoisted_11$6)) : createCommentVNode("", true)
+							}), createTextVNode(toDisplayString(unref(t)("bookmark.open")), 1)], 8, _hoisted_11$8)) : createCommentVNode("", true)
 						]),
 						_: 1
 					}, 8, ["open"])]),
@@ -3794,11 +3795,11 @@ var BookmarkView_default = /* @__PURE__ */ defineComponent({
 						"aria-label": unref(t)("bookmark.url"),
 						readonly: unref(readonly),
 						onKeydown: withKeys(withModifiers(cancel, ["prevent", "stop"]), ["esc"])
-					}, null, 40, _hoisted_1$32), [[vModelText, draft.value]]), createElementVNode("button", {
+					}, null, 40, _hoisted_1$36), [[vModelText, draft.value]]), createElementVNode("button", {
 						type: "submit",
 						class: "wy-btn is-primary",
 						disabled: !unref(loneUrl)(unref(normalizeHref)(draft.value))
-					}, toDisplayString(unref(t)("bookmark.create")), 9, _hoisted_2$27)], 32)) : (openBlock(), createElementBlock("a", {
+					}, toDisplayString(unref(t)("bookmark.create")), 9, _hoisted_2$31)], 32)) : (openBlock(), createElementBlock("a", {
 						key: 1,
 						class: normalizeClass(["wy-bookmark-card", { "is-loading": loading.value }]),
 						href: a.value.url,
@@ -3807,16 +3808,16 @@ var BookmarkView_default = /* @__PURE__ */ defineComponent({
 						contenteditable: "false",
 						draggable: "false",
 						onClick: open
-					}, [createElementVNode("span", _hoisted_4$24, [
-						createElementVNode("span", _hoisted_5$22, toDisplayString(loading.value && !a.value.title ? unref(t)("bookmark.loading") : title.value), 1),
-						a.value.description ? (openBlock(), createElementBlock("span", _hoisted_6$16, toDisplayString(a.value.description), 1)) : createCommentVNode("", true),
-						createElementVNode("span", _hoisted_7$12, [a.value.icon && !failedIcon.value ? (openBlock(), createElementBlock("img", {
+					}, [createElementVNode("span", _hoisted_4$28, [
+						createElementVNode("span", _hoisted_5$26, toDisplayString(loading.value && !a.value.title ? unref(t)("bookmark.loading") : title.value), 1),
+						a.value.description ? (openBlock(), createElementBlock("span", _hoisted_6$21, toDisplayString(a.value.description), 1)) : createCommentVNode("", true),
+						createElementVNode("span", _hoisted_7$16, [a.value.icon && !failedIcon.value ? (openBlock(), createElementBlock("img", {
 							key: 0,
 							class: "wy-bookmark-favicon",
 							src: a.value.icon,
 							alt: "",
 							onError: _cache[2] || (_cache[2] = ($event) => failedIcon.value = true)
-						}, null, 40, _hoisted_8$11)) : (openBlock(), createBlock(unref(Globe), {
+						}, null, 40, _hoisted_8$15)) : (openBlock(), createBlock(unref(Globe), {
 							key: 1,
 							size: 14,
 							"aria-hidden": "true"
@@ -3828,7 +3829,7 @@ var BookmarkView_default = /* @__PURE__ */ defineComponent({
 						alt: "",
 						loading: "lazy",
 						onError: _cache[3] || (_cache[3] = ($event) => failedImage.value = true)
-					}, null, 40, _hoisted_9$9)) : createCommentVNode("", true)], 10, _hoisted_3$27))]),
+					}, null, 40, _hoisted_9$14)) : createCommentVNode("", true)], 10, _hoisted_3$31))]),
 					_: 1
 				}, 8, [
 					"label",
@@ -3974,28 +3975,28 @@ var bookmarkExtension = {
 	}]
 };
 // src/nodes/EmbedView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$31 = [
+var _hoisted_1$35 = [
 	"placeholder",
 	"aria-label",
 	"readonly",
 	"onKeydown"
 ];
-var _hoisted_2$26 = ["disabled"];
-var _hoisted_3$26 = ["data-provider"];
-var _hoisted_4$23 = [
+var _hoisted_2$30 = ["disabled"];
+var _hoisted_3$30 = ["data-provider"];
+var _hoisted_4$27 = [
 	"src",
 	"sandbox",
 	"title"
 ];
-var _hoisted_5$21 = ["aria-label"];
-var _hoisted_6$15 = ["aria-label"];
-var _hoisted_7$11 = {
+var _hoisted_5$25 = ["aria-label"];
+var _hoisted_6$20 = ["aria-label"];
+var _hoisted_7$15 = {
 	key: 2,
 	class: "wy-embed-shield",
 	"aria-hidden": "true"
 };
-var _hoisted_8$10 = ["href"];
-var _hoisted_9$8 = ["href"];
+var _hoisted_8$14 = ["href"];
+var _hoisted_9$13 = ["href"];
 // src/nodes/EmbedView.vue
 var EmbedView_default = /* @__PURE__ */ defineComponent({
 	__name: "EmbedView",
@@ -4097,7 +4098,7 @@ var EmbedView_default = /* @__PURE__ */ defineComponent({
 							}, [createVNode(unref(ExternalLink), {
 								class: "wy-menu-icon",
 								size: 16
-							}), createTextVNode(toDisplayString(unref(t)("embed.open")), 1)], 8, _hoisted_9$8)) : createCommentVNode("", true),
+							}), createTextVNode(toDisplayString(unref(t)("embed.open")), 1)], 8, _hoisted_9$13)) : createCommentVNode("", true),
 							_ctx.node.attrs.height && !unref(readonly) ? (openBlock(), createElementBlock("button", {
 								key: 2,
 								type: "button",
@@ -4128,11 +4129,11 @@ var EmbedView_default = /* @__PURE__ */ defineComponent({
 						"aria-label": unref(t)("embed.url"),
 						readonly: unref(readonly),
 						onKeydown: withKeys(withModifiers(cancel, ["prevent", "stop"]), ["esc"])
-					}, null, 40, _hoisted_1$31), [[vModelText, draft.value]]), createElementVNode("button", {
+					}, null, 40, _hoisted_1$35), [[vModelText, draft.value]]), createElementVNode("button", {
 						type: "submit",
 						class: "wy-btn is-primary",
 						disabled: !unref(embedFor)(unref(normalizeHref)(draft.value))
-					}, toDisplayString(unref(t)("embed.create")), 9, _hoisted_2$26)], 32)) : target.value ? (openBlock(), createElementBlock("div", {
+					}, toDisplayString(unref(t)("embed.create")), 9, _hoisted_2$30)], 32)) : target.value ? (openBlock(), createElementBlock("div", {
 						key: 1,
 						class: "wy-embed",
 						"data-provider": provider.value,
@@ -4147,7 +4148,7 @@ var EmbedView_default = /* @__PURE__ */ defineComponent({
 							referrerpolicy: "strict-origin-when-cross-origin",
 							loading: "lazy",
 							title: unref(t)(`embed.providers.${provider.value}`)
-						}, null, 14, _hoisted_4$23),
+						}, null, 14, _hoisted_4$27),
 						!interactive.value ? (openBlock(), createElementBlock("button", {
 							key: 0,
 							type: "button",
@@ -4155,7 +4156,7 @@ var EmbedView_default = /* @__PURE__ */ defineComponent({
 							"aria-label": unref(t)("embed.interact"),
 							onMousedown: _cache[2] || (_cache[2] = withModifiers(() => {}, ["prevent"])),
 							onClick: select
-						}, null, 40, _hoisted_5$21)) : createCommentVNode("", true),
+						}, null, 40, _hoisted_5$25)) : createCommentVNode("", true),
 						!unref(readonly) ? withDirectives((openBlock(), createElementBlock("div", {
 							key: 1,
 							class: "wy-embed-resize",
@@ -4166,16 +4167,16 @@ var EmbedView_default = /* @__PURE__ */ defineComponent({
 							onPointermove: onResizeMove,
 							onPointerup: onResizeUp,
 							onPointercancel: onResizeUp
-						}, null, 40, _hoisted_6$15)), [[unref(vTooltip), unref(t)("embed.resize")]]) : createCommentVNode("", true),
-						live.value !== null ? (openBlock(), createElementBlock("div", _hoisted_7$11)) : createCommentVNode("", true)
-					], 8, _hoisted_3$26)) : (openBlock(), createElementBlock("a", {
+						}, null, 40, _hoisted_6$20)), [[unref(vTooltip), unref(t)("embed.resize")]]) : createCommentVNode("", true),
+						live.value !== null ? (openBlock(), createElementBlock("div", _hoisted_7$15)) : createCommentVNode("", true)
+					], 8, _hoisted_3$30)) : (openBlock(), createElementBlock("a", {
 						key: 2,
 						class: "wy-embed-fallback",
 						href: url.value,
 						target: "_blank",
 						rel: "noopener noreferrer",
 						contenteditable: "false"
-					}, toDisplayString(url.value), 9, _hoisted_8$10))]),
+					}, toDisplayString(url.value), 9, _hoisted_8$14))]),
 					_: 1
 				}, 8, [
 					"label",
@@ -4315,15 +4316,15 @@ var embedExtension = {
 	}]
 };
 // src/components/PalettePicker.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$30 = { class: "wy-palette" };
-var _hoisted_2$25 = { class: "wy-menu-heading" };
-var _hoisted_3$25 = ["aria-label"];
-var _hoisted_4$22 = [
+var _hoisted_1$34 = { class: "wy-palette" };
+var _hoisted_2$29 = { class: "wy-menu-heading" };
+var _hoisted_3$29 = ["aria-label"];
+var _hoisted_4$26 = [
 	"aria-label",
 	"aria-pressed",
 	"onClick"
 ];
-var _hoisted_5$20 = {
+var _hoisted_5$24 = {
 	key: 1,
 	"aria-hidden": "true"
 };
@@ -4351,8 +4352,8 @@ var PalettePicker_default = /* @__PURE__ */ defineComponent({
 		}] : []];
 		const name = (token) => props.t(`palette.${token.replace(/_bg$/, "")}`);
 		return (_ctx, _cache) => {
-			return openBlock(), createElementBlock("div", _hoisted_1$30, [(openBlock(), createElementBlock(Fragment$1, null, renderList(rows, (row) => {
-				return openBlock(), createElementBlock(Fragment$1, { key: row.heading }, [createElementVNode("div", _hoisted_2$25, toDisplayString(__props.t(row.heading)), 1), createElementVNode("div", {
+			return openBlock(), createElementBlock("div", _hoisted_1$34, [(openBlock(), createElementBlock(Fragment$1, null, renderList(rows, (row) => {
+				return openBlock(), createElementBlock(Fragment$1, { key: row.heading }, [createElementVNode("div", _hoisted_2$29, toDisplayString(__props.t(row.heading)), 1), createElementVNode("div", {
 					class: "wy-palette-row",
 					role: "group",
 					"aria-label": __props.t(row.heading)
@@ -4369,8 +4370,8 @@ var PalettePicker_default = /* @__PURE__ */ defineComponent({
 					}, [token === __props.value ? (openBlock(), createBlock(unref(Check), {
 						key: 0,
 						size: 14
-					})) : !token.endsWith("_bg") ? (openBlock(), createElementBlock("span", _hoisted_5$20, "A")) : createCommentVNode("", true)], 46, _hoisted_4$22)), [[unref(vTooltip), name(token)]]);
-				}), 128))], 8, _hoisted_3$25)], 64);
+					})) : !token.endsWith("_bg") ? (openBlock(), createElementBlock("span", _hoisted_5$24, "A")) : createCommentVNode("", true)], 46, _hoisted_4$26)), [[unref(vTooltip), name(token)]]);
+				}), 128))], 8, _hoisted_3$29)], 64);
 			}), 64)), __props.value ? (openBlock(), createElementBlock("button", {
 				key: 0,
 				type: "button",
@@ -4382,12 +4383,12 @@ var PalettePicker_default = /* @__PURE__ */ defineComponent({
 	}
 });
 // src/nodes/TocView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$29 = ["aria-label"];
-var _hoisted_2$24 = {
+var _hoisted_1$33 = ["aria-label"];
+var _hoisted_2$28 = {
 	key: 0,
 	class: "wy-toc-empty"
 };
-var _hoisted_3$24 = ["href", "onClick"];
+var _hoisted_3$28 = ["href", "onClick"];
 // src/nodes/TocView.vue
 var TocView_default = /* @__PURE__ */ defineComponent({
 	__name: "TocView",
@@ -4448,7 +4449,7 @@ var TocView_default = /* @__PURE__ */ defineComponent({
 						style: normalizeStyle(style.value),
 						"aria-label": unref(t)("toc.label"),
 						contenteditable: "false"
-					}, [!entries.value.length ? (openBlock(), createElementBlock("p", _hoisted_2$24, toDisplayString(unref(t)("toc.empty")), 1)) : createCommentVNode("", true), (openBlock(true), createElementBlock(Fragment$1, null, renderList(entries.value, (e) => {
+					}, [!entries.value.length ? (openBlock(), createElementBlock("p", _hoisted_2$28, toDisplayString(unref(t)("toc.empty")), 1)) : createCommentVNode("", true), (openBlock(true), createElementBlock(Fragment$1, null, renderList(entries.value, (e) => {
 						return openBlock(), createElementBlock("a", {
 							key: e.pos,
 							class: "wy-toc-item",
@@ -4456,8 +4457,8 @@ var TocView_default = /* @__PURE__ */ defineComponent({
 							style: normalizeStyle({ "--wy-toc-depth": e.level - top.value }),
 							onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
 							onClick: ($event) => go(e, $event)
-						}, toDisplayString(e.text), 45, _hoisted_3$24);
-					}), 128))], 14, _hoisted_1$29)]),
+						}, toDisplayString(e.text), 45, _hoisted_3$28);
+					}), 128))], 14, _hoisted_1$33)]),
 					_: 1
 				}, 8, [
 					"label",
@@ -4547,14 +4548,42 @@ var tocExtension = {
 		run: (c) => c.insert("tableOfContents", {})
 	}]
 };
+// src/blocks/InlineChip.vue
+var InlineChip_default = /* @__PURE__ */ defineComponent({
+	__name: "InlineChip",
+	props: {
+		selected: {
+			type: Boolean,
+			default: false
+		},
+		editing: {
+			type: Boolean,
+			default: false
+		}
+	},
+	setup(__props) {
+		return (_ctx, _cache) => {
+			return openBlock(), createBlock(unref(NodeViewWrapper), {
+				as: "span",
+				class: normalizeClass(["wy-inline-atom wy-chip-atom", {
+					"is-selected": __props.selected,
+					"is-editing": __props.editing
+				}])
+			}, {
+				default: withCtx(() => [renderSlot(_ctx.$slots, "default")]),
+				_: 3
+			}, 8, ["class"]);
+		};
+	}
+});
 // src/nodes/PageLinkView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$28 = ["href"];
-var _hoisted_2$23 = {
+var _hoisted_1$32 = ["href"];
+var _hoisted_2$27 = {
 	class: "wy-page-link-icon",
 	"aria-hidden": "true"
 };
-var _hoisted_3$23 = ["src"];
-var _hoisted_4$21 = { class: "wy-page-link-title" };
+var _hoisted_3$27 = ["src"];
+var _hoisted_4$25 = { class: "wy-page-link-title" };
 // src/nodes/PageLinkView.vue
 var PageLinkView_default = /* @__PURE__ */ defineComponent({
 	__name: "PageLinkView",
@@ -4563,106 +4592,547 @@ var PageLinkView_default = /* @__PURE__ */ defineComponent({
 		const props = __props;
 		const ctx = contextOf(props.editor);
 		const t = ctx.t;
-		const { selected, update, remove, copyText, readonly } = useBlockNode(props);
-		const menu = ref(false);
 		const resolved = ref(null);
-		const href = computed(() => props.node.attrs.href ?? "");
+		const href = computed(() => pageTarget(String(props.node.attrs.href ?? ""), ctx.config.base.pageHref));
 		const title = computed(() => resolved.value?.title || props.node.attrs.title || href.value || t("pageLink.untitled"));
 		const icon = computed(() => resolved.value?.icon || props.node.attrs.icon || "");
 		const isImage = computed(() => /^(https?:|\/|data:image\/|blob:)/.test(icon.value));
-		const color = computed(() => props.node.attrs.color ?? null);
-		const style = computed(() => {
-			const c = color.value;
-			if (!c) return void 0;
-			return c.endsWith("_bg") ? { background: paletteCss(c) } : { color: paletteCss(c) };
-		});
 		watch(href, async (h) => {
 			resolved.value = null;
 			const r = await resolveOnce(ctx.services, h);
 			if (h === href.value) resolved.value = r;
 		}, { immediate: true });
 		function open(e) {
-			followLink(ctx.services, href.value, e, true);
+			followLink(ctx.services, href.value, e, href.value.startsWith("/"));
 		}
 		return (_ctx, _cache) => {
-			return openBlock(), createBlock(unref(NodeViewWrapper), {
-				as: "div",
-				class: "wy-node wy-node-page-link"
+			return openBlock(), createBlock(InlineChip_default, {
+				selected: _ctx.selected,
+				class: "wy-page-link-atom"
 			}, {
-				default: withCtx(() => [createVNode(BlockFrame_default, {
-					label: unref(t)("pageLink.label"),
-					selected: unref(selected),
-					readonly: unref(readonly),
-					"copy-text": unref(copyText),
-					editable: false,
-					onDelete: unref(remove),
-					onMore: _cache[2] || (_cache[2] = ($event) => menu.value = !menu.value)
-				}, {
-					menu: withCtx(() => [createVNode(BlockMenu_default, {
-						open: menu.value,
-						onClose: _cache[1] || (_cache[1] = ($event) => menu.value = false)
-					}, {
-						default: withCtx(() => [createVNode(PalettePicker_default, {
-							value: color.value,
-							t: unref(t),
-							onPick: _cache[0] || (_cache[0] = ($event) => unref(update)({ color: $event }))
-						}, null, 8, ["value", "t"])]),
-						_: 1
-					}, 8, ["open"])]),
-					default: withCtx(() => [createElementVNode("a", {
-						class: normalizeClass(["wy-page-link", { "has-bg": color.value?.endsWith("_bg") }]),
-						href: href.value,
-						style: normalizeStyle(style.value),
-						contenteditable: "false",
-						draggable: "false",
-						onClick: open
-					}, [createElementVNode("span", _hoisted_2$23, [icon.value && isImage.value ? (openBlock(), createElementBlock("img", {
-						key: 0,
-						src: icon.value,
-						alt: ""
-					}, null, 8, _hoisted_3$23)) : icon.value ? (openBlock(), createElementBlock(Fragment$1, { key: 1 }, [createTextVNode(toDisplayString(icon.value), 1)], 64)) : (openBlock(), createBlock(unref(FileText), {
-						key: 2,
-						size: 18
-					}))]), createElementVNode("span", _hoisted_4$21, toDisplayString(title.value), 1)], 14, _hoisted_1$28)]),
-					_: 1
-				}, 8, [
-					"label",
-					"selected",
-					"readonly",
-					"copy-text",
-					"onDelete"
-				])]),
+				default: withCtx(() => [createElementVNode("a", {
+					class: "wy-page-link",
+					href: href.value || void 0,
+					draggable: "false",
+					onClick: open
+				}, [createElementVNode("span", _hoisted_2$27, [icon.value && isImage.value ? (openBlock(), createElementBlock("img", {
+					key: 0,
+					src: icon.value,
+					alt: ""
+				}, null, 8, _hoisted_3$27)) : icon.value ? (openBlock(), createElementBlock(Fragment$1, { key: 1 }, [createTextVNode(toDisplayString(icon.value), 1)], 64)) : (openBlock(), createBlock(unref(FileText), {
+					key: 2,
+					size: 15
+				}))]), createElementVNode("span", _hoisted_4$25, toDisplayString(title.value), 1)], 8, _hoisted_1$32)]),
 				_: 1
-			});
+			}, 8, ["selected"]);
 		};
 	}
 });
+// src/inline.ts
+var kebab = (s) => s.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+function attrSpec(name, fallback) {
+	const data = `data-${kebab(name)}`;
+	return {
+		default: fallback,
+		parseHTML: (dom) => {
+			const v = dom.getAttribute(data);
+			if (v === null) return null;
+			if (typeof fallback === "boolean") return v === "true" || v === "";
+			if (typeof fallback === "number") return Number.isFinite(Number(v)) ? Number(v) : fallback;
+			return v;
+		},
+		renderHTML: (a) => {
+			const v = a[name];
+			return v === null || v === void 0 || v === "" || v === false ? {} : { [data]: String(v) };
+		}
+	};
+}
+/** markdown-it inline rule producing a `<token>` with the parsed attributes as meta */
+function inlineSyntaxRule(syntax, token) {
+	const re = new RegExp(syntax.pattern.source, syntax.pattern.flags.replace(/[gy]/g, "") + "y");
+	return (state, silent) => {
+		re.lastIndex = state.pos;
+		const m = re.exec(state.src);
+		if (!m || state.pos + m[0].length > state.posMax || m[0].includes("\n")) return false;
+		const attrs = syntax.parse(m);
+		if (!attrs) return false;
+		if (!silent) state.push(token, "span", 0).meta = attrs;
+		state.pos += m[0].length;
+		return true;
+	};
+}
+/** a caret next to a chip of `type` steps over it; Backspace and Delete remove it */
+function chipCommand(type, key) {
+	return ({ editor }) => {
+		const state = editor.state;
+		const dispatch = (tr) => editor.view.dispatch(tr);
+		const t = type();
+		const sel = state.selection;
+		const dir = key === "left" || key === "backspace" ? -1 : 1;
+		if (sel instanceof NodeSelection && sel.node.type === t) {
+			if (key === "backspace" || key === "delete") return false;
+			dispatch(state.tr.setSelection(TextSelection.create(state.doc, dir < 0 ? sel.from : sel.to)).scrollIntoView());
+			return true;
+		}
+		if (!(sel instanceof TextSelection) || !sel.empty) return false;
+		const $c = sel.$from;
+		const near = dir < 0 ? $c.nodeBefore : $c.nodeAfter;
+		if (!near || near.type !== t) return false;
+		const other = dir < 0 ? $c.pos - near.nodeSize : $c.pos + near.nodeSize;
+		if (key === "left" || key === "right") dispatch(state.tr.setSelection(TextSelection.create(state.doc, other)).scrollIntoView());
+		else dispatch(state.tr.delete(Math.min(other, $c.pos), Math.max(other, $c.pos)).scrollIntoView());
+		return true;
+	};
+}
+function chipKeymap(type) {
+	return {
+		ArrowLeft: chipCommand(type, "left"),
+		ArrowRight: chipCommand(type, "right"),
+		Backspace: chipCommand(type, "backspace"),
+		Delete: chipCommand(type, "delete")
+	};
+}
+/** the inline atom node of an inline block, without its markdown and view */
+function inlineBlockNode(o) {
+	const cls = o.html?.class ?? `wy-chip wy-${kebab(o.name)}`;
+	const type = kebab(o.name);
+	return Node$1.create({
+		name: o.name,
+		group: "inline",
+		inline: true,
+		atom: true,
+		selectable: true,
+		draggable: false,
+		addAttributes() {
+			return Object.fromEntries(Object.entries(o.attrs).map(([k, v]) => [k, attrSpec(k, v)]));
+		},
+		parseHTML() {
+			return [
+				{ tag: `span[data-type="${type}"]` },
+				{ tag: `a[data-type="${type}"]` },
+				...o.html?.parse ?? []
+			];
+		},
+		renderHTML({ node, HTMLAttributes }) {
+			const attrs = node.attrs;
+			const href = o.html?.href?.(attrs) ?? null;
+			const base = mergeAttributes({
+				"data-type": type,
+				class: typeof cls === "function" ? cls(attrs) : cls
+			}, HTMLAttributes);
+			return href ? [
+				"a",
+				mergeAttributes(base, { href }),
+				o.text(attrs)
+			] : [
+				"span",
+				base,
+				o.text(attrs)
+			];
+		},
+		renderText({ node }) {
+			return o.text(node.attrs);
+		},
+		addKeyboardShortcuts() {
+			return chipKeymap(() => this.editor.schema.nodes[o.name]);
+		}
+	});
+}
+/** the markdown-it token of an inline block, e.g. for `FenceContext.inline` */
+function inlineBlockToken(name) {
+	return `inline_${name}`;
+}
+/**
+* A chip-like inline atom: an inline node with a Vue view that a caret steps over like one character (arrow keys
+* move past it, Backspace and Delete remove it, text types before and after it) and an optional inline markdown
+* syntax. Base page links and mentions are built with it; hosts use it for their own chips.
+*/
+function defineInlineBlock(o) {
+	const token = inlineBlockToken(o.name);
+	const md = o.markdown;
+	return {
+		name: o.name,
+		formats: o.formats,
+		tiptap: [inlineBlockNode(o), ...o.tiptap ?? []],
+		nodeViews: o.view ? { [o.name]: o.view } : void 0,
+		markdown: md ? {
+			plugins: [(it) => it.inline.ruler.before(md.before ?? "link", token, inlineSyntaxRule(md, token))],
+			tokens: { [token]: {
+				node: o.name,
+				getAttrs: (tok) => ({ ...tok.meta })
+			} },
+			nodes: { [o.name](state, node) {
+				const attrs = node.attrs;
+				const out = md.serialize(attrs);
+				if (out !== null) state.write(out);
+				else state.text(o.text(attrs));
+			} }
+		} : void 0,
+		slash: o.slash,
+		messages: o.messages
+	};
+}
+/** keyboard behaviour of chips without the rest (for a host chip node built elsewhere) */
+function inlineChipKeys(name) {
+	return Extension.create({
+		name: `${name}ChipKeys`,
+		addKeyboardShortcuts() {
+			return chipKeymap(() => this.editor.schema.nodes[name]);
+		}
+	});
+}
+/** `[`, `]` and `\` escaped, line breaks as spaces: a label inside `@[…]` */
+function escapeChipLabel(label) {
+	return label.replace(/[\\[\]]/g, "\\$&").replace(/\s*\n\s*/g, " ");
+}
+/** the label of an `@[label](…)` match with its escapes resolved */
+function unescapeChipLabel(label) {
+	return label.replace(/\\(.)/g, "$1");
+}
+/** `@[label](target)`: group 1 the escaped label, group 2 the target (no spaces or parentheses) */
+var AT_LINK = /@\[((?:\\.|[^\\\]\n[])*)\]\(([^()\s\\]+)\)/;
+// src/core/mentions.ts
+var DATE_RE = /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2})?)?$/;
+var ID_RE = /^[^\s()\\]+$/;
+function isMentionDate(v) {
+	return typeof v === "string" && DATE_RE.test(v);
+}
+/** the target in `@[label](<target>)`: `user:<id>`, `date:<start>`, `date:<start>/<end>`, with `!` after a reminder's dates */
+function mentionTarget(a) {
+	if (a.kind === "date") {
+		if (!isMentionDate(a.start)) return null;
+		return `date:${a.start}${isMentionDate(a.end) ? `/${a.end}` : ""}${a.remind ? "!" : ""}`;
+	}
+	return a.kind === "user" && ID_RE.test(a.id) ? `user:${a.id}` : null;
+}
+function parseMentionTarget(target) {
+	const m = /^(user|date):(.+)$/.exec(target);
+	if (!m) return null;
+	const kind = m[1];
+	let value = m[2];
+	if (kind === "user") return ID_RE.test(value) ? {
+		kind,
+		id: value,
+		start: null,
+		end: null,
+		remind: false
+	} : null;
+	const remind = value.endsWith("!");
+	if (remind) value = value.slice(0, -1);
+	const [start, end, extra] = value.split("/");
+	if (extra !== void 0 || !isMentionDate(start) || end !== void 0 && !isMentionDate(end)) return null;
+	return {
+		kind,
+		id: "",
+		start,
+		end: end ?? null,
+		remind
+	};
+}
+function mentionMarkdown(a) {
+	const target = mentionTarget(a);
+	return target ? `@[${escapeChipLabel(a.label)}](${target})` : null;
+}
+function parseDate(v) {
+	const [d, t] = v.split("T");
+	const [y, m, day] = d.split("-").map(Number);
+	const [hh, mm] = (t ?? "0:0").split(":").map(Number);
+	return {
+		date: new Date(y, m - 1, day, hh, mm),
+		time: t !== void 0
+	};
+}
+/**
+* "May 1, 2024", "May 1, 2024, 10:00 AM" or a range of them joined by " → ", in the editor's locale. date and
+* time are formatted apart and joined by ", " with plain spaces: engines differ in how they join them ("at" in
+* Safari) and in the space before AM, and an importer has to write the same label
+*/
+function dateLabel(start, end, locale) {
+	const day = new Intl.DateTimeFormat(locale, { dateStyle: "medium" });
+	const hour = new Intl.DateTimeFormat(locale, { timeStyle: "short" });
+	const fmt = (v) => {
+		const { date, time } = parseDate(v);
+		return (time ? `${day.format(date)}, ${hour.format(date)}` : day.format(date)).replace(/\s/g, " ");
+	};
+	return end ? `${fmt(start)} → ${fmt(end)}` : fmt(start);
+}
+function isoDate(d) {
+	const pad = (n) => String(n).padStart(2, "0");
+	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+/** `/p/{id}` style template with the id filled in */
+function pageHref(template, id) {
+	return template.replace("{id}", encodeURIComponent(id));
+}
+// src/core/dates.ts
+var WEEKDAYS = {
+	sunday: 0,
+	sun: 0,
+	monday: 1,
+	mon: 1,
+	tuesday: 2,
+	tue: 2,
+	tues: 2,
+	wednesday: 3,
+	wed: 3,
+	thursday: 4,
+	thu: 4,
+	thur: 4,
+	thurs: 4,
+	friday: 5,
+	fri: 5,
+	saturday: 6,
+	sat: 6
+};
+var MONTHS = {
+	january: 0,
+	jan: 0,
+	february: 1,
+	feb: 1,
+	march: 2,
+	mar: 2,
+	april: 3,
+	apr: 3,
+	may: 4,
+	june: 5,
+	jun: 5,
+	july: 6,
+	jul: 6,
+	august: 7,
+	aug: 7,
+	september: 8,
+	sep: 8,
+	sept: 8,
+	october: 9,
+	oct: 9,
+	november: 10,
+	nov: 10,
+	december: 11,
+	dec: 11
+};
+var NUMBERS = {
+	a: 1,
+	an: 1,
+	one: 1,
+	two: 2,
+	three: 3,
+	four: 4,
+	five: 5,
+	six: 6,
+	seven: 7,
+	eight: 8,
+	nine: 9,
+	ten: 10
+};
+var TIME_RE = /(?:^| )(?:at )?(?:(noon|midnight)|(\d{1,2})(?::(\d{2}))? ?(am|pm|a\.m\.|p\.m\.)|(\d{1,2}):(\d{2}))(?= |$)/;
+var REMIND_RE = /^remind(?:er)?(?: me)?(?: (?:on|at))?(?: |$)/;
+function addDays(d, n) {
+	const out = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+	out.setDate(out.getDate() + n);
+	return out;
+}
+/** "HH:MM" of a time match, null when it is not a clock time */
+function clock(m) {
+	let h;
+	let min = 0;
+	if (m[1]) h = m[1] === "noon" ? 12 : 0;
+	else if (m[4]) {
+		h = Number(m[2]);
+		min = Number(m[3] ?? 0);
+		if (h < 1 || h > 12) return null;
+		const pm = m[4].startsWith("p");
+		h = h % 12 + (pm ? 12 : 0);
+	} else {
+		h = Number(m[5]);
+		min = Number(m[6]);
+	}
+	if (h > 23 || min > 59) return null;
+	return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+}
+/** the day a phrase names, null when it names none */
+function day(phrase, now) {
+	const today = addDays(now, 0);
+	if (phrase === "today" || phrase === "now") return today;
+	if (phrase === "tomorrow" || phrase === "tmr" || phrase === "tmrw") return addDays(now, 1);
+	if (phrase === "yesterday") return addDays(now, -1);
+	if (phrase === "next week") return addDays(now, (8 - today.getDay()) % 7 || 7);
+	let m = /^in (\d+|[a-z]+) (day|week|month)s?$/.exec(phrase);
+	if (m) {
+		const n = /^\d+$/.test(m[1]) ? Number(m[1]) : NUMBERS[m[1]];
+		if (n === void 0) return null;
+		if (m[2] === "month") return new Date(today.getFullYear(), today.getMonth() + n, today.getDate());
+		return addDays(now, m[2] === "week" ? n * 7 : n);
+	}
+	m = /^(?:(this|next|on) )?([a-z]+)$/.exec(phrase);
+	if (m && WEEKDAYS[m[2]] !== void 0) {
+		const want = WEEKDAYS[m[2]];
+		if (m[1] !== "next") return addDays(now, (want - today.getDay() + 7) % 7);
+		return addDays(addDays(now, -((today.getDay() + 6) % 7) + 7), (want + 6) % 7);
+	}
+	m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(phrase);
+	if (m) {
+		const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+		return d.getMonth() === Number(m[2]) - 1 ? d : null;
+	}
+	m = /^(?:([a-z]+) (\d{1,2})(?:st|nd|rd|th)?|(\d{1,2})(?:st|nd|rd|th)?(?: of)? ([a-z]+))(?:,? (\d{4}))?$/.exec(phrase);
+	if (m) {
+		const month = MONTHS[m[1] ?? m[4]];
+		const date = Number(m[2] ?? m[3]);
+		if (month === void 0) return null;
+		const year = m[5] ? Number(m[5]) : today.getFullYear();
+		let d = new Date(year, month, date);
+		if (d.getMonth() !== month) return null;
+		if (!m[5] && d < today) d = new Date(year + 1, month, date);
+		return d;
+	}
+	return null;
+}
+/** the date an English phrase names, with a time when it has one; "remind me" in front makes it a reminder */
+function parseNaturalDate(input, now = /* @__PURE__ */ new Date()) {
+	let s = input.trim().toLowerCase().replace(/\s+/g, " ").replace(/,(?= )/g, "");
+	const r = REMIND_RE.exec(s);
+	const remind = !!r;
+	if (r) s = s.slice(r[0].length);
+	let time = null;
+	const t = TIME_RE.exec(s);
+	if (t) {
+		time = clock(t);
+		if (!time) return null;
+		s = (s.slice(0, t.index) + s.slice(t.index + t[0].length)).trim();
+	}
+	s = s.replace(/^on /, "").replace(/ at$/, "").trim();
+	const d = s ? day(s, now) : time ? addDays(now, 0) : null;
+	if (!d) return null;
+	return {
+		start: time ? `${isoDate(d)}T${time}` : isoDate(d),
+		remind
+	};
+}
+var PHRASES = [
+	"today",
+	"tomorrow",
+	"yesterday",
+	"next week",
+	...Object.keys(WEEKDAYS).filter((w) => w.endsWith("day")),
+	"in 1 week"
+];
+/** phrases that start with what was typed, so "tom" offers tomorrow and "next f" next friday */
+function completeNaturalDate(input) {
+	const q = input.trim().toLowerCase().replace(/\s+/g, " ");
+	if (!q) return [];
+	const r = REMIND_RE.exec(q);
+	const rest = r ? q.slice(r[0].length) : q;
+	const prefix = r ? r[0].trimEnd() + " " : "";
+	return (rest.startsWith("next ") ? PHRASES.filter((p) => WEEKDAYS[p] !== void 0).map((p) => `next ${p}`) : PHRASES).filter((p) => p.startsWith(rest) && p !== rest).map((p) => prefix + p);
+}
+// src/editor/mentionItems.ts
+var MENTION_ICONS = {
+	user: User,
+	page: FileText,
+	date: CalendarDays
+};
+function mentionEntry(s, ctx) {
+	return {
+		key: `${s.kind}:${s.id || s.start || s.label}${s.remind ? "!" : ""}`,
+		title: s.label,
+		detail: s.detail,
+		icon: s.icon || (s.remind ? Bell : MENTION_ICONS[s.kind]),
+		group: ctx.t(s.remind ? "mention.groups.reminder" : `mention.groups.${s.kind}`),
+		suggestion: s
+	};
+}
+var MAX_DATES = 5;
+/**
+* dates the query names. empty: today, tomorrow and yesterday. otherwise the parsed phrase ("next friday 9am",
+* "remind me tomorrow", "2024-05-01"), the translated day names it starts and the English phrases it starts
+*/
+function dateSuggestions(query, ctx, now = /* @__PURE__ */ new Date()) {
+	const q = query.trim().replace(/\s+/g, " ");
+	const lower = q.toLowerCase();
+	const out = [];
+	const seen = /* @__PURE__ */ new Set();
+	const add = (start, remind, detail) => {
+		const key = start + (remind ? "!" : "");
+		if (seen.has(key)) return;
+		seen.add(key);
+		out.push({
+			kind: "date",
+			id: "",
+			label: dateLabel(start, null, ctx.locale),
+			detail: remind ? ctx.t("mention.reminder") : detail,
+			start,
+			remind
+		});
+	};
+	const day = (offset) => {
+		const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+		d.setDate(d.getDate() + offset);
+		return isoDate(d);
+	};
+	const named = [
+		{
+			name: ctx.t("mention.today"),
+			start: day(0)
+		},
+		{
+			name: ctx.t("mention.tomorrow"),
+			start: day(1)
+		},
+		{
+			name: ctx.t("mention.yesterday"),
+			start: day(-1)
+		}
+	];
+	const parsed = q ? parseNaturalDate(q, now) : null;
+	if (parsed) add(parsed.start, parsed.remind, q.charAt(0).toUpperCase() + q.slice(1));
+	for (const n of named) if (n.name.toLowerCase().startsWith(lower)) add(n.start, false, n.name);
+	for (const phrase of completeNaturalDate(q)) {
+		const p = parseNaturalDate(phrase, now);
+		if (p) add(p.start, p.remind, phrase.charAt(0).toUpperCase() + phrase.slice(1));
+	}
+	return out.slice(0, MAX_DATES);
+}
+/** host results (users and pages) after the matching dates; aborted searches resolve to [] */
+async function searchMentions(services, query, kind, signal, ctx) {
+	const dates = kind === void 0 || kind === "date" ? dateSuggestions(query, ctx) : [];
+	if (kind === "date" || !services.searchMentions) return dates;
+	try {
+		const hits = (await services.searchMentions(query, kind, signal)).filter((s) => !kind || s.kind === kind).slice(0, 12);
+		return signal.aborted ? [] : [
+			...hits.filter((s) => s.kind === "user"),
+			...hits.filter((s) => s.kind === "page"),
+			...dates
+		];
+	} catch {
+		return signal.aborted ? [] : dates;
+	}
+}
 // src/components/SuggestionList.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$27 = ["aria-label", "aria-busy"];
-var _hoisted_2$22 = {
+var _hoisted_1$31 = ["aria-label", "aria-busy"];
+var _hoisted_2$26 = {
 	key: 0,
 	class: "wy-menu-heading",
 	role: "presentation"
 };
-var _hoisted_3$22 = [
+var _hoisted_3$26 = [
 	"aria-selected",
 	"data-index",
 	"onMouseenter",
 	"onClick"
 ];
-var _hoisted_4$20 = {
+var _hoisted_4$24 = {
 	class: "wy-suggest-icon",
 	"aria-hidden": "true"
 };
-var _hoisted_5$19 = ["src"];
-var _hoisted_6$14 = { key: 2 };
-var _hoisted_7$10 = { class: "wy-suggest-text" };
-var _hoisted_8$9 = { class: "wy-suggest-title" };
-var _hoisted_9$7 = {
+var _hoisted_5$23 = ["src"];
+var _hoisted_6$19 = { key: 2 };
+var _hoisted_7$14 = { class: "wy-suggest-text" };
+var _hoisted_8$13 = { class: "wy-suggest-title" };
+var _hoisted_9$12 = {
 	key: 0,
 	class: "wy-suggest-detail"
 };
-var _hoisted_10$7 = {
+var _hoisted_10$11 = {
 	key: 0,
 	class: "wy-menu-hint"
 };
@@ -4720,7 +5190,7 @@ var SuggestionList_default = /* @__PURE__ */ defineComponent({
 				"aria-label": __props.label || void 0,
 				"aria-busy": __props.loading || void 0
 			}, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(rows.value, ({ item, index, heading }) => {
-				return openBlock(), createElementBlock(Fragment$1, { key: item.key }, [heading ? (openBlock(), createElementBlock("div", _hoisted_2$22, toDisplayString(heading), 1)) : createCommentVNode("", true), createElementVNode("button", {
+				return openBlock(), createElementBlock(Fragment$1, { key: item.key }, [heading ? (openBlock(), createElementBlock("div", _hoisted_2$26, toDisplayString(heading), 1)) : createCommentVNode("", true), createElementVNode("button", {
 					type: "button",
 					role: "option",
 					class: normalizeClass(["wy-menu-item wy-suggest-item", { "is-active": index === active.value }]),
@@ -4729,20 +5199,20 @@ var SuggestionList_default = /* @__PURE__ */ defineComponent({
 					onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
 					onMouseenter: ($event) => active.value = index,
 					onClick: ($event) => emit("pick", item)
-				}, [createElementVNode("span", _hoisted_4$20, [item.icon && typeof item.icon !== "string" ? (openBlock(), createBlock(resolveDynamicComponent(item.icon), {
+				}, [createElementVNode("span", _hoisted_4$24, [item.icon && typeof item.icon !== "string" ? (openBlock(), createBlock(resolveDynamicComponent(item.icon), {
 					key: 0,
 					size: 18
 				})) : item.icon && isImage(item.icon) ? (openBlock(), createElementBlock("img", {
 					key: 1,
 					src: item.icon,
 					alt: ""
-				}, null, 8, _hoisted_5$19)) : item.icon ? (openBlock(), createElementBlock("span", _hoisted_6$14, toDisplayString(item.icon), 1)) : createCommentVNode("", true)]), createElementVNode("span", _hoisted_7$10, [createElementVNode("span", _hoisted_8$9, toDisplayString(item.title), 1), item.detail ? (openBlock(), createElementBlock("span", _hoisted_9$7, toDisplayString(item.detail), 1)) : createCommentVNode("", true)])], 42, _hoisted_3$22)], 64);
-			}), 128)), !__props.items.length && __props.empty ? (openBlock(), createElementBlock("p", _hoisted_10$7, toDisplayString(__props.empty), 1)) : createCommentVNode("", true)], 8, _hoisted_1$27);
+				}, null, 8, _hoisted_5$23)) : item.icon ? (openBlock(), createElementBlock("span", _hoisted_6$19, toDisplayString(item.icon), 1)) : createCommentVNode("", true)]), createElementVNode("span", _hoisted_7$14, [createElementVNode("span", _hoisted_8$13, toDisplayString(item.title), 1), item.detail ? (openBlock(), createElementBlock("span", _hoisted_9$12, toDisplayString(item.detail), 1)) : createCommentVNode("", true)])], 42, _hoisted_3$26)], 64);
+			}), 128)), !__props.items.length && __props.empty ? (openBlock(), createElementBlock("p", _hoisted_10$11, toDisplayString(__props.empty), 1)) : createCommentVNode("", true)], 8, _hoisted_1$31);
 		};
 	}
 });
 // src/components/PageSearch.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$26 = ["placeholder", "aria-label"];
+var _hoisted_1$30 = ["placeholder", "aria-label"];
 // src/components/PageSearch.vue
 var PageSearch_default = /* @__PURE__ */ defineComponent({
 	__name: "PageSearch",
@@ -4822,7 +5292,7 @@ var PageSearch_default = /* @__PURE__ */ defineComponent({
 				"aria-label": __props.label,
 				onInput: run,
 				onKeydown: onKey
-			}, null, 40, _hoisted_1$26), [[vModelText, query.value]]), createVNode(SuggestionList_default, {
+			}, null, 40, _hoisted_1$30), [[vModelText, query.value]]), createVNode(SuggestionList_default, {
 				ref_key: "list",
 				ref: list,
 				items: items.value,
@@ -4839,174 +5309,6 @@ var PageSearch_default = /* @__PURE__ */ defineComponent({
 		};
 	}
 });
-// src/core/mentions.ts
-var DATE_RE = /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2})?)?$/;
-var ID_RE = /^[^\s()\\]+$/;
-function isMentionDate(v) {
-	return typeof v === "string" && DATE_RE.test(v);
-}
-/** the target in `@[label](<target>)`: `user:<id>`, `page:<id>`, `date:<start>` or `date:<start>/<end>` */
-function mentionTarget(a) {
-	if (a.kind === "date") {
-		if (!isMentionDate(a.start)) return null;
-		return `date:${a.start}${isMentionDate(a.end) ? `/${a.end}` : ""}`;
-	}
-	return (a.kind === "user" || a.kind === "page") && ID_RE.test(a.id) ? `${a.kind}:${a.id}` : null;
-}
-function parseMentionTarget(target) {
-	const m = /^(user|page|date):(.+)$/.exec(target);
-	if (!m) return null;
-	const kind = m[1];
-	const value = m[2];
-	if (kind !== "date") return ID_RE.test(value) ? {
-		kind,
-		id: value,
-		start: null,
-		end: null
-	} : null;
-	const [start, end, extra] = value.split("/");
-	if (extra !== void 0 || !isMentionDate(start) || end !== void 0 && !isMentionDate(end)) return null;
-	return {
-		kind,
-		id: "",
-		start,
-		end: end ?? null
-	};
-}
-function escapeMentionLabel(label) {
-	return label.replace(/[\\[\]]/g, "\\$&").replace(/\s*\n\s*/g, " ");
-}
-function mentionMarkdown(a) {
-	const target = mentionTarget(a);
-	return target ? `@[${escapeMentionLabel(a.label)}](${target})` : null;
-}
-/** inline rule for `@[label](kind:value)`; must run before `link` */
-function mentionRule(state, silent) {
-	const src = state.src;
-	const at = state.pos;
-	if (src.charCodeAt(at) !== 64 || src.charCodeAt(at + 1) !== 91) return false;
-	let label = "";
-	let i = at + 2;
-	for (; i < state.posMax; i++) {
-		const ch = src[i];
-		if (ch === "\\" && i + 1 < state.posMax) {
-			label += src[++i];
-			continue;
-		}
-		if (ch === "]" || ch === "\n") break;
-		if (ch === "[") return false;
-		label += ch;
-	}
-	if (src[i] !== "]" || src[i + 1] !== "(") return false;
-	const close = src.indexOf(")", i + 2);
-	if (close < 0 || close > state.posMax) return false;
-	const parsed = parseMentionTarget(src.slice(i + 2, close));
-	if (!parsed) return false;
-	if (!silent) state.push("mention", "span", 0).meta = {
-		...parsed,
-		label
-	};
-	state.pos = close + 1;
-	return true;
-}
-function parseDate(v) {
-	const [d, t] = v.split("T");
-	const [y, m, day] = d.split("-").map(Number);
-	const [hh, mm] = (t ?? "0:0").split(":").map(Number);
-	return {
-		date: new Date(y, m - 1, day, hh, mm),
-		time: t !== void 0
-	};
-}
-/**
-* "May 1, 2024", "May 1, 2024, 10:00 AM" or a range of them joined by " → ", in the editor's locale. date and
-* time are formatted apart and joined by ", " with plain spaces: engines differ in how they join them ("at" in
-* Safari) and in the space before AM, and an importer has to write the same label
-*/
-function dateLabel(start, end, locale) {
-	const day = new Intl.DateTimeFormat(locale, { dateStyle: "medium" });
-	const hour = new Intl.DateTimeFormat(locale, { timeStyle: "short" });
-	const fmt = (v) => {
-		const { date, time } = parseDate(v);
-		return (time ? `${day.format(date)}, ${hour.format(date)}` : day.format(date)).replace(/\s/g, " ");
-	};
-	return end ? `${fmt(start)} → ${fmt(end)}` : fmt(start);
-}
-function isoDate(d) {
-	const pad = (n) => String(n).padStart(2, "0");
-	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-/** `/p/{id}` style template with the id filled in */
-function pageHref(template, id) {
-	return template.replace("{id}", encodeURIComponent(id));
-}
-// src/editor/mentionItems.ts
-var MENTION_ICONS = {
-	user: User,
-	page: FileText,
-	date: CalendarDays
-};
-function mentionEntry(s, ctx) {
-	return {
-		key: `${s.kind}:${s.id || s.start || s.label}`,
-		title: s.label,
-		detail: s.detail,
-		icon: s.icon || MENTION_ICONS[s.kind],
-		group: ctx.t(`mention.groups.${s.kind}`),
-		suggestion: s
-	};
-}
-/** today, tomorrow, yesterday and an ISO date typed as the query */
-function dateSuggestions(query, ctx) {
-	const q = query.trim().toLowerCase();
-	const day = (offset) => {
-		const d = /* @__PURE__ */ new Date();
-		d.setDate(d.getDate() + offset);
-		return isoDate(d);
-	};
-	const out = [
-		{
-			name: ctx.t("mention.today"),
-			start: day(0)
-		},
-		{
-			name: ctx.t("mention.tomorrow"),
-			start: day(1)
-		},
-		{
-			name: ctx.t("mention.yesterday"),
-			start: day(-1)
-		}
-	].filter((n) => !q || n.name.toLowerCase().startsWith(q)).map((n) => ({
-		kind: "date",
-		id: "",
-		label: dateLabel(n.start, null, ctx.locale),
-		detail: n.name,
-		start: n.start
-	}));
-	if (/^\d{4}-\d{2}-\d{2}$/.test(q) && !Number.isNaN(Date.parse(q))) out.unshift({
-		kind: "date",
-		id: "",
-		label: dateLabel(q, null, ctx.locale),
-		start: q
-	});
-	return out;
-}
-/** host results (users and pages) after the matching dates; aborted searches resolve to [] */
-async function searchMentions(services, query, kind, signal, ctx) {
-	const dates = kind === void 0 || kind === "date" ? dateSuggestions(query, ctx) : [];
-	if (kind === "date" || !services.searchMentions) return dates;
-	try {
-		const hits = (await services.searchMentions(query, kind, signal)).filter((s) => !kind || s.kind === kind).slice(0, 12);
-		return signal.aborted ? [] : [
-			...hits.filter((s) => s.kind === "user"),
-			...hits.filter((s) => s.kind === "page"),
-			...dates
-		];
-	} catch {
-		return signal.aborted ? [] : dates;
-	}
-}
 // src/editor/popup.ts
 /** a component floating at a caret rectangle, mounted in <body> like the slash menu */
 function openPopup(editor, component, props, rect, placement = "bottom-start") {
@@ -5064,138 +5366,144 @@ function caretRect(editor, pos) {
 		}
 	};
 }
-// src/editor/pageSearch.ts
+// src/editor/searchPopup.ts
 var current = null;
-/** "link to page": search pages and insert a pageLink block at `at` */
-function openPageSearch(editor, at) {
+/** a search field with results at the caret ("Link to page", "Mention a person", "Date or reminder") */
+function openSearch(editor, at, o) {
 	current?.close();
 	const ctx = contextOf(editor);
 	const close = () => {
 		current?.close();
 		current = null;
 	};
-	const pick = (entry) => {
-		const s = entry.suggestion;
-		close();
-		const href = s.href ?? pageHref(ctx.config.base.pageHref, s.id);
-		const pos = Math.min(at, editor.state.doc.content.size);
-		editor.chain().focus().setTextSelection(pos).run();
-		insertFresh(editor, "pageLink", {
-			href,
-			title: s.label,
-			icon: s.icon && !/^(https?:|\/|data:|blob:)/.test(s.icon) ? s.icon : ""
-		});
-	};
 	current = openPopup(editor, PageSearch_default, {
-		search: async (q, signal) => (await searchMentions(ctx.services, q, "page", signal, ctx)).map((s) => mentionEntry(s, ctx)),
-		placeholder: ctx.t("pageLink.searchPlaceholder"),
+		search: o.search,
+		placeholder: o.placeholder,
 		empty: ctx.t("mention.empty"),
 		searching: ctx.t("mention.searching"),
-		label: ctx.t("pageLink.search"),
-		onPick: pick,
+		label: o.label,
+		onPick: (entry) => {
+			close();
+			o.onPick(entry, Math.min(at, editor.state.doc.content.size));
+		},
 		onClose: () => {
 			close();
 			editor.commands.focus();
 		}
 	}, caretRect(editor, at));
 }
-var pageLinkExtension = {
-	name: "pageLink",
-	tiptap: [Node$1.create({
+// src/builtins/pageLink.ts
+/** a page link target in markdown: a path, an http(s) address or `page:<id>` */
+var PAGE_HREF = /^(?:\/(?!\/)|https?:\/\/|page:)/;
+/** `@[Title](href)`; the href percent encodes spaces and parentheses */
+function pageLinkMarkdown(a) {
+	const href = a.href.trim().replace(/[\s()\\]/g, (c) => c === "(" ? "%28" : c === ")" ? "%29" : encodeURIComponent(c));
+	return PAGE_HREF.test(href) ? `@[${escapeChipLabel(a.title || href)}](${href})` : null;
+}
+/** where a page link goes: `page:<id>` through `base.pageHref`, other addresses as they are */
+function pageTarget(href, template) {
+	return href.startsWith("page:") ? pageHref(template, href.slice(5)) : href;
+}
+/** an emoji icon of a search result; image icons are left to `resolveLink` */
+var emojiIcon = (icon) => icon && !/^(https?:|\/|data:|blob:)/.test(icon) ? icon : "";
+/** a page chip for a picked page at the caret, with a space after it when `space` */
+function insertPageLink(editor, s, range, space) {
+	const ctx = contextOf(editor);
+	const content = [{
+		type: "pageLink",
+		attrs: {
+			href: s.href ?? pageHref(ctx.config.base.pageHref, s.id),
+			title: s.label,
+			icon: emojiIcon(s.icon)
+		}
+	}, ...space ? [{
+		type: "text",
+		text: " "
+	}] : []];
+	editor.chain().focus().insertContentAt(range, content).run();
+}
+/** "Link to page": search pages and insert a page chip at `at` */
+function openPageSearch(editor, at) {
+	const ctx = contextOf(editor);
+	openSearch(editor, at, {
+		search: async (q, signal) => (await searchMentions(ctx.services, q, "page", signal, ctx)).map((s) => mentionEntry(s, ctx)),
+		placeholder: ctx.t("pageLink.searchPlaceholder"),
+		label: ctx.t("pageLink.search"),
+		onPick: (entry, pos) => insertPageLink(editor, entry.suggestion, {
+			from: pos,
+			to: pos
+		}, false)
+	});
+}
+function pageLinkExtension(base) {
+	const ext = defineInlineBlock({
 		name: "pageLink",
-		group: "block",
-		atom: true,
-		draggable: false,
-		selectable: true,
-		addAttributes() {
-			return {
-				href: stringAttr("href"),
-				title: stringAttr("title"),
-				icon: stringAttr("icon"),
-				color: paletteAttribute()
-			};
+		attrs: {
+			href: "",
+			title: "",
+			icon: ""
 		},
-		parseHTML() {
-			return [{ tag: "div[data-type=\"page-link\"]" }];
+		text: (a) => String(a.title || a.href || ""),
+		view: PageLinkView_default,
+		html: {
+			class: "wy-page-link",
+			href: (a) => pageTarget(String(a.href ?? ""), base.pageHref) || null,
+			parse: [{
+				tag: "div[data-type=\"page-link\"]",
+				priority: 60
+			}, {
+				tag: "a[data-type=\"mention\"][data-kind=\"page\"]",
+				priority: 60,
+				getAttrs: (dom) => ({
+					href: `page:${dom.getAttribute("data-id") ?? ""}`,
+					title: dom.getAttribute("data-label") ?? dom.textContent ?? ""
+				})
+			}]
 		},
-		renderHTML({ HTMLAttributes, node }) {
-			const { href, title, icon } = node.attrs;
-			const link = [
-				"a",
-				{
-					href,
-					class: "wy-page-link-anchor"
-				},
-				[
-					"span",
-					{
-						class: "wy-page-link-icon",
-						"aria-hidden": "true"
-					},
-					icon || "📄"
-				],
-				[
-					"span",
-					{ class: "wy-page-link-title" },
-					title || href
-				]
-			];
-			return [
-				"div",
-				mergeAttributes({
-					"data-type": "page-link",
-					class: "wy-page-link"
-				}, HTMLAttributes),
-				link
-			];
-		}
-	})],
-	nodeViews: { pageLink: PageLinkView_default },
-	markdown: {
-		fences: [{
-			kind: "page",
-			parse: (ctx) => {
-				const a = ctx.info.attrs;
-				ctx.atom("page_link", {
-					href: a.href ?? "",
-					title: a.title ?? "",
-					icon: a.icon ?? ""
-				});
+		markdown: {
+			pattern: AT_LINK,
+			parse: (m) => PAGE_HREF.test(m[2]) ? {
+				href: m[2],
+				title: unescapeChipLabel(m[1]),
+				icon: ""
+			} : null,
+			serialize: (a) => pageLinkMarkdown(a)
+		},
+		slash: [{
+			id: "pageLink",
+			group: "blocks",
+			rank: 45,
+			label: "",
+			icon: FileSymlink,
+			inline: true,
+			keywords: "link to page subpage mention",
+			enabled: (editor) => !!editor.storage.wysiwyg?.context?.services.searchMentions,
+			run: (c) => {
+				const at = c.range?.from ?? c.editor.state.selection.from;
+				c.clear();
+				openPageSearch(c.editor, at);
 			}
-		}],
-		tokens: { page_link: {
-			node: "pageLink",
-			getAttrs: (tok) => ({
-				href: tok.meta.href,
-				title: tok.meta.title,
-				icon: tok.meta.icon,
-				color: tok.meta.blockAttrs?.color ?? null
-			})
-		} },
-		nodes: { pageLink(state, node, _parent, _index, h) {
-			h.writeFence(state, node, formatInfo("page", {
-				href: infoUrl(node.attrs.href),
-				title: infoText(node.attrs.title),
-				icon: infoText(node.attrs.icon).replace(/\s/g, "")
-			}), "");
-			writeColorLine(state, node);
-		} }
-	},
-	slash: [{
-		id: "pageLink",
-		group: "blocks",
-		rank: 45,
-		label: "",
-		icon: FileSymlink,
-		keywords: "link to page subpage mention",
-		enabled: (editor) => !!editor.storage.wysiwyg?.context?.services.searchMentions,
-		run: (c) => {
-			const at = c.range?.from ?? c.editor.state.selection.from;
-			c.clear();
-			openPageSearch(c.editor, at);
+		}]
+	});
+	const legacy = {
+		kind: "page",
+		parse: (ctx) => {
+			const a = ctx.info.attrs;
+			ctx.inline(inlineBlockToken("pageLink"), {
+				href: a.href ?? "",
+				title: a.title ?? "",
+				icon: a.icon ?? ""
+			});
 		}
-	}]
-};
+	};
+	return {
+		...ext,
+		markdown: {
+			...ext.markdown,
+			fences: [legacy]
+		}
+	};
+}
 // src/components/AnchoredPopover.vue
 var AnchoredPopover_default = /* @__PURE__ */ defineComponent({
 	inheritAttrs: false,
@@ -5261,25 +5569,22 @@ var AnchoredPopover_default = /* @__PURE__ */ defineComponent({
 	}
 });
 // src/nodes/MentionView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$25 = ["href"];
-var _hoisted_2$21 = {
-	class: "wy-mention-icon",
-	"aria-hidden": "true"
-};
-var _hoisted_3$21 = ["title"];
-var _hoisted_4$19 = { class: "wy-field" };
-var _hoisted_5$18 = { class: "wy-label" };
-var _hoisted_6$13 = ["value"];
-var _hoisted_7$9 = { class: "wy-check" };
-var _hoisted_8$8 = ["checked"];
-var _hoisted_9$6 = ["value", "aria-label"];
-var _hoisted_10$6 = { class: "wy-check" };
-var _hoisted_11$5 = ["checked"];
-var _hoisted_12$5 = [
+var _hoisted_1$29 = ["title"];
+var _hoisted_2$25 = { class: "wy-field" };
+var _hoisted_3$25 = { class: "wy-label" };
+var _hoisted_4$23 = ["value"];
+var _hoisted_5$22 = { class: "wy-check" };
+var _hoisted_6$18 = ["checked"];
+var _hoisted_7$13 = ["value", "aria-label"];
+var _hoisted_8$12 = { class: "wy-check" };
+var _hoisted_9$11 = ["checked"];
+var _hoisted_10$10 = [
 	"value",
 	"min",
 	"aria-label"
 ];
+var _hoisted_11$7 = { class: "wy-check" };
+var _hoisted_12$7 = ["checked"];
 // src/nodes/MentionView.vue
 var MentionView_default = /* @__PURE__ */ defineComponent({
 	__name: "MentionView",
@@ -5291,19 +5596,18 @@ var MentionView_default = /* @__PURE__ */ defineComponent({
 		const { selected, editing, startEdit, finishEdit, update, readonly, onKeydown } = useBlockNode(props);
 		const anchor = ref(null);
 		const a = computed(() => props.node.attrs);
-		const href = computed(() => a.value.kind === "page" && a.value.id ? pageHref(ctx.config.base.pageHref, a.value.id) : "");
-		const resolved = ref(null);
-		const text = computed(() => a.value.kind === "page" && resolved.value?.title || mentionText(a.value, ctx.locale));
-		const icon = computed(() => /^(https?:|\/|data:|blob:)/.test(resolved.value?.icon ?? "") ? "" : resolved.value?.icon || "");
-		watch(href, async (h) => {
-			resolved.value = null;
-			const r = await resolveOnce(ctx.services, h);
-			if (h === href.value) resolved.value = r;
-		}, { immediate: true });
+		const text = computed(() => mentionText(a.value, ctx.locale));
 		const startDate = computed(() => (a.value.start ?? "").slice(0, 10));
 		const startTime = computed(() => (a.value.start ?? "").slice(11, 16));
 		const endDate = computed(() => (a.value.end ?? "").slice(0, 10));
 		const withTime = computed(() => (a.value.start ?? "").includes("T"));
+		const overdue = computed(() => {
+			if (!a.value.remind || !isMentionDate(a.value.start)) return false;
+			const [d, time] = a.value.start.split("T");
+			const [y, m, day] = d.split("-").map(Number);
+			const [hh, mm] = (time ?? "23:59").split(":").map(Number);
+			return new Date(y, m - 1, day, hh, mm) < /* @__PURE__ */ new Date();
+		});
 		/** date attributes and a fresh label in the editor's locale */
 		function setDate(next) {
 			const date = next.date ?? startDate.value;
@@ -5318,9 +5622,8 @@ var MentionView_default = /* @__PURE__ */ defineComponent({
 				label: dateLabel(start, end, ctx.locale)
 			});
 		}
-		function onClick(e) {
-			if (a.value.kind === "page" && href.value) followLink(ctx.services, href.value, e, true);
-			else if (a.value.kind === "date" && !readonly.value) startEdit();
+		function onClick() {
+			if (a.value.kind === "date" && !readonly.value) startEdit();
 		}
 		function onKey(e) {
 			if (e.key === "Enter") {
@@ -5329,55 +5632,49 @@ var MentionView_default = /* @__PURE__ */ defineComponent({
 			}
 		}
 		return (_ctx, _cache) => {
-			return openBlock(), createBlock(unref(NodeViewWrapper), {
-				as: "span",
-				class: normalizeClass(["wy-inline-atom wy-mention-atom", {
-					"is-selected": unref(selected),
-					"is-editing": unref(editing)
-				}])
+			return openBlock(), createBlock(InlineChip_default, {
+				selected: unref(selected),
+				editing: unref(editing),
+				class: "wy-mention-atom"
 			}, {
-				default: withCtx(() => [a.value.kind === "page" ? (openBlock(), createElementBlock("a", {
-					key: 0,
+				default: withCtx(() => [createElementVNode("span", {
 					ref_key: "anchor",
 					ref: anchor,
-					class: "wy-mention is-page",
-					href: href.value || void 0,
-					draggable: "false",
+					class: normalizeClass(["wy-mention", [`is-${a.value.kind}`, {
+						"is-reminder": a.value.remind,
+						"is-overdue": overdue.value
+					}]]),
+					title: a.value.kind === "date" && !unref(readonly) ? unref(t)(a.value.remind ? "mention.editReminder" : "mention.editDate") : void 0,
 					onClick
-				}, [createElementVNode("span", _hoisted_2$21, [icon.value ? (openBlock(), createElementBlock(Fragment$1, { key: 0 }, [createTextVNode(toDisplayString(icon.value), 1)], 64)) : (openBlock(), createBlock(unref(FileText), {
-					key: 1,
-					size: 14
-				}))]), createTextVNode(toDisplayString(text.value), 1)], 8, _hoisted_1$25)) : (openBlock(), createElementBlock("span", {
-					key: 1,
-					ref_key: "anchor",
-					ref: anchor,
-					class: normalizeClass(["wy-mention", `is-${a.value.kind}`]),
-					title: a.value.kind === "date" && !unref(readonly) ? unref(t)("mention.editDate") : void 0,
-					onClick
-				}, [a.value.kind === "date" ? (openBlock(), createBlock(unref(CalendarDays), {
+				}, [a.value.kind === "date" && a.value.remind ? (openBlock(), createBlock(unref(Bell), {
 					key: 0,
 					class: "wy-mention-icon",
 					size: 14,
 					"aria-hidden": "true"
-				})) : createCommentVNode("", true), createTextVNode(toDisplayString(text.value), 1)], 10, _hoisted_3$21)), unref(editing) && a.value.kind === "date" ? (openBlock(), createBlock(AnchoredPopover_default, {
-					key: 2,
+				})) : a.value.kind === "date" ? (openBlock(), createBlock(unref(CalendarDays), {
+					key: 1,
+					class: "wy-mention-icon",
+					size: 14,
+					"aria-hidden": "true"
+				})) : createCommentVNode("", true), createTextVNode(toDisplayString(text.value), 1)], 10, _hoisted_1$29), unref(editing) && a.value.kind === "date" ? (openBlock(), createBlock(AnchoredPopover_default, {
+					key: 0,
 					anchor: anchor.value,
 					class: "wy-popover wy-date-picker",
 					onEscape: unref(onKeydown)
 				}, {
 					default: withCtx(() => [
-						createElementVNode("label", _hoisted_4$19, [createElementVNode("span", _hoisted_5$18, toDisplayString(unref(t)("mention.date")), 1), createElementVNode("input", {
+						createElementVNode("label", _hoisted_2$25, [createElementVNode("span", _hoisted_3$25, toDisplayString(unref(t)("mention.date")), 1), createElementVNode("input", {
 							class: "wy-input is-sm",
 							type: "date",
 							value: startDate.value,
 							onChange: _cache[0] || (_cache[0] = ($event) => setDate({ date: $event.target.value })),
 							onKeydown: onKey
-						}, null, 40, _hoisted_6$13)]),
-						createElementVNode("label", _hoisted_7$9, [createElementVNode("input", {
+						}, null, 40, _hoisted_4$23)]),
+						createElementVNode("label", _hoisted_5$22, [createElementVNode("input", {
 							type: "checkbox",
 							checked: withTime.value,
 							onChange: _cache[1] || (_cache[1] = ($event) => setDate({ time: $event.target.checked ? "09:00" : null }))
-						}, null, 40, _hoisted_8$8), createTextVNode(" " + toDisplayString(unref(t)("mention.includeTime")), 1)]),
+						}, null, 40, _hoisted_6$18), createTextVNode(" " + toDisplayString(unref(t)("mention.includeTime")), 1)]),
 						withTime.value ? (openBlock(), createElementBlock("input", {
 							key: 0,
 							class: "wy-input is-sm",
@@ -5386,12 +5683,12 @@ var MentionView_default = /* @__PURE__ */ defineComponent({
 							"aria-label": unref(t)("mention.time"),
 							onChange: _cache[2] || (_cache[2] = ($event) => setDate({ time: $event.target.value || null })),
 							onKeydown: onKey
-						}, null, 40, _hoisted_9$6)) : createCommentVNode("", true),
-						createElementVNode("label", _hoisted_10$6, [createElementVNode("input", {
+						}, null, 40, _hoisted_7$13)) : createCommentVNode("", true),
+						createElementVNode("label", _hoisted_8$12, [createElementVNode("input", {
 							type: "checkbox",
 							checked: !!endDate.value,
 							onChange: _cache[3] || (_cache[3] = ($event) => setDate({ end: $event.target.checked ? startDate.value : null }))
-						}, null, 40, _hoisted_11$5), createTextVNode(" " + toDisplayString(unref(t)("mention.endDate")), 1)]),
+						}, null, 40, _hoisted_9$11), createTextVNode(" " + toDisplayString(unref(t)("mention.endDate")), 1)]),
 						endDate.value ? (openBlock(), createElementBlock("input", {
 							key: 1,
 							class: "wy-input is-sm",
@@ -5401,83 +5698,49 @@ var MentionView_default = /* @__PURE__ */ defineComponent({
 							"aria-label": unref(t)("mention.endDate"),
 							onChange: _cache[4] || (_cache[4] = ($event) => setDate({ end: $event.target.value || null })),
 							onKeydown: onKey
-						}, null, 40, _hoisted_12$5)) : createCommentVNode("", true)
+						}, null, 40, _hoisted_10$10)) : createCommentVNode("", true),
+						createElementVNode("label", _hoisted_11$7, [createElementVNode("input", {
+							type: "checkbox",
+							checked: a.value.remind,
+							onChange: _cache[5] || (_cache[5] = ($event) => unref(update)({ remind: $event.target.checked }))
+						}, null, 40, _hoisted_12$7), createTextVNode(" " + toDisplayString(unref(t)("mention.remind")), 1)])
 					]),
 					_: 1
 				}, 8, ["anchor", "onEscape"])) : createCommentVNode("", true)]),
 				_: 1
-			}, 8, ["class"]);
+			}, 8, ["selected", "editing"]);
 		};
 	}
 });
 // src/builtins/mention.ts
-var KINDS = [
-	"user",
-	"page",
-	"date"
-];
-function attr(name, fallback) {
-	return {
-		default: fallback,
-		parseHTML: (dom) => dom.getAttribute(`data-${name}`) ?? fallback,
-		renderHTML: (a) => a[name] ? { [`data-${name}`]: String(a[name]) } : {}
-	};
-}
 function mentionText(a, locale) {
 	if (a.kind === "date" && isMentionDate(a.start)) return a.label || dateLabel(a.start, isMentionDate(a.end) ? a.end : null, locale);
-	return a.kind === "user" ? `@${a.label || a.id}` : a.label || a.id;
+	return `@${a.label || a.id}`;
 }
-var Mention = Node$1.create({
-	name: "mention",
-	group: "inline",
-	inline: true,
-	atom: true,
-	selectable: true,
-	addOptions() {
-		return { pageHref: "/p/{id}" };
-	},
-	addAttributes() {
-		return {
-			kind: {
-				default: "user",
-				parseHTML: (dom) => KINDS.find((k) => k === dom.getAttribute("data-kind")) ?? "user",
-				renderHTML: (a) => ({ "data-kind": a.kind })
-			},
-			id: attr("id", ""),
-			label: {
-				default: "",
-				parseHTML: (dom) => dom.getAttribute("data-label") ?? dom.textContent?.replace(/^@/, "") ?? "",
-				renderHTML: (a) => ({ "data-label": a.label })
-			},
-			start: attr("start", null),
-			end: attr("end", null)
-		};
-	},
-	parseHTML() {
-		return [{ tag: "span[data-type=\"mention\"][data-kind]" }, { tag: "a[data-type=\"mention\"][data-kind]" }];
-	},
-	renderHTML({ HTMLAttributes, node }) {
-		const a = node.attrs;
-		const attrs = mergeAttributes({
-			"data-type": "mention",
-			class: `wy-mention is-${a.kind}`
-		}, HTMLAttributes);
-		const text = mentionText(a, "en");
-		if (a.kind === "page" && a.id) return [
-			"a",
-			mergeAttributes(attrs, { href: pageHref(this.options.pageHref, a.id) }),
-			text
-		];
-		return [
-			"span",
-			attrs,
-			text
-		];
-	},
-	renderText({ node }) {
-		return mentionText(node.attrs, "en");
+/** a picked user, date or page at `range`, followed by a space */
+function insertMention(editor, s, range) {
+	if (s.kind === "page") {
+		insertPageLink(editor, s, range, true);
+		return;
 	}
-});
+	const attrs = {
+		kind: s.kind,
+		id: s.id,
+		label: s.label,
+		start: s.start ?? null,
+		end: s.end ?? null,
+		remind: !!s.remind
+	};
+	editor.chain().focus().insertContentAt(range, [{
+		type: "mention",
+		attrs
+	}, {
+		type: "text",
+		text: " "
+	}]).run();
+}
+/** words an `@` query may have: "@remind me next friday 9am" still searches, longer text is just text */
+var MAX_WORDS = 5;
 var MENTION_KEY = new PluginKey("wysiwygMention");
 var MentionSuggest = Extension.create({
 	name: "mentionSuggest",
@@ -5487,8 +5750,12 @@ var MentionSuggest = Extension.create({
 			editor: this.editor,
 			char: "@",
 			pluginKey: MENTION_KEY,
-			allowSpaces: false,
-			allow: ({ state, range }) => !state.doc.resolve(range.from).parent.type.spec.code && !!state.schema.nodes.mention,
+			allowSpaces: true,
+			allow: ({ state, range }) => {
+				if (state.doc.resolve(range.from).parent.type.spec.code || !state.schema.nodes.mention) return false;
+				const query = state.doc.textBetween(range.from + 1, range.to, " ");
+				return !/^\s/.test(query) && query.split(/\s+/).length <= MAX_WORDS;
+			},
 			items: async ({ query, editor }) => {
 				abort?.abort();
 				const ctrl = abort = new AbortController();
@@ -5497,25 +5764,10 @@ var MentionSuggest = Extension.create({
 				setTimeout(pause.resolve, ctx.services.searchMentions ? 120 : 0);
 				await pause.promise;
 				if (ctrl.signal.aborted) return [];
-				return (await searchMentions(ctx.services, query, void 0, ctrl.signal, ctx)).map((s) => mentionEntry(s, ctx));
+				const pages = !!editor.schema.nodes.pageLink;
+				return (await searchMentions(ctx.services, query, void 0, ctrl.signal, ctx)).filter((s) => s.kind !== "page" || pages).map((s) => mentionEntry(s, ctx));
 			},
-			command: ({ editor, range, props }) => {
-				const s = props.suggestion;
-				const attrs = {
-					kind: s.kind,
-					id: s.id,
-					label: s.label,
-					start: s.start ?? null,
-					end: s.end ?? null
-				};
-				editor.chain().focus().insertContentAt(range, [{
-					type: "mention",
-					attrs
-				}, {
-					type: "text",
-					text: " "
-				}]).run();
-			},
+			command: ({ editor, range, props }) => insertMention(editor, props.suggestion, range),
 			render: () => {
 				let popup = null;
 				const props = (p) => {
@@ -5527,21 +5779,25 @@ var MentionSuggest = Extension.create({
 						onPick: p.command
 					};
 				};
+				const show = (p) => {
+					if (!p.items.length && /\s/.test(p.query)) {
+						popup?.close();
+						popup = null;
+					} else if (popup) popup.update(props(p));
+					else popup = openPopup(p.editor, SuggestionList_default, props(p), () => p.clientRect?.() ?? null);
+				};
 				return {
-					onStart(p) {
-						popup = openPopup(p.editor, SuggestionList_default, props(p), () => p.clientRect?.() ?? null);
-					},
-					onUpdate(p) {
-						popup?.update(props(p));
-					},
+					onStart: show,
+					onUpdate: show,
 					onKeyDown(p) {
+						if (!popup) return false;
 						if (p.event.key === "Escape") {
 							p.event.stopPropagation();
-							popup?.close();
+							popup.close();
 							popup = null;
 							return true;
 						}
-						return (popup?.ref)?.onKeyDown?.(p.event) ?? false;
+						return popup.ref?.onKeyDown?.(p.event) ?? false;
 					},
 					onExit() {
 						abort?.abort();
@@ -5553,25 +5809,3074 @@ var MentionSuggest = Extension.create({
 		})];
 	}
 });
-function mentionExtension(base) {
-	return {
+function caretAt(c) {
+	const at = c.range?.from ?? c.editor.state.selection.from;
+	c.clear();
+	return at;
+}
+function mentionExtension() {
+	return defineInlineBlock({
 		name: "mention",
-		tiptap: [Mention.configure({ pageHref: base.pageHref }), MentionSuggest],
-		nodeViews: { mention: MentionView_default },
+		attrs: {
+			kind: "user",
+			id: "",
+			label: "",
+			start: null,
+			end: null,
+			remind: false
+		},
+		text: (a) => mentionText(a, "en"),
+		view: MentionView_default,
+		html: {
+			class: (a) => `wy-mention is-${String(a.kind)}${a.remind ? " is-reminder" : ""}`,
+			parse: [{
+				tag: "[data-type=\"mention\"][data-kind=\"page\"]",
+				ignore: true,
+				priority: 55
+			}]
+		},
 		markdown: {
-			plugins: [(md) => md.inline.ruler.before("link", "mention", mentionRule)],
-			tokens: { mention: {
-				node: "mention",
-				getAttrs: (tok) => ({ ...tok.meta })
-			} },
-			nodes: { mention(state, node) {
-				const md = mentionMarkdown(node.attrs);
-				if (md) state.write(md);
-				else state.text(String(node.attrs.label ?? ""));
-			} }
-		}
+			pattern: AT_LINK,
+			parse: (m) => {
+				const t = parseMentionTarget(m[2]);
+				return t ? {
+					...t,
+					label: unescapeChipLabel(m[1])
+				} : null;
+			},
+			serialize: (a) => mentionMarkdown(a)
+		},
+		tiptap: [MentionSuggest],
+		slash: [{
+			id: "mentionPerson",
+			group: "blocks",
+			rank: 46,
+			label: "",
+			icon: AtSign,
+			inline: true,
+			keywords: "mention person people user at",
+			enabled: (editor) => !!editor.storage.wysiwyg?.context?.services.searchMentions,
+			run: (c) => {
+				const ctx = contextOf(c.editor);
+				openSearch(c.editor, caretAt(c), {
+					search: async (q, signal) => (await searchMentions(ctx.services, q, "user", signal, ctx)).map((s) => mentionEntry(s, ctx)),
+					placeholder: ctx.t("mention.personPlaceholder"),
+					label: ctx.t("mention.person"),
+					onPick: (e, at) => insertMention(c.editor, e.suggestion, {
+						from: at,
+						to: at
+					})
+				});
+			}
+		}, {
+			id: "date",
+			group: "blocks",
+			rank: 47,
+			label: "",
+			icon: CalendarClock,
+			inline: true,
+			keywords: "date reminder remind today tomorrow time deadline due",
+			run: (c) => {
+				const ctx = contextOf(c.editor);
+				openSearch(c.editor, caretAt(c), {
+					search: async (q) => dateSuggestions(q, ctx).map((s) => mentionEntry(s, ctx)),
+					placeholder: ctx.t("mention.datePlaceholder"),
+					label: ctx.t("mention.date"),
+					onPick: (e, at) => insertMention(c.editor, e.suggestion, {
+						from: at,
+						to: at
+					})
+				});
+			}
+		}]
+	});
+}
+// src/core/emoji.ts
+/** the groups the picker shows, in order; 2 is skin tone components */
+var EMOJI_GROUPS = [
+	0,
+	1,
+	3,
+	4,
+	5,
+	6,
+	7,
+	8,
+	9
+];
+var TONES = [
+	"1F3FB",
+	"1F3FC",
+	"1F3FD",
+	"1F3FE",
+	"1F3FF"
+];
+var loading$1 = null;
+var loaded = null;
+function build(raw, codes) {
+	const list = [];
+	const byShortcode = /* @__PURE__ */ new Map();
+	for (const r of [...raw].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))) {
+		if (r.group === void 0 || r.group === 2) continue;
+		const sc = codes[r.hexcode];
+		const skins = r.skins?.length ? TONES.map((tone) => r.skins.find((s) => s.hexcode.split("-").every((part) => !TONES.includes(part) || part === tone))?.unicode ?? r.unicode) : void 0;
+		const e = {
+			emoji: r.unicode,
+			label: r.label,
+			group: r.group,
+			shortcodes: sc === void 0 ? [] : Array.isArray(sc) ? sc : [sc],
+			tags: r.tags ?? [],
+			skins
+		};
+		list.push(e);
+		for (const s of e.shortcodes) byShortcode.set(s, e);
+	}
+	return {
+		list,
+		byShortcode
 	};
 }
+/** the emoji data; the first call loads it */
+function loadEmoji() {
+	loading$1 ??= Promise.all([import("emojibase-data/en/compact.json"), import("emojibase-data/en/shortcodes/github.json")]).then(([raw, codes]) => {
+		loaded = build(raw.default, codes.default);
+		return loaded;
+	});
+	return loading$1;
+}
+/** the data when it has loaded already, for synchronous lookups such as `:smile:` while typing */
+function emojiNow() {
+	return loaded;
+}
+/** the emoji with a skin tone (1 to 5; 0 is the default yellow) */
+function withTone(e, tone) {
+	return tone > 0 && e.skins?.[tone - 1] || e.emoji;
+}
+/**
+* emoji matching every word of the query, best first: a shortcode equal to the query, a shortcode starting with
+* it, a word of the name starting with it, then tags
+*/
+function searchEmoji(data, query, limit = 50) {
+	const words = query.trim().toLowerCase().replace(/^:|:$/g, "").split(/[\s_]+/).filter(Boolean);
+	if (!words.length) return [];
+	const joined = words.join("_");
+	const scored = [];
+	data.list.forEach((e, i) => {
+		const names = e.label.toLowerCase().split(/[\s:,-]+/);
+		let score = 0;
+		if (e.shortcodes.includes(joined)) score = 4;
+		else if (e.shortcodes.some((s) => s.startsWith(joined))) score = 3;
+		else if (words.every((w) => names.some((n) => n.startsWith(w)))) score = 2;
+		else if (words.every((w) => names.some((n) => n.startsWith(w)) || e.tags.some((t) => t.startsWith(w)) || e.shortcodes.some((s) => s.includes(w)))) score = 1;
+		if (score) scored.push({
+			e,
+			score,
+			i
+		});
+	});
+	scored.sort((a, b) => b.score - a.score || a.i - b.i);
+	return scored.slice(0, limit).map((s) => s.e);
+}
+var RECENT_KEY = "wy-emoji-recent";
+var RECENT_MAX = 24;
+/** emoji picked lately, newest first */
+function recentEmoji() {
+	try {
+		const v = JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]");
+		return Array.isArray(v) ? v.filter((x) => typeof x === "string").slice(0, RECENT_MAX) : [];
+	} catch {
+		return [];
+	}
+}
+function rememberEmoji(emoji) {
+	try {
+		localStorage.setItem(RECENT_KEY, JSON.stringify([emoji, ...recentEmoji().filter((x) => x !== emoji)].slice(0, RECENT_MAX)));
+	} catch {}
+}
+var TONE_KEY = "wy-emoji-tone";
+function savedTone() {
+	try {
+		const n = Number(localStorage.getItem(TONE_KEY) ?? 0);
+		return Number.isInteger(n) && n >= 0 && n <= 5 ? n : 0;
+	} catch {
+		return 0;
+	}
+}
+function saveTone(tone) {
+	try {
+		localStorage.setItem(TONE_KEY, String(tone));
+	} catch {}
+}
+// src/i18n/index.ts
+var MESSAGES = {
+	en: {
+		editor: {
+			placeholder: "Write, or type / for blocks",
+			parseFailed: "The content could not be shown visually. It opened in source mode.",
+			uploading: "Uploading {n} file(s)",
+			uploadingProgress: "Uploading {n} file(s), {percent} %",
+			uploadFailed: "Upload failed: {name}",
+			copied: "Copied",
+			inlineOnly: "Table cells hold text only"
+		},
+		toolbar: {
+			label: "Formatting",
+			undo: "Undo",
+			redo: "Redo",
+			textStyle: "Text style",
+			paragraph: "Text",
+			heading: "Heading {n}",
+			codeBlock: "Code",
+			bold: "Bold",
+			italic: "Italic",
+			underline: "Underline",
+			strike: "Strikethrough",
+			code: "Inline code",
+			highlight: "Highlight",
+			color: "Colour",
+			link: "Link",
+			bulletList: "Bulleted list",
+			orderedList: "Numbered list",
+			taskList: "Checklist",
+			listStyle: "List style",
+			quote: "Quote",
+			callout: "Callout",
+			insert: "Insert",
+			image: "Image",
+			file: "File",
+			align: "Alignment",
+			alignLeft: "Left",
+			alignCenter: "Center",
+			alignRight: "Right",
+			alignJustify: "Justify",
+			focus: "Focus mode",
+			exitFocus: "Leave focus mode",
+			source: "Markdown source",
+			visual: "Visual editor",
+			more: "More"
+		},
+		listStyle: {
+			numbering: "Numbering",
+			bullets: "Bullets",
+			custom: "Own character",
+			apply: "Apply",
+			customHint: "One or two characters, no spaces or quotes.",
+			styles: {
+				decimal: "1, 2, 3",
+				"lower-alpha": "a, b, c",
+				"upper-alpha": "A, B, C",
+				"lower-roman": "i, ii, iii",
+				"upper-roman": "I, II, III",
+				disc: "Dot",
+				circle: "Circle",
+				square: "Square",
+				dash: "Dash",
+				arrow: "Arrow"
+			}
+		},
+		colors: {
+			text: "Text colour",
+			background: "Background colour",
+			default: "Default",
+			none: "No highlight",
+			gray: "Gray",
+			red: "Red",
+			orange: "Orange",
+			yellow: "Yellow",
+			green: "Green",
+			blue: "Blue",
+			purple: "Purple",
+			pink: "Pink",
+			brown: "Brown",
+			reset: "Remove colour"
+		},
+		bubble: {
+			label: "Selection",
+			askAi: "Ask AI"
+		},
+		slash: {
+			title: "Blocks",
+			empty: "Nothing found",
+			groups: {
+				text: "Text",
+				lists: "Lists",
+				blocks: "Blocks",
+				media: "Media"
+			},
+			items: {
+				paragraph: {
+					label: "Text",
+					description: "Plain paragraph"
+				},
+				heading1: {
+					label: "Heading 1",
+					description: "Title of the page"
+				},
+				heading2: {
+					label: "Heading 2",
+					description: "Section heading"
+				},
+				heading3: {
+					label: "Heading 3",
+					description: "Subsection heading"
+				},
+				heading4: {
+					label: "Heading 4",
+					description: "Small heading"
+				},
+				heading5: {
+					label: "Heading 5",
+					description: "Smaller heading"
+				},
+				heading6: {
+					label: "Heading 6",
+					description: "Smallest heading"
+				},
+				quote: {
+					label: "Quote",
+					description: "Quoted text"
+				},
+				callout: {
+					label: "Callout",
+					description: "Box for a note, tip or warning"
+				},
+				codeBlock: {
+					label: "Code",
+					description: "Code with syntax highlighting"
+				},
+				hr: {
+					label: "Divider",
+					description: "Line between sections"
+				},
+				bulletList: {
+					label: "Bulleted list",
+					description: "List with bullets"
+				},
+				orderedList: {
+					label: "Numbered list",
+					description: "List with numbers"
+				},
+				taskList: {
+					label: "Checklist",
+					description: "List with checkboxes"
+				},
+				table: {
+					label: "Table",
+					description: "Rows and columns"
+				},
+				image: {
+					label: "Image",
+					description: "Upload or pick a picture"
+				},
+				file: {
+					label: "File",
+					description: "Attach a file as a link"
+				},
+				mathInline: {
+					label: "Inline formula",
+					description: "LaTeX in the text"
+				},
+				mathBlock: {
+					label: "Formula",
+					description: "LaTeX on its own line"
+				},
+				details: {
+					label: "Toggle list",
+					description: "Content hidden under a toggle"
+				},
+				toggleHeading1: {
+					label: "Toggle heading 1",
+					description: "Large heading that folds its content"
+				},
+				toggleHeading2: {
+					label: "Toggle heading 2",
+					description: "Medium heading that folds its content"
+				},
+				toggleHeading3: {
+					label: "Toggle heading 3",
+					description: "Small heading that folds its content"
+				},
+				columns2: {
+					label: "2 columns",
+					description: "Blocks side by side"
+				},
+				columns3: {
+					label: "3 columns",
+					description: "Three blocks side by side"
+				},
+				columns4: {
+					label: "4 columns",
+					description: "Four blocks side by side"
+				},
+				bookmark: {
+					label: "Bookmark",
+					description: "Link with a preview card"
+				},
+				embed: {
+					label: "Embed",
+					description: "Video, map, design or page"
+				},
+				tableOfContents: {
+					label: "Table of contents",
+					description: "Links to the headings"
+				},
+				pageLink: {
+					label: "Link to page",
+					description: "Page link in the text"
+				},
+				mentionPerson: {
+					label: "Mention a person",
+					description: "Notify someone in the text"
+				},
+				date: {
+					label: "Date or reminder",
+					description: "Tomorrow 9am, next friday, in 3 days"
+				},
+				emoji: {
+					label: "Emoji",
+					description: "Pick an emoji"
+				},
+				tabs: {
+					label: "Tabs",
+					description: "Sections shown one at a time"
+				},
+				button: {
+					label: "Button",
+					description: "Inserts a template or opens a link"
+				},
+				breadcrumbs: {
+					label: "Breadcrumbs",
+					description: "Path to this page"
+				},
+				aiBlock: {
+					label: "AI block",
+					description: "Content AI writes from an instruction"
+				}
+			}
+		},
+		convert: {
+			title: "Turn into",
+			targets: {
+				paragraph: "Text",
+				unwrap: "Unwrap",
+				columns: "Columns"
+			}
+		},
+		blockMenu: {
+			label: "Block",
+			duplicate: "Duplicate",
+			copy: "Copy as markdown",
+			delete: "Delete",
+			color: "Colour"
+		},
+		gutter: {
+			drag: "Drag to move, click for options",
+			add: "Add a block below"
+		},
+		table: {
+			menu: "Table",
+			column: "Column {n}",
+			row: "Row {n}",
+			dragHint: "Drag to move, click for options",
+			insertLeft: "Insert left",
+			insertRight: "Insert right",
+			insertAbove: "Insert above",
+			insertBelow: "Insert below",
+			align: "Align",
+			alignLeft: "Left",
+			alignCenter: "Center",
+			alignRight: "Right",
+			headerRow: "Header row",
+			headerColumn: "Header column",
+			deleteColumn: "Delete column",
+			deleteRow: "Delete row",
+			deleteTable: "Delete table",
+			addColumn: "Add column",
+			addRow: "Add row"
+		},
+		link: {
+			title: "Link",
+			url: "Address",
+			urlPlaceholder: "Paste a link",
+			text: "Text",
+			textPlaceholder: "Shown text",
+			searchPlaceholder: "Search or paste a link",
+			results: "Results",
+			searching: "Searching",
+			linkTo: "Link to this address",
+			noResults: "Nothing found",
+			apply: "Apply",
+			remove: "Remove link",
+			open: "Open link",
+			copy: "Copy link",
+			edit: "Edit link"
+		},
+		field: {
+			tools: "Formatting",
+			expand: "Open the full editor",
+			expandTitle: "Edit",
+			close: "Close"
+		},
+		draft: {
+			idle: "Unsaved changes",
+			saving: "Saving",
+			saved: "Saved",
+			offline: "Offline",
+			error: "Not saved"
+		},
+		block: {
+			edit: "Edit",
+			copy: "Copy as markdown",
+			delete: "Delete",
+			more: "More"
+		},
+		code: {
+			label: "Code",
+			language: "Language",
+			languagePlaceholder: "e.g. python"
+		},
+		callout: {
+			label: "Callout",
+			changeType: "Change the type",
+			title: "Title",
+			addTitle: "Add a title",
+			changeIcon: "Change the icon",
+			icon: "Icon",
+			ownIcon: "Emoji or text",
+			useIcon: "Use",
+			defaultIcon: "Default icon",
+			kinds: "Kind",
+			types: {
+				note: "Note",
+				info: "Info",
+				tip: "Tip",
+				success: "Success",
+				important: "Important",
+				warning: "Warning",
+				caution: "Caution",
+				danger: "Danger",
+				question: "Question",
+				example: "Example",
+				details: "Details"
+			}
+		},
+		image: {
+			label: "Image",
+			video: "Video",
+			audio: "Audio",
+			alt: "Description",
+			altPlaceholder: "What the picture shows",
+			altHelp: "Read by screen readers and shown when the image cannot load.",
+			title: "Title",
+			caption: "Caption",
+			captionPlaceholder: "Caption (optional)",
+			width: "Width",
+			resize: "Drag to resize",
+			replace: "Image",
+			replaceFile: "Replace the file",
+			originalSize: "Original size",
+			toFigure: "Own block",
+			zoom: "Enlarge",
+			align: {
+				left: "Left",
+				center: "Center",
+				right: "Right",
+				"float-left": "Wrap on the left",
+				"float-right": "Wrap on the right"
+			}
+		},
+		divider: {
+			label: "Divider",
+			line: "Line",
+			width: "Width",
+			widthPx: "{n} px",
+			color: "Colour",
+			defaultColor: "Default",
+			customColor: "Own colour",
+			design: "Ornament",
+			customChar: "Own ornament",
+			charInvalid: "One or two characters, no spaces or quotes.",
+			styles: {
+				solid: "Solid",
+				dashed: "Dashed",
+				dotted: "Dotted",
+				double: "Double"
+			},
+			designs: {
+				none: "None",
+				star: "Star",
+				diamond: "Diamond",
+				dots: "Dots",
+				fleuron: "Fleuron"
+			},
+			colors: {
+				red: "Red",
+				orange: "Orange",
+				amber: "Amber",
+				green: "Green",
+				teal: "Teal",
+				blue: "Blue",
+				violet: "Violet",
+				pink: "Pink"
+			}
+		},
+		math: {
+			label: "Formula",
+			edit: "Edit the formula",
+			empty: "Empty formula",
+			placeholder: "LaTeX, e.g. \\frac{a}{b}",
+			tex: "LaTeX"
+		},
+		details: {
+			label: "Toggle list",
+			title: "Title",
+			titlePlaceholder: "Title readers click to open",
+			toggleDefault: "Open for readers",
+			openByDefault: "Open for readers",
+			closedByDefault: "Closed for readers",
+			headingLabel: "Toggle heading {n}",
+			expand: "Expand",
+			collapse: "Collapse"
+		},
+		footnote: { label: "Footnote" },
+		source: { label: "Markdown source" },
+		columns: {
+			label: "Columns",
+			add: "Add column",
+			remove: "Remove column",
+			removeHint: "Its blocks move to the column next to it.",
+			equal: "Equal widths",
+			resize: "Drag to resize"
+		},
+		bookmark: {
+			edit: "Change link",
+			label: "Bookmark",
+			url: "Link",
+			placeholder: "Paste a link",
+			create: "Create bookmark",
+			loading: "Loading preview",
+			failed: "The preview could not be loaded.",
+			refresh: "Refresh preview",
+			open: "Open link"
+		},
+		embed: {
+			edit: "Change link",
+			url: "Link",
+			placeholder: "Paste a link to embed",
+			create: "Embed",
+			open: "Open original",
+			interact: "Click to interact",
+			resize: "Drag to resize",
+			defaultHeight: "Default height",
+			providers: {
+				youtube: "YouTube",
+				vimeo: "Vimeo",
+				loom: "Loom",
+				figma: "Figma",
+				gist: "Gist",
+				maps: "Google Maps",
+				tweet: "Post on X",
+				codepen: "CodePen",
+				generic: "Embed"
+			}
+		},
+		toc: {
+			label: "Table of contents",
+			empty: "No headings yet"
+		},
+		pageLink: {
+			label: "Page",
+			untitled: "Untitled",
+			search: "Link to page",
+			searchPlaceholder: "Search pages"
+		},
+		mention: {
+			label: "Mention",
+			empty: "Nothing found",
+			searching: "Searching",
+			groups: {
+				user: "People",
+				page: "Pages",
+				date: "Dates",
+				reminder: "Reminders"
+			},
+			today: "Today",
+			tomorrow: "Tomorrow",
+			yesterday: "Yesterday",
+			date: "Date",
+			time: "Time",
+			includeTime: "Include time",
+			endDate: "End date",
+			editDate: "Change the date",
+			editReminder: "Change the reminder",
+			reminder: "Reminder",
+			remind: "Remind me",
+			person: "Mention a person",
+			personPlaceholder: "Search people",
+			datePlaceholder: "Tomorrow 9am or next friday"
+		},
+		emoji: {
+			label: "Emoji",
+			search: "Search emoji",
+			results: "Results",
+			empty: "No emoji found",
+			loading: "Loading emoji",
+			failed: "Emoji could not be loaded",
+			categories: "Categories",
+			recent: "Recently used",
+			tone: "Skin tone",
+			tones: {
+				0: "Default",
+				1: "Light",
+				2: "Medium light",
+				3: "Medium",
+				4: "Medium dark",
+				5: "Dark"
+			},
+			groups: {
+				0: "Smileys and emotion",
+				1: "People and body",
+				3: "Animals and nature",
+				4: "Food and drink",
+				5: "Travel and places",
+				6: "Activities",
+				7: "Objects",
+				8: "Symbols",
+				9: "Flags"
+			}
+		},
+		tabs: {
+			label: "Tabs",
+			untitled: "Tab {n}",
+			labelField: "Tab name",
+			moveLeft: "Move left",
+			moveRight: "Move right",
+			remove: "Delete tab",
+			add: "Add tab"
+		},
+		button: {
+			label: "Button",
+			untitled: "New button",
+			labelField: "Label",
+			actions: "Actions",
+			noActions: "No actions yet",
+			kind: "Action",
+			kinds: {
+				insert: "Insert below",
+				link: "Open link"
+			},
+			fields: {
+				markdown: "Template",
+				url: "Link"
+			},
+			placeholders: {
+				markdown: "Markdown inserted below the button",
+				url: "https://"
+			},
+			moveUp: "Move up",
+			moveDown: "Move down",
+			removeAction: "Remove action",
+			addAction: "Add action",
+			done: "Done"
+		},
+		breadcrumbs: {
+			label: "Breadcrumbs",
+			empty: "No parent pages"
+		},
+		ai: {
+			label: "AI block",
+			prompt: "Instruction",
+			promptPlaceholder: "Tell AI what to write here",
+			scope: "Reads",
+			generate: "Generate",
+			regenerate: "Regenerate",
+			stop: "Stop",
+			done: "Done",
+			writing: "Writing",
+			failed: "AI could not write this block",
+			updated: "Written {date}"
+		},
+		paste: {
+			label: "Paste as",
+			link: "Keep as link",
+			bookmark: "Bookmark",
+			embed: "Embed"
+		},
+		diagram: {
+			alt: "Diagram",
+			loading: "Drawing the diagram",
+			empty: "Empty diagram",
+			failed: "The diagram could not be drawn."
+		},
+		palette: {
+			background: "Background",
+			text: "Text color",
+			default: "Default color",
+			gray: "Gray",
+			brown: "Brown",
+			orange: "Orange",
+			yellow: "Yellow",
+			green: "Green",
+			blue: "Blue",
+			purple: "Purple",
+			pink: "Pink",
+			red: "Red"
+		},
+		dialog: {
+			close: "Close",
+			cancel: "Cancel"
+		},
+		diff: {
+			movedHere: "Moved here",
+			movedAway: "Moved from here",
+			changed: "Style changed"
+		}
+	},
+	sk: {
+		editor: {
+			placeholder: "Píšte text alebo napíšte / pre vloženie bloku",
+			parseFailed: "Obsah sa nepodarilo zobraziť vizuálne, otvoril sa zdrojový text.",
+			uploading: "Nahráva sa súborov: {n}",
+			uploadingProgress: "Nahráva sa súborov: {n} ({percent} %)",
+			uploadFailed: "Súbor {name} sa nepodarilo nahrať.",
+			copied: "Skopírované",
+			inlineOnly: "V bunke tabuľky môže byť len text"
+		},
+		toolbar: {
+			label: "Nástroje editora",
+			undo: "Späť",
+			redo: "Znova",
+			textStyle: "Štýl textu",
+			paragraph: "Odsek",
+			heading: "Nadpis {n}",
+			codeBlock: "Blok kódu",
+			bold: "Tučné",
+			italic: "Kurzíva",
+			underline: "Podčiarknuté",
+			strike: "Prečiarknuté",
+			code: "Kód v texte",
+			highlight: "Zvýraznenie",
+			color: "Farba",
+			link: "Odkaz",
+			bulletList: "Odrážky",
+			orderedList: "Číslovaný zoznam",
+			taskList: "Zoznam úloh",
+			listStyle: "Štýl zoznamu",
+			quote: "Citát",
+			callout: "Upozornenie",
+			insert: "Vložiť",
+			image: "Obrázok",
+			file: "Súbor",
+			align: "Zarovnanie",
+			alignLeft: "Doľava",
+			alignCenter: "Na stred",
+			alignRight: "Doprava",
+			alignJustify: "Do bloku",
+			focus: "Sústrediť sa",
+			exitFocus: "Ukončiť sústredenie",
+			source: "Zdrojový text (Markdown)",
+			visual: "Vizuálny editor",
+			more: "Ďalšie"
+		},
+		listStyle: {
+			numbering: "Číslovanie",
+			bullets: "Odrážky",
+			custom: "Vlastný znak",
+			apply: "Použiť",
+			customHint: "Jeden alebo dva znaky bez medzier a úvodzoviek.",
+			styles: {
+				decimal: "Čísla",
+				"lower-alpha": "Malé písmená",
+				"upper-alpha": "Veľké písmená",
+				"lower-roman": "Malé rímske číslice",
+				"upper-roman": "Veľké rímske číslice",
+				disc: "Plný krúžok",
+				circle: "Prázdny krúžok",
+				square: "Štvorček",
+				dash: "Pomlčka",
+				arrow: "Šípka"
+			}
+		},
+		colors: {
+			text: "Farba textu",
+			background: "Farba pozadia",
+			default: "Predvolená",
+			none: "Bez zvýraznenia",
+			gray: "Sivá",
+			red: "Červená",
+			orange: "Oranžová",
+			yellow: "Žltá",
+			green: "Zelená",
+			blue: "Modrá",
+			purple: "Fialová",
+			pink: "Ružová",
+			brown: "Hnedá",
+			reset: "Odstrániť farbu"
+		},
+		bubble: {
+			label: "Formátovanie výberu",
+			askAi: "Opýtať sa AI"
+		},
+		slash: {
+			title: "Vložiť blok",
+			empty: "Žiadny blok nezodpovedá hľadaniu",
+			groups: {
+				text: "Text",
+				lists: "Zoznamy",
+				blocks: "Bloky",
+				media: "Médiá"
+			},
+			items: {
+				paragraph: {
+					label: "Odsek",
+					description: "Obyčajný text"
+				},
+				heading1: {
+					label: "Nadpis 1",
+					description: "Najvyššia úroveň, nad kapitolami"
+				},
+				heading2: {
+					label: "Nadpis 2",
+					description: "Hlavná sekcia"
+				},
+				heading3: {
+					label: "Nadpis 3",
+					description: "Podsekcia"
+				},
+				heading4: {
+					label: "Nadpis 4",
+					description: "Menší nadpis"
+				},
+				heading5: {
+					label: "Nadpis 5",
+					description: "Drobný nadpis"
+				},
+				heading6: {
+					label: "Nadpis 6",
+					description: "Najmenší nadpis"
+				},
+				quote: {
+					label: "Citát",
+					description: "Odsadený citát"
+				},
+				callout: {
+					label: "Upozornenie",
+					description: "Zvýraznený box: poznámka, tip, varovanie"
+				},
+				codeBlock: {
+					label: "Blok kódu",
+					description: "Kód so zvýraznením syntaxe"
+				},
+				hr: {
+					label: "Oddeľovač",
+					description: "Vodorovná čiara"
+				},
+				bulletList: {
+					label: "Odrážky",
+					description: "Jednoduchý zoznam"
+				},
+				orderedList: {
+					label: "Číslovaný zoznam",
+					description: "Zoznam s poradím"
+				},
+				taskList: {
+					label: "Zoznam úloh",
+					description: "Zoznam so zaškrtávacími políčkami"
+				},
+				table: {
+					label: "Tabuľka",
+					description: "Tabuľka 3 x 3 s hlavičkou"
+				},
+				image: {
+					label: "Obrázok",
+					description: "Nahrať alebo vybrať obrázok"
+				},
+				file: {
+					label: "Súbor",
+					description: "Priložiť súbor ako odkaz"
+				},
+				mathInline: {
+					label: "Vzorec v texte",
+					description: "Matematika (LaTeX) v riadku"
+				},
+				mathBlock: {
+					label: "Vzorec",
+					description: "Matematika (LaTeX) ako samostatný blok"
+				},
+				details: {
+					label: "Rozbaľovací zoznam",
+					description: "Obsah skrytý pod prepínačom"
+				},
+				toggleHeading1: {
+					label: "Rozbaľovací nadpis 1",
+					description: "Veľký nadpis, ktorý skryje obsah"
+				},
+				toggleHeading2: {
+					label: "Rozbaľovací nadpis 2",
+					description: "Stredný nadpis, ktorý skryje obsah"
+				},
+				toggleHeading3: {
+					label: "Rozbaľovací nadpis 3",
+					description: "Malý nadpis, ktorý skryje obsah"
+				},
+				columns2: {
+					label: "2 stĺpce",
+					description: "Bloky vedľa seba"
+				},
+				columns3: {
+					label: "3 stĺpce",
+					description: "Tri bloky vedľa seba"
+				},
+				columns4: {
+					label: "4 stĺpce",
+					description: "Štyri bloky vedľa seba"
+				},
+				bookmark: {
+					label: "Záložka",
+					description: "Odkaz s náhľadom"
+				},
+				embed: {
+					label: "Vložiť obsah",
+					description: "Video, mapa, návrh alebo stránka"
+				},
+				tableOfContents: {
+					label: "Obsah",
+					description: "Odkazy na nadpisy"
+				},
+				pageLink: {
+					label: "Odkaz na stránku",
+					description: "Odkaz na stránku v texte"
+				},
+				mentionPerson: {
+					label: "Spomenúť osobu",
+					description: "Upozorniť niekoho v texte"
+				},
+				date: {
+					label: "Dátum alebo pripomienka",
+					description: "Tomorrow 9am, next friday, in 3 days"
+				},
+				emoji: {
+					label: "Emoji",
+					description: "Vybrať emoji"
+				},
+				tabs: {
+					label: "Karty",
+					description: "Sekcie zobrazené po jednej"
+				},
+				button: {
+					label: "Tlačidlo",
+					description: "Vloží šablónu alebo otvorí odkaz"
+				},
+				breadcrumbs: {
+					label: "Navigačná cesta",
+					description: "Cesta k tejto stránke"
+				},
+				aiBlock: {
+					label: "Blok AI",
+					description: "Obsah, ktorý AI napíše podľa pokynu"
+				}
+			}
+		},
+		convert: {
+			title: "Previesť na",
+			targets: {
+				paragraph: "Text",
+				unwrap: "Zrušiť obal",
+				columns: "Stĺpce"
+			}
+		},
+		blockMenu: {
+			label: "Ponuka bloku",
+			duplicate: "Duplikovať",
+			copy: "Kopírovať ako markdown",
+			delete: "Odstrániť",
+			color: "Farba"
+		},
+		gutter: {
+			drag: "Potiahnutím presuniete, kliknutím otvoríte ponuku bloku",
+			add: "Vložiť blok pod"
+		},
+		table: {
+			menu: "Tabuľka",
+			column: "Stĺpec {n}",
+			row: "Riadok {n}",
+			dragHint: "Kliknutím otvoríte ponuku, potiahnutím presuniete.",
+			insertLeft: "Vložiť stĺpec vľavo",
+			insertRight: "Vložiť stĺpec vpravo",
+			insertAbove: "Vložiť riadok nad",
+			insertBelow: "Vložiť riadok pod",
+			align: "Zarovnanie stĺpca",
+			alignLeft: "Doľava",
+			alignCenter: "Na stred",
+			alignRight: "Doprava",
+			headerRow: "Hlavičkový riadok",
+			headerColumn: "Hlavičkový stĺpec",
+			deleteColumn: "Odstrániť stĺpec",
+			deleteRow: "Odstrániť riadok",
+			deleteTable: "Odstrániť tabuľku",
+			addColumn: "Pridať stĺpec",
+			addRow: "Pridať riadok"
+		},
+		link: {
+			title: "Odkaz",
+			url: "Adresa",
+			urlPlaceholder: "Vložte odkaz",
+			text: "Text odkazu",
+			textPlaceholder: "Zobrazený text",
+			searchPlaceholder: "Hľadajte alebo vložte odkaz",
+			results: "Výsledky",
+			searching: "Hľadám",
+			linkTo: "Odkaz na túto adresu",
+			noResults: "Nič sa nenašlo",
+			apply: "Použiť",
+			remove: "Odstrániť odkaz",
+			open: "Otvoriť odkaz",
+			copy: "Kopírovať odkaz",
+			edit: "Upraviť odkaz"
+		},
+		field: {
+			tools: "Formátovanie",
+			expand: "Otvoriť v editore",
+			expandTitle: "Úprava textu",
+			close: "Zavrieť"
+		},
+		draft: {
+			idle: "Neuložené zmeny",
+			saving: "Ukladá sa",
+			saved: "Koncept uložený",
+			offline: "Offline, koncept sa neuložil",
+			error: "Koncept sa nepodarilo uložiť"
+		},
+		block: {
+			edit: "Upraviť",
+			copy: "Kopírovať ako markdown",
+			delete: "Odstrániť",
+			more: "Ďalšie"
+		},
+		code: {
+			label: "Kód",
+			language: "Jazyk",
+			languagePlaceholder: "napr. python"
+		},
+		callout: {
+			label: "Upozornenie",
+			changeType: "Zmeniť typ",
+			title: "Nadpis",
+			addTitle: "Pridať nadpis",
+			changeIcon: "Zmeniť ikonu",
+			icon: "Ikona",
+			ownIcon: "Emoji alebo text",
+			useIcon: "Použiť",
+			defaultIcon: "Predvolená ikona",
+			kinds: "Typ",
+			types: {
+				note: "Poznámka",
+				info: "Informácia",
+				tip: "Tip",
+				success: "Úspech",
+				important: "Dôležité",
+				warning: "Varovanie",
+				caution: "Pozor",
+				danger: "Nebezpečenstvo",
+				question: "Otázka",
+				example: "Príklad",
+				details: "Podrobnosti"
+			}
+		},
+		image: {
+			label: "Obrázok",
+			video: "Video",
+			audio: "Zvuk",
+			alt: "Popis",
+			altPlaceholder: "Čo je na obrázku",
+			altHelp: "Prečíta ho čítačka obrazovky a ukáže sa, keď sa obrázok nenačíta.",
+			title: "Titulok",
+			caption: "Popisok",
+			captionPlaceholder: "Popisok (nepovinný)",
+			width: "Šírka",
+			resize: "Potiahnutím zmeníte veľkosť",
+			replace: "Obrázok",
+			replaceFile: "Nahradiť súbor",
+			originalSize: "Pôvodná veľkosť",
+			toFigure: "Samostatný blok",
+			zoom: "Zväčšiť",
+			align: {
+				left: "Vľavo",
+				center: "Na stred",
+				right: "Vpravo",
+				"float-left": "Obtekať zľava",
+				"float-right": "Obtekať sprava"
+			}
+		},
+		divider: {
+			label: "Oddeľovač",
+			line: "Čiara",
+			width: "Hrúbka",
+			widthPx: "{n} px",
+			color: "Farba",
+			defaultColor: "Predvolená",
+			customColor: "Vlastná farba",
+			design: "Ozdoba",
+			customChar: "Vlastná ozdoba",
+			charInvalid: "Jeden alebo dva znaky bez medzier a úvodzoviek.",
+			styles: {
+				solid: "Plná",
+				dashed: "Čiarkovaná",
+				dotted: "Bodkovaná",
+				double: "Dvojitá"
+			},
+			designs: {
+				none: "Žiadna",
+				star: "Hviezda",
+				diamond: "Kosoštvorec",
+				dots: "Bodky",
+				fleuron: "Kvet"
+			},
+			colors: {
+				red: "Červená",
+				orange: "Oranžová",
+				amber: "Jantárová",
+				green: "Zelená",
+				teal: "Tyrkysová",
+				blue: "Modrá",
+				violet: "Fialová",
+				pink: "Ružová"
+			}
+		},
+		math: {
+			label: "Vzorec",
+			edit: "Upraviť vzorec",
+			empty: "Prázdny vzorec",
+			placeholder: "LaTeX, napr. \\frac{a}{b}",
+			tex: "LaTeX"
+		},
+		details: {
+			label: "Rozbaľovací zoznam",
+			title: "Nadpis",
+			titlePlaceholder: "Nadpis, na ktorý čitateľ klikne",
+			toggleDefault: "Otvorené pre čitateľov",
+			openByDefault: "Čitatelia ho uvidia otvorené",
+			closedByDefault: "Čitatelia ho uvidia zbalené",
+			headingLabel: "Rozbaľovací nadpis {n}",
+			expand: "Rozbaliť",
+			collapse: "Zbaliť"
+		},
+		footnote: { label: "Poznámka pod čiarou" },
+		source: { label: "Zdrojový text (Markdown)" },
+		columns: {
+			label: "Stĺpce",
+			add: "Pridať stĺpec",
+			remove: "Odstrániť stĺpec",
+			removeHint: "Jeho bloky sa presunú do susedného stĺpca.",
+			equal: "Rovnaké šírky",
+			resize: "Potiahnutím zmeníte šírku"
+		},
+		bookmark: {
+			edit: "Zmeniť odkaz",
+			label: "Záložka",
+			url: "Odkaz",
+			placeholder: "Vložte odkaz",
+			create: "Vytvoriť záložku",
+			loading: "Načítava sa náhľad",
+			failed: "Náhľad sa nepodarilo načítať.",
+			refresh: "Obnoviť náhľad",
+			open: "Otvoriť odkaz"
+		},
+		embed: {
+			edit: "Zmeniť odkaz",
+			url: "Odkaz",
+			placeholder: "Vložte odkaz na obsah",
+			create: "Vložiť",
+			open: "Otvoriť originál",
+			interact: "Kliknutím ovládate obsah",
+			resize: "Potiahnutím zmeníte výšku",
+			defaultHeight: "Predvolená výška",
+			providers: {
+				youtube: "YouTube",
+				vimeo: "Vimeo",
+				loom: "Loom",
+				figma: "Figma",
+				gist: "Gist",
+				maps: "Mapy Google",
+				tweet: "Príspevok na X",
+				codepen: "CodePen",
+				generic: "Vložený obsah"
+			}
+		},
+		toc: {
+			label: "Obsah",
+			empty: "Zatiaľ bez nadpisov"
+		},
+		pageLink: {
+			label: "Stránka",
+			untitled: "Bez názvu",
+			search: "Odkaz na stránku",
+			searchPlaceholder: "Hľadať stránky"
+		},
+		mention: {
+			label: "Zmienka",
+			empty: "Nič sa nenašlo",
+			searching: "Hľadá sa",
+			groups: {
+				user: "Ľudia",
+				page: "Stránky",
+				date: "Dátumy",
+				reminder: "Pripomienky"
+			},
+			today: "Dnes",
+			tomorrow: "Zajtra",
+			yesterday: "Včera",
+			date: "Dátum",
+			time: "Čas",
+			includeTime: "Aj s časom",
+			endDate: "Dátum konca",
+			editDate: "Zmeniť dátum",
+			editReminder: "Zmeniť pripomienku",
+			reminder: "Pripomienka",
+			remind: "Pripomenúť",
+			person: "Spomenúť osobu",
+			personPlaceholder: "Hľadať ľudí",
+			datePlaceholder: "Tomorrow 9am alebo next friday"
+		},
+		emoji: {
+			label: "Emoji",
+			search: "Hľadať emoji",
+			results: "Výsledky",
+			empty: "Žiadne emoji sa nenašli",
+			loading: "Načítavajú sa emoji",
+			failed: "Emoji sa nepodarilo načítať",
+			categories: "Kategórie",
+			recent: "Nedávno použité",
+			tone: "Odtieň pleti",
+			tones: {
+				0: "Predvolený",
+				1: "Svetlý",
+				2: "Stredne svetlý",
+				3: "Stredný",
+				4: "Stredne tmavý",
+				5: "Tmavý"
+			},
+			groups: {
+				0: "Smajlíky a emócie",
+				1: "Ľudia a telo",
+				3: "Zvieratá a príroda",
+				4: "Jedlo a pitie",
+				5: "Cestovanie a miesta",
+				6: "Aktivity",
+				7: "Predmety",
+				8: "Symboly",
+				9: "Vlajky"
+			}
+		},
+		tabs: {
+			label: "Karty",
+			untitled: "Karta {n}",
+			labelField: "Názov karty",
+			moveLeft: "Posunúť doľava",
+			moveRight: "Posunúť doprava",
+			remove: "Odstrániť kartu",
+			add: "Pridať kartu"
+		},
+		button: {
+			label: "Tlačidlo",
+			untitled: "Nové tlačidlo",
+			labelField: "Popis",
+			actions: "Akcie",
+			noActions: "Zatiaľ žiadne akcie",
+			kind: "Akcia",
+			kinds: {
+				insert: "Vložiť pod",
+				link: "Otvoriť odkaz"
+			},
+			fields: {
+				markdown: "Šablóna",
+				url: "Odkaz"
+			},
+			placeholders: {
+				markdown: "Markdown vložený pod tlačidlo",
+				url: "https://"
+			},
+			moveUp: "Posunúť vyššie",
+			moveDown: "Posunúť nižšie",
+			removeAction: "Odstrániť akciu",
+			addAction: "Pridať akciu",
+			done: "Hotovo"
+		},
+		breadcrumbs: {
+			label: "Navigačná cesta",
+			empty: "Žiadne nadradené stránky"
+		},
+		ai: {
+			label: "Blok AI",
+			prompt: "Pokyn",
+			promptPlaceholder: "Napíšte, čo má AI napísať",
+			scope: "Číta",
+			generate: "Vytvoriť",
+			regenerate: "Vytvoriť znova",
+			stop: "Zastaviť",
+			done: "Hotovo",
+			writing: "Píše sa",
+			failed: "AI tento blok nenapísala",
+			updated: "Napísané {date}"
+		},
+		paste: {
+			label: "Vložiť ako",
+			link: "Ponechať odkaz",
+			bookmark: "Záložka",
+			embed: "Vložený obsah"
+		},
+		diagram: {
+			alt: "Diagram",
+			loading: "Kreslí sa diagram",
+			empty: "Prázdny diagram",
+			failed: "Diagram sa nepodarilo nakresliť."
+		},
+		palette: {
+			background: "Pozadie",
+			text: "Farba textu",
+			default: "Predvolená farba",
+			gray: "Sivá",
+			brown: "Hnedá",
+			orange: "Oranžová",
+			yellow: "Žltá",
+			green: "Zelená",
+			blue: "Modrá",
+			purple: "Fialová",
+			pink: "Ružová",
+			red: "Červená"
+		},
+		dialog: {
+			close: "Zavrieť",
+			cancel: "Zrušiť"
+		},
+		diff: {
+			movedHere: "Presunuté sem",
+			movedAway: "Presunuté odtiaľto",
+			changed: "Zmenený štýl"
+		}
+	}
+};
+function lookup(tree, path) {
+	let cur = tree;
+	for (const p of path) {
+		if (!cur || typeof cur !== "object") return void 0;
+		cur = Reflect.get(cur, p);
+	}
+	return typeof cur === "string" ? cur : void 0;
+}
+function hasMessage(trees, key) {
+	const path = key.split(".");
+	return trees.some((t) => lookup(t, path) !== void 0);
+}
+function createTranslator(trees) {
+	return (key, params) => {
+		const path = key.split(".");
+		let text;
+		for (const t of trees) {
+			text = lookup(t, path);
+			if (text !== void 0) break;
+		}
+		if (text === void 0) return key;
+		return params ? text.replace(/\{(\w+)\}/g, (m, k) => k in params ? String(params[k]) : m) : text;
+	};
+}
+// src/components/EmojiPicker.vue?vue&type=script&setup=true&lang.ts
+var _hoisted_1$28 = { class: "wy-emoji-picker" };
+var _hoisted_2$24 = { class: "wy-emoji-top" };
+var _hoisted_3$24 = ["placeholder", "aria-label"];
+var _hoisted_4$22 = { class: "wy-emoji-tone" };
+var _hoisted_5$21 = [
+	"title",
+	"aria-label",
+	"aria-expanded"
+];
+var _hoisted_6$17 = ["aria-label"];
+var _hoisted_7$12 = [
+	"aria-checked",
+	"aria-label",
+	"onClick"
+];
+var _hoisted_8$11 = ["aria-label"];
+var _hoisted_9$10 = [
+	"title",
+	"aria-label",
+	"onClick"
+];
+var _hoisted_10$9 = {
+	key: 0,
+	class: "wy-menu-hint"
+};
+var _hoisted_11$6 = {
+	key: 1,
+	class: "wy-menu-hint"
+};
+var _hoisted_12$6 = {
+	key: 0,
+	class: "wy-menu-hint"
+};
+var _hoisted_13$6 = ["aria-label"];
+var _hoisted_14$5 = [
+	"aria-selected",
+	"aria-label",
+	"onMouseenter",
+	"onFocus",
+	"onClick"
+];
+var _hoisted_15$5 = ["data-section"];
+var _hoisted_16$4 = { class: "wy-menu-heading" };
+var _hoisted_17$4 = ["aria-label"];
+var _hoisted_18$4 = [
+	"aria-selected",
+	"aria-label",
+	"onMouseenter",
+	"onFocus",
+	"onClick"
+];
+var _hoisted_19$3 = { class: "wy-emoji-foot" };
+var _hoisted_20$3 = {
+	key: 0,
+	class: "wy-emoji-preview"
+};
+var _hoisted_21$2 = {
+	class: "wy-emoji-big",
+	"aria-hidden": "true"
+};
+var _hoisted_22$1 = { class: "wy-emoji-name" };
+var _hoisted_23$1 = { key: 0 };
+// src/components/EmojiPicker.vue
+var EmojiPicker_default = /* @__PURE__ */ defineComponent({
+	__name: "EmojiPicker",
+	props: {
+		value: { default: "" },
+		t: {
+			type: Function,
+			default: void 0
+		},
+		autofocus: {
+			type: Boolean,
+			default: true
+		}
+	},
+	emits: ["pick"],
+	setup(__props, { emit: __emit }) {
+		const props = __props;
+		const emit = __emit;
+		const ctx = inject(EDITOR_CONTEXT, null);
+		const t = computed(() => props.t ?? ctx?.t ?? createTranslator([MESSAGES.en]));
+		const ICONS = {
+			0: Smile,
+			1: Hand,
+			3: PawPrint,
+			4: Apple,
+			5: Car,
+			6: Volleyball,
+			7: Lightbulb,
+			8: Heart,
+			9: Flag
+		};
+		const TONE_SAMPLES = [
+			"✋",
+			"✋🏻",
+			"✋🏼",
+			"✋🏽",
+			"✋🏾",
+			"✋🏿"
+		];
+		const data = shallowRef(null);
+		const failed = ref(false);
+		const query = ref("");
+		const tone = ref(savedTone());
+		const toneOpen = ref(false);
+		const hovered = shallowRef(null);
+		const recent = ref(recentEmoji());
+		const body = ref(null);
+		const input = ref(null);
+		const byEmoji = computed(() => new Map((data.value?.list ?? []).map((e) => [e.emoji, e])));
+		const results = computed(() => data.value && query.value.trim() ? searchEmoji(data.value, query.value, 120) : null);
+		const sections = computed(() => {
+			const list = data.value?.list ?? [];
+			const out = [];
+			const rec = recent.value.map((x) => byEmoji.value.get(x)).filter((e) => !!e);
+			if (rec.length) out.push({
+				id: "recent",
+				label: t.value("emoji.recent"),
+				icon: Clock,
+				items: rec
+			});
+			for (const g of EMOJI_GROUPS) out.push({
+				id: `g${g}`,
+				label: t.value(`emoji.groups.${g}`),
+				icon: ICONS[g],
+				items: list.filter((e) => e.group === g)
+			});
+			return out;
+		});
+		onMounted(async () => {
+			if (props.autofocus) {
+				await nextTick();
+				input.value?.focus({ preventScroll: true });
+			}
+			try {
+				data.value = await loadEmoji();
+			} catch {
+				failed.value = true;
+			}
+		});
+		function pick(e) {
+			const v = withTone(e, tone.value);
+			rememberEmoji(e.emoji);
+			recent.value = recentEmoji();
+			emit("pick", v);
+		}
+		function setTone(n) {
+			tone.value = n;
+			saveTone(n);
+			toneOpen.value = false;
+		}
+		function jump(id) {
+			query.value = "";
+			nextTick(() => body.value?.querySelector(`[data-section="${id}"]`)?.scrollIntoView({ block: "start" }));
+		}
+		function onKey(e) {
+			if (e.key === "Enter") {
+				e.preventDefault();
+				const first = results.value?.[0];
+				if (first) pick(first);
+			} else if (e.key === "ArrowDown") {
+				e.preventDefault();
+				body.value?.querySelector(".wy-emoji")?.focus();
+			}
+		}
+		/** arrow keys move through the grid of buttons */
+		function onGridKey(e) {
+			const step = {
+				ArrowLeft: -1,
+				ArrowRight: 1,
+				ArrowUp: -9,
+				ArrowDown: 9
+			}[e.key];
+			if (step === void 0 || !body.value) return;
+			const all = [...body.value.querySelectorAll(".wy-emoji")];
+			const i = all.indexOf(document.activeElement);
+			if (i < 0) return;
+			e.preventDefault();
+			if (i + step < 0) input.value?.focus();
+			else all[Math.min(all.length - 1, i + step)]?.focus();
+		}
+		return (_ctx, _cache) => {
+			return openBlock(), createElementBlock("div", _hoisted_1$28, [
+				createElementVNode("div", _hoisted_2$24, [withDirectives(createElementVNode("input", {
+					ref_key: "input",
+					ref: input,
+					"onUpdate:modelValue": _cache[0] || (_cache[0] = ($event) => query.value = $event),
+					class: "wy-input is-sm",
+					type: "search",
+					autocomplete: "off",
+					spellcheck: "false",
+					placeholder: t.value("emoji.search"),
+					"aria-label": t.value("emoji.search"),
+					onKeydown: onKey
+				}, null, 40, _hoisted_3$24), [[vModelText, query.value]]), createElementVNode("div", _hoisted_4$22, [createElementVNode("button", {
+					type: "button",
+					class: "wy-icon-btn",
+					title: t.value("emoji.tone"),
+					"aria-label": t.value("emoji.tone"),
+					"aria-expanded": toneOpen.value,
+					onClick: _cache[1] || (_cache[1] = ($event) => toneOpen.value = !toneOpen.value)
+				}, toDisplayString(TONE_SAMPLES[tone.value]), 9, _hoisted_5$21), toneOpen.value ? (openBlock(), createElementBlock("div", {
+					key: 0,
+					class: "wy-emoji-tones",
+					role: "radiogroup",
+					"aria-label": t.value("emoji.tone")
+				}, [(openBlock(), createElementBlock(Fragment$1, null, renderList(TONE_SAMPLES, (s, i) => {
+					return createElementVNode("button", {
+						key: i,
+						type: "button",
+						class: "wy-emoji",
+						role: "radio",
+						"aria-checked": i === tone.value,
+						"aria-label": t.value(`emoji.tones.${i}`),
+						onClick: ($event) => setTone(i)
+					}, toDisplayString(s), 9, _hoisted_7$12);
+				}), 64))], 8, _hoisted_6$17)) : createCommentVNode("", true)])]),
+				!results.value ? (openBlock(), createElementBlock("nav", {
+					key: 0,
+					class: "wy-emoji-tabs",
+					"aria-label": t.value("emoji.categories")
+				}, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(sections.value, (s) => {
+					return openBlock(), createElementBlock("button", {
+						key: s.id,
+						type: "button",
+						class: "wy-icon-btn",
+						title: s.label,
+						"aria-label": s.label,
+						onClick: ($event) => jump(s.id)
+					}, [(openBlock(), createBlock(resolveDynamicComponent(s.icon), { size: 16 }))], 8, _hoisted_9$10);
+				}), 128))], 8, _hoisted_8$11)) : createCommentVNode("", true),
+				createElementVNode("div", {
+					ref_key: "body",
+					ref: body,
+					class: "wy-emoji-body",
+					onKeydown: onGridKey
+				}, [failed.value ? (openBlock(), createElementBlock("p", _hoisted_10$9, toDisplayString(t.value("emoji.failed")), 1)) : !data.value ? (openBlock(), createElementBlock("p", _hoisted_11$6, toDisplayString(t.value("emoji.loading")), 1)) : results.value ? (openBlock(), createElementBlock(Fragment$1, { key: 2 }, [!results.value.length ? (openBlock(), createElementBlock("p", _hoisted_12$6, toDisplayString(t.value("emoji.empty")), 1)) : createCommentVNode("", true), createElementVNode("div", {
+					class: "wy-emoji-grid",
+					role: "listbox",
+					"aria-label": t.value("emoji.results")
+				}, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(results.value, (e) => {
+					return openBlock(), createElementBlock("button", {
+						key: e.emoji,
+						type: "button",
+						role: "option",
+						class: "wy-emoji",
+						"aria-selected": e.emoji === __props.value,
+						"aria-label": e.label,
+						onMouseenter: ($event) => hovered.value = e,
+						onFocus: ($event) => hovered.value = e,
+						onClick: ($event) => pick(e)
+					}, toDisplayString(unref(withTone)(e, tone.value)), 41, _hoisted_14$5);
+				}), 128))], 8, _hoisted_13$6)], 64)) : (openBlock(true), createElementBlock(Fragment$1, { key: 3 }, renderList(sections.value, (s) => {
+					return openBlock(), createElementBlock("section", {
+						key: s.id,
+						class: "wy-emoji-section",
+						"data-section": s.id
+					}, [createElementVNode("div", _hoisted_16$4, toDisplayString(s.label), 1), createElementVNode("div", {
+						class: "wy-emoji-grid",
+						role: "listbox",
+						"aria-label": s.label
+					}, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(s.items, (e) => {
+						return openBlock(), createElementBlock("button", {
+							key: e.emoji,
+							type: "button",
+							role: "option",
+							class: "wy-emoji",
+							"aria-selected": e.emoji === __props.value,
+							"aria-label": e.label,
+							onMouseenter: ($event) => hovered.value = e,
+							onFocus: ($event) => hovered.value = e,
+							onClick: ($event) => pick(e)
+						}, toDisplayString(unref(withTone)(e, tone.value)), 41, _hoisted_18$4);
+					}), 128))], 8, _hoisted_17$4)], 8, _hoisted_15$5);
+				}), 128))], 544),
+				createElementVNode("div", _hoisted_19$3, [hovered.value ? (openBlock(), createElementBlock("span", _hoisted_20$3, [
+					createElementVNode("span", _hoisted_21$2, toDisplayString(unref(withTone)(hovered.value, tone.value)), 1),
+					createElementVNode("span", _hoisted_22$1, toDisplayString(hovered.value.label), 1),
+					hovered.value.shortcodes[0] ? (openBlock(), createElementBlock("code", _hoisted_23$1, ":" + toDisplayString(hovered.value.shortcodes[0]) + ":", 1)) : createCommentVNode("", true)
+				])) : createCommentVNode("", true), renderSlot(_ctx.$slots, "footer")])
+			]);
+		};
+	}
+});
+// src/components/EmojiPopup.vue
+var EmojiPopup_default = /* @__PURE__ */ defineComponent({
+	__name: "EmojiPopup",
+	props: { t: { type: Function } },
+	emits: ["pick", "close"],
+	setup(__props, { emit: __emit }) {
+		const emit = __emit;
+		const root = ref(null);
+		function onDocDown(e) {
+			if (root.value && !root.value.contains(e.target)) emit("close");
+		}
+		function onKey(e) {
+			if (e.key !== "Escape") return;
+			e.preventDefault();
+			e.stopPropagation();
+			emit("close");
+		}
+		onMounted(() => document.addEventListener("mousedown", onDocDown, true));
+		onBeforeUnmount(() => document.removeEventListener("mousedown", onDocDown, true));
+		return (_ctx, _cache) => {
+			return openBlock(), createElementBlock("div", {
+				ref_key: "root",
+				ref: root,
+				class: "wy-emoji-popup",
+				contenteditable: "false",
+				onKeydown: onKey
+			}, [createVNode(EmojiPicker_default, {
+				t: __props.t,
+				onPick: _cache[0] || (_cache[0] = ($event) => emit("pick", $event))
+			}, null, 8, ["t"])], 544);
+		};
+	}
+});
+// src/builtins/emoji.ts
+/** the query length from which `:` suggests, so "a: b" or a time "10:30" stays quiet */
+var MIN_QUERY = 2;
+var LIMIT = 8;
+var EMOJI_KEY = new PluginKey("wysiwygEmoji");
+function insertEmoji(editor, e, range) {
+	rememberEmoji(e.emoji);
+	editor.chain().focus().insertContentAt(range, withTone(e, savedTone())).run();
+}
+var EmojiSuggest = Extension.create({
+	name: "emojiSuggest",
+	addProseMirrorPlugins() {
+		return [Suggestion({
+			editor: this.editor,
+			char: ":",
+			pluginKey: EMOJI_KEY,
+			allowSpaces: false,
+			allow: ({ state, range }) => !state.doc.resolve(range.from).parent.type.spec.code,
+			items: async ({ query }) => {
+				if (query.length < MIN_QUERY || !/^[\p{L}\p{N}_+-]+$/u.test(query)) return [];
+				return searchEmoji(await loadEmoji(), query, LIMIT).map((e) => ({
+					key: e.emoji,
+					title: e.label,
+					detail: e.shortcodes[0] ? `:${e.shortcodes[0]}:` : void 0,
+					icon: withTone(e, savedTone()),
+					emoji: e
+				}));
+			},
+			command: ({ editor, range, props }) => insertEmoji(editor, props.emoji, range),
+			render: () => {
+				let popup = null;
+				const props = (p) => ({
+					items: p.items,
+					label: contextOf(p.editor).t("emoji.label"),
+					onPick: p.command
+				});
+				const show = (p) => {
+					if (!p.items.length) {
+						popup?.close();
+						popup = null;
+					} else if (popup) popup.update(props(p));
+					else popup = openPopup(p.editor, SuggestionList_default, props(p), () => p.clientRect?.() ?? null);
+				};
+				return {
+					onStart: show,
+					onUpdate: show,
+					onKeyDown(p) {
+						if (!popup) return false;
+						if (p.event.key === "Escape") {
+							p.event.stopPropagation();
+							popup.close();
+							popup = null;
+							return true;
+						}
+						return popup.ref?.onKeyDown?.(p.event) ?? false;
+					},
+					onExit() {
+						popup?.close();
+						popup = null;
+					}
+				};
+			}
+		})];
+	},
+	addInputRules() {
+		return [new InputRule({
+			find: /(?:^|\s)(:([a-z0-9_+-]{2,}):)$/,
+			handler: ({ state, range, match }) => {
+				const e = emojiNow()?.byShortcode.get(match[2]);
+				if (!e) return null;
+				const from = range.to - match[1].length;
+				rememberEmoji(e.emoji);
+				state.tr.insertText(withTone(e, savedTone()), from, range.to);
+			}
+		})];
+	}
+});
+/** the full picker at `at`; the picked emoji goes there */
+function openEmojiPicker(editor, at) {
+	const ctx = contextOf(editor);
+	let popup = null;
+	const close = () => {
+		popup?.close();
+		popup = null;
+	};
+	popup = openPopup(editor, EmojiPopup_default, {
+		t: ctx.t,
+		onPick: (emoji) => {
+			close();
+			const pos = Math.min(at, editor.state.doc.content.size);
+			editor.chain().focus().insertContentAt(pos, emoji).run();
+		},
+		onClose: () => {
+			close();
+			editor.commands.focus();
+		}
+	}, caretRect(editor, at));
+}
+var emojiExtension = {
+	name: "emoji",
+	tiptap: [EmojiSuggest],
+	slash: [{
+		id: "emoji",
+		group: "blocks",
+		rank: 48,
+		label: "",
+		icon: SmilePlus,
+		inline: true,
+		keywords: "emoji smiley icon reaction",
+		run: (c) => {
+			const at = c.range?.from ?? c.editor.state.selection.from;
+			c.clear();
+			openEmojiPicker(c.editor, at);
+		}
+	}]
+};
+// src/builtins/sections.ts
+/** a section (a tab): `label` is the text after `==== `. isolating, so Backspace never merges two sections */
+function sectionNode(name) {
+	return Node$1.create({
+		name,
+		content: "block+",
+		defining: true,
+		isolating: true,
+		addAttributes() {
+			return { label: {
+				default: "",
+				parseHTML: (dom) => dom.getAttribute("data-label") ?? "",
+				renderHTML: (a) => ({ "data-label": a.label ?? "" })
+			} };
+		},
+		parseHTML() {
+			return [{ tag: `div[data-${name}]` }];
+		},
+		renderHTML({ HTMLAttributes }) {
+			return [
+				"div",
+				mergeAttributes({ [`data-${name}`]: "" }, HTMLAttributes),
+				0
+			];
+		}
+	});
+}
+var key = new PluginKey("sectionsActive");
+/** records the section holding the selection head (at every nesting level) as its container's active one */
+function followSelection(state, active, child) {
+	const $head = state.selection.$head;
+	let changed = false;
+	for (let d = $head.depth; d > 0; d--) {
+		if ($head.node(d).type.name !== child) continue;
+		const pos = $head.before(d - 1);
+		const index = $head.index(d - 1);
+		if (active.get(pos) !== index) {
+			active.set(pos, index);
+			changed = true;
+		}
+	}
+	return changed;
+}
+var TabsActive = Extension.create({
+	name: "tabsActive",
+	addProseMirrorPlugins() {
+		return [new Plugin({
+			key,
+			state: {
+				init: (_, state) => {
+					const active = /* @__PURE__ */ new Map();
+					followSelection(state, active, "tab");
+					return active;
+				},
+				apply: (tr, prev, _old, state) => {
+					if (!tr.docChanged && !tr.selectionSet) return prev;
+					const active = /* @__PURE__ */ new Map();
+					for (const [pos, index] of prev) {
+						const r = tr.mapping.mapResult(pos, 1);
+						if (!r.deleted) active.set(r.pos, index);
+					}
+					return followSelection(state, active, "tab") || tr.docChanged ? active : prev;
+				}
+			}
+		})];
+	}
+});
+/** index of the shown section of the container at `pos`, clamped to its children */
+function activeSection(state, pos) {
+	const node = state.doc.nodeAt(pos);
+	return Math.min(key.getState(state)?.get(pos) ?? 0, Math.max(0, (node?.childCount ?? 1) - 1));
+}
+/** start position of child `index` of the container at `pos` in `doc`, or -1 */
+function childStart(doc, pos, index) {
+	const parent = doc.nodeAt(pos);
+	if (!parent || index < 0 || index >= parent.childCount) return -1;
+	let start = pos + 1;
+	for (let i = 0; i < index; i++) start += parent.child(i).nodeSize;
+	return start;
+}
+/** caret at the start of section `index` of the container at `pos` (this shows the tab) */
+function caretInto(tr, pos, index) {
+	const start = childStart(tr.doc, pos, index);
+	return start < 0 ? tr : tr.setSelection(TextSelection.near(tr.doc.resolve(start + 1))).scrollIntoView();
+}
+function selectSection(editor, pos, index) {
+	editor.view.dispatch(caretInto(editor.state.tr, pos, index));
+	editor.view.focus();
+}
+function setSectionLabel(editor, pos, index, label) {
+	const start = childStart(editor.state.doc, pos, index);
+	const child = start < 0 ? null : editor.state.doc.nodeAt(start);
+	if (child) editor.view.dispatch(editor.state.tr.setNodeMarkup(start, void 0, {
+		...child.attrs,
+		label
+	}));
+}
+/** an empty section at `index` (0..childCount) with the caret in it */
+function addSection(editor, pos, index) {
+	const parent = editor.state.doc.nodeAt(pos);
+	const section = parent?.type.contentMatch.defaultType?.createAndFill();
+	if (!parent || !section) return;
+	const at = index < parent.childCount ? childStart(editor.state.doc, pos, index) : pos + parent.nodeSize - 1;
+	editor.view.dispatch(caretInto(editor.state.tr.insert(at, section), pos, index));
+	editor.view.focus();
+}
+/** removes section `index` unless it is the last one; the caret moves to the neighbour */
+function removeSection(editor, pos, index) {
+	const parent = editor.state.doc.nodeAt(pos);
+	const start = childStart(editor.state.doc, pos, index);
+	if (!parent || start < 0 || parent.childCount < 2) return;
+	const tr = editor.state.tr.delete(start, start + parent.child(index).nodeSize);
+	editor.view.dispatch(caretInto(tr, pos, Math.min(index, parent.childCount - 2)));
+}
+/** swaps section `index` with its neighbour in direction `dir`; the caret follows the moved section */
+function moveSection(editor, pos, index, dir) {
+	const first = Math.min(index, index + dir);
+	const parent = editor.state.doc.nodeAt(pos);
+	const start = childStart(editor.state.doc, pos, first);
+	if (!parent || start < 0 || first + 1 >= parent.childCount) return;
+	const a = parent.child(first);
+	const b = parent.child(first + 1);
+	const tr = editor.state.tr.replaceWith(start, start + a.nodeSize + b.nodeSize, [b, a]);
+	editor.view.dispatch(caretInto(tr, pos, index + dir));
+}
+// src/nodes/TabsView.vue?vue&type=script&setup=true&lang.ts
+var _hoisted_1$27 = { class: "wy-tabs" };
+var _hoisted_2$23 = {
+	class: "wy-tabs-strip",
+	role: "tablist",
+	contenteditable: "false"
+};
+var _hoisted_3$23 = [
+	"value",
+	"size",
+	"placeholder",
+	"aria-label",
+	"onInput"
+];
+var _hoisted_4$21 = ["aria-selected", "onClick"];
+var _hoisted_5$20 = {
+	key: 0,
+	class: "wy-tabs-tools"
+};
+var _hoisted_6$16 = ["aria-label", "disabled"];
+var _hoisted_7$11 = ["aria-label", "disabled"];
+var _hoisted_8$10 = ["aria-label", "disabled"];
+var _hoisted_9$9 = ["aria-label"];
+// src/nodes/TabsView.vue
+var TabsView_default = /* @__PURE__ */ defineComponent({
+	__name: "TabsView",
+	props: nodeViewProps,
+	setup(__props) {
+		const props = __props;
+		const t = contextOf(props.editor).t;
+		const { selected, remove, copyText, readonly } = useBlockNode(props);
+		const labelInput = ref([]);
+		const labels = computed(() => {
+			const out = [];
+			props.node.forEach((tab) => out.push(String(tab.attrs.label ?? "")));
+			return out;
+		});
+		const tick = ref(0);
+		const bump = () => tick.value++;
+		onMounted(() => props.editor.on("transaction", bump));
+		onBeforeUnmount(() => props.editor.off("transaction", bump));
+		const active = computed(() => {
+			tick.value;
+			const pos = props.getPos();
+			return typeof pos === "number" ? activeSection(props.editor.state, pos) : 0;
+		});
+		const inside = computed(() => {
+			tick.value;
+			const pos = props.getPos();
+			const { from } = props.editor.state.selection;
+			return typeof pos === "number" && from > pos && from < pos + props.node.nodeSize;
+		});
+		const untitled = (i) => t("tabs.untitled", { n: i + 1 });
+		function withPos(fn) {
+			const pos = props.getPos();
+			if (typeof pos === "number") fn(pos);
+		}
+		function intoContent(e) {
+			if (e.key !== "Enter" && e.key !== "ArrowDown") return;
+			e.preventDefault();
+			withPos((pos) => selectSection(props.editor, pos, active.value));
+		}
+		function addTab() {
+			withPos((pos) => addSection(props.editor, pos, labels.value.length));
+			nextTick(() => labelInput.value[0]?.focus());
+		}
+		return (_ctx, _cache) => {
+			return openBlock(), createBlock(unref(NodeViewWrapper), {
+				as: "div",
+				class: "wy-node wy-node-tabs"
+			}, {
+				default: withCtx(() => [createVNode(BlockFrame_default, {
+					label: unref(t)("tabs.label"),
+					selected: unref(selected),
+					editing: inside.value,
+					readonly: unref(readonly),
+					"copy-text": unref(copyText),
+					editable: false,
+					onDelete: unref(remove)
+				}, {
+					default: withCtx(() => [createElementVNode("div", _hoisted_1$27, [createElementVNode("div", _hoisted_2$23, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(labels.value, (label, i) => {
+						return openBlock(), createElementBlock(Fragment$1, { key: i }, [i === active.value && !unref(readonly) ? (openBlock(), createElementBlock("input", {
+							key: 0,
+							ref_for: true,
+							ref_key: "labelInput",
+							ref: labelInput,
+							class: "wy-tab is-active wy-tab-input",
+							role: "tab",
+							"aria-selected": "true",
+							value: label,
+							size: Math.max(4, (label || untitled(i)).length + 1),
+							placeholder: untitled(i),
+							"aria-label": unref(t)("tabs.labelField"),
+							onInput: ($event) => withPos((pos) => unref(setSectionLabel)(_ctx.editor, pos, i, $event.target.value)),
+							onKeydown: intoContent
+						}, null, 40, _hoisted_3$23)) : (openBlock(), createElementBlock("button", {
+							key: 1,
+							type: "button",
+							class: normalizeClass(["wy-tab", { "is-active": i === active.value }]),
+							role: "tab",
+							"aria-selected": i === active.value,
+							onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
+							onClick: ($event) => withPos((pos) => unref(selectSection)(_ctx.editor, pos, i))
+						}, toDisplayString(label || untitled(i)), 43, _hoisted_4$21))], 64);
+					}), 128)), !unref(readonly) ? (openBlock(), createElementBlock("span", _hoisted_5$20, [
+						withDirectives((openBlock(), createElementBlock("button", {
+							type: "button",
+							class: "wy-icon-btn",
+							"aria-label": unref(t)("tabs.moveLeft"),
+							disabled: active.value === 0,
+							onMousedown: _cache[1] || (_cache[1] = withModifiers(() => {}, ["prevent"])),
+							onClick: _cache[2] || (_cache[2] = ($event) => withPos((pos) => unref(moveSection)(_ctx.editor, pos, active.value, -1)))
+						}, [createVNode(unref(ChevronLeft), { size: 14 })], 40, _hoisted_6$16)), [[unref(vTooltip), unref(t)("tabs.moveLeft")]]),
+						withDirectives((openBlock(), createElementBlock("button", {
+							type: "button",
+							class: "wy-icon-btn",
+							"aria-label": unref(t)("tabs.moveRight"),
+							disabled: active.value === labels.value.length - 1,
+							onMousedown: _cache[3] || (_cache[3] = withModifiers(() => {}, ["prevent"])),
+							onClick: _cache[4] || (_cache[4] = ($event) => withPos((pos) => unref(moveSection)(_ctx.editor, pos, active.value, 1)))
+						}, [createVNode(unref(ChevronRight), { size: 14 })], 40, _hoisted_7$11)), [[unref(vTooltip), unref(t)("tabs.moveRight")]]),
+						withDirectives((openBlock(), createElementBlock("button", {
+							type: "button",
+							class: "wy-icon-btn is-danger",
+							"aria-label": unref(t)("tabs.remove"),
+							disabled: labels.value.length < 2,
+							onMousedown: _cache[5] || (_cache[5] = withModifiers(() => {}, ["prevent"])),
+							onClick: _cache[6] || (_cache[6] = ($event) => withPos((pos) => unref(removeSection)(_ctx.editor, pos, active.value)))
+						}, [createVNode(unref(Trash2), { size: 14 })], 40, _hoisted_8$10)), [[unref(vTooltip), unref(t)("tabs.remove")]]),
+						withDirectives((openBlock(), createElementBlock("button", {
+							type: "button",
+							class: "wy-icon-btn",
+							"aria-label": unref(t)("tabs.add"),
+							onMousedown: _cache[7] || (_cache[7] = withModifiers(() => {}, ["prevent"])),
+							onClick: addTab
+						}, [createVNode(unref(Plus), { size: 14 })], 40, _hoisted_9$9)), [[unref(vTooltip), unref(t)("tabs.add")]])
+					])) : createCommentVNode("", true)]), createVNode(unref(NodeViewContent), { class: "wy-tabs-panels" })])]),
+					_: 1
+				}, 8, [
+					"label",
+					"selected",
+					"editing",
+					"readonly",
+					"copy-text",
+					"onDelete"
+				])]),
+				_: 1
+			});
+		};
+	}
+});
+// src/nodes/TabView.vue
+var TabView_default = /* @__PURE__ */ defineComponent({
+	__name: "TabView",
+	props: nodeViewProps,
+	setup(__props) {
+		const props = __props;
+		const shown = ref(true);
+		function sync() {
+			const pos = props.getPos();
+			if (typeof pos !== "number") return;
+			const $pos = props.editor.state.doc.resolve(pos);
+			shown.value = activeSection(props.editor.state, $pos.before()) === $pos.index();
+		}
+		sync();
+		onMounted(() => props.editor.on("transaction", sync));
+		onBeforeUnmount(() => props.editor.off("transaction", sync));
+		return (_ctx, _cache) => {
+			return openBlock(), createBlock(unref(NodeViewWrapper), {
+				as: "div",
+				class: normalizeClass(["wy-tab-panel", { "is-hidden": !shown.value }]),
+				role: "tabpanel"
+			}, {
+				default: withCtx(() => [createVNode(unref(NodeViewContent), { class: "wy-tab-body" })]),
+				_: 1
+			}, 8, ["class"]);
+		};
+	}
+});
+var tabsExtension = {
+	name: "tabs",
+	tiptap: [
+		Node$1.create({
+			name: "tabs",
+			group: "block",
+			content: "tab+",
+			defining: true,
+			draggable: false,
+			parseHTML() {
+				return [{ tag: "div[data-tabs]" }];
+			},
+			renderHTML({ HTMLAttributes }) {
+				return [
+					"div",
+					mergeAttributes({
+						"data-tabs": "",
+						class: "wy-tabs"
+					}, HTMLAttributes),
+					0
+				];
+			}
+		}),
+		sectionNode("tab"),
+		TabsActive
+	],
+	nodeViews: {
+		tabs: TabsView_default,
+		tab: TabView_default
+	},
+	markdown: {
+		fences: [{
+			kind: "tabs",
+			parse: (c) => c.sections("tabs", "tab", {})
+		}],
+		tokens: {
+			tabs: { block: "tabs" },
+			tab: {
+				block: "tab",
+				getAttrs: (tok) => ({ label: tok.meta?.label ?? "" })
+			}
+		},
+		nodes: {
+			tabs: (state, node, _parent, _index, h) => h.writeFence(state, node, "tabs", h.sectionsMarkdown(node)),
+			tab() {}
+		}
+	},
+	slash: [{
+		id: "tabs",
+		group: "blocks",
+		rank: 16,
+		label: "",
+		icon: PanelsTopLeft,
+		keywords: "tabs tabbed sections",
+		run: (c) => c.insertSections("tabs", "tab")
+	}],
+	convert: {
+		sections: { tabs: "tab" },
+		targets: [{
+			id: "tabs",
+			label: "",
+			icon: PanelsTopLeft,
+			rank: 39,
+			container: "tabs"
+		}]
+	}
+};
+// src/nodes/ButtonView.vue?vue&type=script&setup=true&lang.ts
+var _hoisted_1$26 = {
+	class: "wy-button-block",
+	contenteditable: "false"
+};
+var _hoisted_2$22 = ["disabled"];
+var _hoisted_3$22 = { class: "wy-field" };
+var _hoisted_4$20 = { class: "wy-label" };
+var _hoisted_5$19 = ["value", "placeholder"];
+var _hoisted_6$15 = { class: "wy-label" };
+var _hoisted_7$10 = {
+	key: 0,
+	class: "wy-menu-hint"
+};
+var _hoisted_8$9 = { class: "wy-button-action-head" };
+var _hoisted_9$8 = [
+	"value",
+	"aria-label",
+	"onChange"
+];
+var _hoisted_10$8 = ["value"];
+var _hoisted_11$5 = ["value"];
+var _hoisted_12$5 = [
+	"aria-label",
+	"disabled",
+	"onClick"
+];
+var _hoisted_13$5 = [
+	"aria-label",
+	"disabled",
+	"onClick"
+];
+var _hoisted_14$4 = ["aria-label", "onClick"];
+var _hoisted_15$4 = { class: "wy-label" };
+var _hoisted_16$3 = [
+	"value",
+	"placeholder",
+	"onInput"
+];
+var _hoisted_17$3 = [
+	"value",
+	"placeholder",
+	"onInput"
+];
+var _hoisted_18$3 = { class: "wy-button-editor-foot" };
+// src/nodes/ButtonView.vue
+var ButtonView_default = /* @__PURE__ */ defineComponent({
+	__name: "ButtonView",
+	props: nodeViewProps,
+	setup(__props) {
+		const props = __props;
+		const ctx = contextOf(props.editor);
+		const t = ctx.t;
+		const { selected, editing, startEdit, finishEdit, update, remove, copyText, readonly, onKeydown } = useBlockNode(props, { editOnInsert: true });
+		const defs = buttonActionDefs(ctx.services);
+		const label = computed(() => props.node.attrs.label ?? "");
+		const actions = computed(() => props.node.attrs.actions ?? []);
+		const running = ref(false);
+		const labelInput = ref(null);
+		const kindLabel = (kind) => ctx.text(defs[kind]?.label, `button.kinds.${kind}`) || kind;
+		const fieldLabel = (f) => ctx.text(f.label, `button.fields.${f.key}`) || f.key;
+		const fieldPlaceholder = (f) => ctx.text(f.placeholder, `button.placeholders.${f.key}`);
+		const runs = (a) => !!defs[a.kind] && (!readonly.value || defs[a.kind].readonly !== false);
+		watch(editing, async (on) => {
+			if (!on) return;
+			await nextTick();
+			labelInput.value?.focus();
+		});
+		async function run(event) {
+			const pos = props.getPos();
+			if (running.value || typeof pos !== "number") return;
+			running.value = true;
+			try {
+				for (const a of actions.value) if (runs(a)) await defs[a.kind].run(a, {
+					editor: props.editor,
+					pos,
+					services: ctx.services,
+					event
+				});
+			} catch (e) {
+				ctx.services.toast?.(e instanceof Error ? e.message : String(e), "error");
+			} finally {
+				running.value = false;
+			}
+		}
+		function setActions(next) {
+			update({ actions: next });
+		}
+		function setField(i, key, value) {
+			setActions(actions.value.map((a, k) => k === i ? {
+				...a,
+				[key]: value
+			} : a));
+		}
+		function setKind(i, kind) {
+			setActions(actions.value.map((a, k) => k === i ? { kind } : a));
+		}
+		function move(i, dir) {
+			const next = [...actions.value];
+			const [a] = next.splice(i, 1);
+			next.splice(i + dir, 0, a);
+			setActions(next);
+		}
+		function fieldValue(a, key) {
+			const v = a[key];
+			return typeof v === "string" ? v : "";
+		}
+		return (_ctx, _cache) => {
+			return openBlock(), createBlock(unref(NodeViewWrapper), {
+				as: "div",
+				class: "wy-node wy-node-button"
+			}, {
+				default: withCtx(() => [createVNode(BlockFrame_default, {
+					label: unref(t)("button.label"),
+					selected: unref(selected),
+					editing: unref(editing),
+					readonly: unref(readonly),
+					"copy-text": unref(copyText),
+					onEdit: unref(startEdit),
+					onDelete: unref(remove)
+				}, {
+					default: withCtx(() => [createElementVNode("div", _hoisted_1$26, [createElementVNode("button", {
+						type: "button",
+						class: "wy-button",
+						disabled: running.value || !actions.value.some(runs),
+						onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
+						onClick: run
+					}, [createVNode(unref(Zap), {
+						size: 14,
+						"aria-hidden": "true"
+					}), createTextVNode(toDisplayString(label.value || unref(t)("button.untitled")), 1)], 40, _hoisted_2$22)]), unref(editing) ? (openBlock(), createElementBlock("div", {
+						key: 0,
+						class: "wy-button-editor",
+						contenteditable: "false",
+						onKeydown: _cache[5] || (_cache[5] = (...args) => unref(onKeydown) && unref(onKeydown)(...args))
+					}, [
+						createElementVNode("label", _hoisted_3$22, [createElementVNode("span", _hoisted_4$20, toDisplayString(unref(t)("button.labelField")), 1), createElementVNode("input", {
+							ref_key: "labelInput",
+							ref: labelInput,
+							class: "wy-input is-sm",
+							value: label.value,
+							placeholder: unref(t)("button.untitled"),
+							onInput: _cache[1] || (_cache[1] = ($event) => unref(update)({ label: $event.target.value })),
+							onKeydown: _cache[2] || (_cache[2] = withKeys(withModifiers((...args) => unref(finishEdit) && unref(finishEdit)(...args), ["prevent"]), ["enter"]))
+						}, null, 40, _hoisted_5$19)]),
+						createElementVNode("span", _hoisted_6$15, toDisplayString(unref(t)("button.actions")), 1),
+						!actions.value.length ? (openBlock(), createElementBlock("p", _hoisted_7$10, toDisplayString(unref(t)("button.noActions")), 1)) : createCommentVNode("", true),
+						(openBlock(true), createElementBlock(Fragment$1, null, renderList(actions.value, (a, i) => {
+							return openBlock(), createElementBlock("div", {
+								key: i,
+								class: "wy-button-action"
+							}, [createElementVNode("div", _hoisted_8$9, [
+								unref(defs)[a.kind]?.icon ? (openBlock(), createBlock(resolveDynamicComponent(unref(defs)[a.kind]?.icon), {
+									key: 0,
+									size: 15,
+									"aria-hidden": "true"
+								})) : createCommentVNode("", true),
+								createElementVNode("select", {
+									class: "wy-input is-sm",
+									value: a.kind,
+									"aria-label": unref(t)("button.kind"),
+									onChange: ($event) => setKind(i, $event.target.value)
+								}, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(defs), (_, k) => {
+									return openBlock(), createElementBlock("option", {
+										key: k,
+										value: k
+									}, toDisplayString(kindLabel(String(k))), 9, _hoisted_10$8);
+								}), 128)), !unref(defs)[a.kind] ? (openBlock(), createElementBlock("option", {
+									key: 0,
+									value: a.kind
+								}, toDisplayString(a.kind), 9, _hoisted_11$5)) : createCommentVNode("", true)], 40, _hoisted_9$8),
+								withDirectives((openBlock(), createElementBlock("button", {
+									type: "button",
+									class: "wy-icon-btn",
+									"aria-label": unref(t)("button.moveUp"),
+									disabled: i === 0,
+									onClick: ($event) => move(i, -1)
+								}, [createVNode(unref(ArrowUp), { size: 14 })], 8, _hoisted_12$5)), [[unref(vTooltip), unref(t)("button.moveUp")]]),
+								withDirectives((openBlock(), createElementBlock("button", {
+									type: "button",
+									class: "wy-icon-btn",
+									"aria-label": unref(t)("button.moveDown"),
+									disabled: i === actions.value.length - 1,
+									onClick: ($event) => move(i, 1)
+								}, [createVNode(unref(ArrowDown), { size: 14 })], 8, _hoisted_13$5)), [[unref(vTooltip), unref(t)("button.moveDown")]]),
+								withDirectives((openBlock(), createElementBlock("button", {
+									type: "button",
+									class: "wy-icon-btn is-danger",
+									"aria-label": unref(t)("button.removeAction"),
+									onClick: ($event) => setActions(actions.value.filter((_, k) => k !== i))
+								}, [createVNode(unref(Trash2), { size: 14 })], 8, _hoisted_14$4)), [[unref(vTooltip), unref(t)("button.removeAction")]])
+							]), (openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(defs)[a.kind]?.fields ?? [], (f) => {
+								return openBlock(), createElementBlock("label", {
+									key: f.key,
+									class: "wy-field"
+								}, [createElementVNode("span", _hoisted_15$4, toDisplayString(fieldLabel(f)), 1), f.multiline ? (openBlock(), createElementBlock("textarea", {
+									key: 0,
+									class: "wy-input is-sm is-mono",
+									rows: "3",
+									value: fieldValue(a, f.key),
+									placeholder: fieldPlaceholder(f),
+									spellcheck: "false",
+									onInput: ($event) => setField(i, f.key, $event.target.value)
+								}, null, 40, _hoisted_16$3)) : (openBlock(), createElementBlock("input", {
+									key: 1,
+									class: "wy-input is-sm",
+									value: fieldValue(a, f.key),
+									placeholder: fieldPlaceholder(f),
+									onInput: ($event) => setField(i, f.key, $event.target.value)
+								}, null, 40, _hoisted_17$3))]);
+							}), 128))]);
+						}), 128)),
+						createElementVNode("div", _hoisted_18$3, [createElementVNode("button", {
+							type: "button",
+							class: "wy-btn is-sm",
+							onClick: _cache[3] || (_cache[3] = ($event) => setActions([...actions.value, {
+								kind: "insert",
+								markdown: ""
+							}]))
+						}, [createVNode(unref(Plus), { size: 14 }), createTextVNode(toDisplayString(unref(t)("button.addAction")), 1)]), createElementVNode("button", {
+							type: "button",
+							class: "wy-btn is-sm is-primary",
+							onClick: _cache[4] || (_cache[4] = (...args) => unref(finishEdit) && unref(finishEdit)(...args))
+						}, toDisplayString(unref(t)("button.done")), 1)])
+					], 32)) : createCommentVNode("", true)]),
+					_: 1
+				}, 8, [
+					"label",
+					"selected",
+					"editing",
+					"readonly",
+					"copy-text",
+					"onEdit",
+					"onDelete"
+				])]),
+				_: 1
+			});
+		};
+	}
+});
+// src/builtins/button.ts
+function isAction(v) {
+	return !!v && typeof v === "object" && !Array.isArray(v) && "kind" in v && typeof v.kind === "string" && v.kind !== "";
+}
+/** the actions of a fence body or `data-actions`; anything that is not a JSON array of `{ kind }` objects is none */
+function parseButtonActions(json) {
+	try {
+		const v = JSON.parse(json.trim() || "[]");
+		return Array.isArray(v) ? v.filter(isAction) : [];
+	} catch {
+		return [];
+	}
+}
+/** the fence body: the actions as JSON indented by two spaces, nothing without actions */
+function formatButtonActions(actions) {
+	return actions.length ? JSON.stringify(actions, null, 2) : "";
+}
+var BASE_BUTTON_ACTIONS = {
+	insert: {
+		label: "",
+		icon: TextCursorInput,
+		fields: [{
+			key: "markdown",
+			label: "",
+			multiline: true
+		}],
+		readonly: false,
+		run(action, c) {
+			const md = typeof action.markdown === "string" ? action.markdown : "";
+			const node = c.editor.state.doc.nodeAt(c.pos);
+			if (!md.trim() || !node) return;
+			const doc = contextOf(c.editor).markdown.parse(md, c.editor.schema);
+			c.editor.view.dispatch(c.editor.state.tr.insert(c.pos + node.nodeSize, doc.content).scrollIntoView());
+		}
+	},
+	link: {
+		label: "",
+		icon: Link$1,
+		fields: [{
+			key: "url",
+			label: ""
+		}],
+		readonly: true,
+		run(action, c) {
+			if (typeof action.url === "string" && action.url.trim()) openHref(c.services, action.url, c.event);
+		}
+	}
+};
+/** base kinds and the host's, base first; a host kind of a base name does not replace it */
+function buttonActionDefs(services) {
+	return {
+		...services.buttonActions,
+		...BASE_BUTTON_ACTIONS
+	};
+}
+var buttonExtension = {
+	name: "button",
+	tiptap: [Node$1.create({
+		name: "button",
+		group: "block",
+		atom: true,
+		draggable: false,
+		selectable: true,
+		addAttributes() {
+			return {
+				label: {
+					default: "",
+					parseHTML: (dom) => dom.getAttribute("data-label") ?? "",
+					renderHTML: (a) => ({ "data-label": a.label ?? "" })
+				},
+				actions: {
+					default: [],
+					parseHTML: (dom) => parseButtonActions(dom.getAttribute("data-actions") ?? ""),
+					renderHTML: (a) => ({ "data-actions": JSON.stringify(a.actions ?? []) })
+				}
+			};
+		},
+		parseHTML() {
+			return [{ tag: "div[data-type=\"button\"]" }];
+		},
+		renderHTML({ HTMLAttributes, node }) {
+			return [
+				"div",
+				mergeAttributes({
+					"data-type": "button",
+					class: "wy-button-block"
+				}, HTMLAttributes),
+				[
+					"button",
+					{
+						type: "button",
+						class: "wy-button"
+					},
+					String(node.attrs.label ?? "")
+				]
+			];
+		}
+	})],
+	nodeViews: { button: ButtonView_default },
+	markdown: {
+		fences: [{
+			kind: "button",
+			parse: (ctx) => ctx.atom("button_block", {
+				label: ctx.info.attrs.label ?? "",
+				actions: parseButtonActions(ctx.body)
+			})
+		}],
+		tokens: { button_block: {
+			node: "button",
+			getAttrs: (tok) => ({
+				label: tok.meta.label,
+				actions: tok.meta.actions
+			})
+		} },
+		nodes: { button(state, node, _parent, _index, h) {
+			h.writeFence(state, node, formatInfo("button", { label: infoText(node.attrs.label) }), formatButtonActions(node.attrs.actions));
+		} }
+	},
+	slash: [{
+		id: "button",
+		group: "blocks",
+		rank: 50,
+		label: "",
+		icon: MousePointerClick,
+		keywords: "button action template automation",
+		run: (c) => c.insert("button", {
+			label: "",
+			actions: [{
+				kind: "insert",
+				markdown: ""
+			}]
+		})
+	}]
+};
+// src/nodes/BreadcrumbsView.vue?vue&type=script&setup=true&lang.ts
+var _hoisted_1$25 = ["aria-label"];
+var _hoisted_2$21 = ["href", "onClick"];
+var _hoisted_3$21 = {
+	class: "wy-breadcrumb-icon",
+	"aria-hidden": "true"
+};
+var _hoisted_4$19 = ["src"];
+var _hoisted_5$18 = { class: "wy-breadcrumb-title" };
+var _hoisted_6$14 = {
+	key: 0,
+	class: "wy-breadcrumbs-empty"
+};
+// src/nodes/BreadcrumbsView.vue
+var BreadcrumbsView_default = /* @__PURE__ */ defineComponent({
+	__name: "BreadcrumbsView",
+	props: nodeViewProps,
+	setup(__props) {
+		const props = __props;
+		const ctx = contextOf(props.editor);
+		const t = ctx.t;
+		const { selected, remove, copyText, readonly } = useBlockNode(props);
+		const crumbs = ref(null);
+		const isImage = (icon) => /^(https?:|\/|data:image\/|blob:)/.test(icon);
+		onMounted(async () => {
+			try {
+				crumbs.value = await ctx.services.breadcrumbs?.() ?? [];
+			} catch {
+				crumbs.value = [];
+			}
+		});
+		function open(c, e) {
+			followLink(ctx.services, c.href, e, c.href.startsWith("/"));
+		}
+		return (_ctx, _cache) => {
+			return openBlock(), createBlock(unref(NodeViewWrapper), {
+				as: "div",
+				class: "wy-node wy-node-breadcrumbs"
+			}, {
+				default: withCtx(() => [createVNode(BlockFrame_default, {
+					label: unref(t)("breadcrumbs.label"),
+					selected: unref(selected),
+					readonly: unref(readonly),
+					"copy-text": unref(copyText),
+					editable: false,
+					onDelete: unref(remove)
+				}, {
+					default: withCtx(() => [createElementVNode("nav", {
+						class: "wy-breadcrumbs",
+						"aria-label": unref(t)("breadcrumbs.label"),
+						contenteditable: "false"
+					}, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(crumbs.value ?? [], (c, i) => {
+						return openBlock(), createElementBlock(Fragment$1, { key: i }, [i > 0 ? (openBlock(), createBlock(unref(ChevronRight), {
+							key: 0,
+							class: "wy-breadcrumbs-sep",
+							size: 14,
+							"aria-hidden": "true"
+						})) : createCommentVNode("", true), createElementVNode("a", {
+							class: "wy-breadcrumb",
+							href: c.href,
+							draggable: "false",
+							onClick: ($event) => open(c, $event)
+						}, [createElementVNode("span", _hoisted_3$21, [c.icon && isImage(c.icon) ? (openBlock(), createElementBlock("img", {
+							key: 0,
+							src: c.icon,
+							alt: ""
+						}, null, 8, _hoisted_4$19)) : c.icon ? (openBlock(), createElementBlock(Fragment$1, { key: 1 }, [createTextVNode(toDisplayString(c.icon), 1)], 64)) : (openBlock(), createBlock(unref(FileText), {
+							key: 2,
+							size: 14
+						}))]), createElementVNode("span", _hoisted_5$18, toDisplayString(c.title || unref(t)("pageLink.untitled")), 1)], 8, _hoisted_2$21)], 64);
+					}), 128)), crumbs.value && !crumbs.value.length && !unref(readonly) ? (openBlock(), createElementBlock("span", _hoisted_6$14, toDisplayString(unref(t)("breadcrumbs.empty")), 1)) : createCommentVNode("", true)], 8, _hoisted_1$25)]),
+					_: 1
+				}, 8, [
+					"label",
+					"selected",
+					"readonly",
+					"copy-text",
+					"onDelete"
+				])]),
+				_: 1
+			});
+		};
+	}
+});
+var breadcrumbsExtension = {
+	name: "breadcrumbs",
+	tiptap: [Node$1.create({
+		name: "breadcrumbs",
+		group: "block",
+		atom: true,
+		draggable: false,
+		selectable: true,
+		parseHTML() {
+			return [{ tag: "nav[data-type=\"breadcrumbs\"]" }];
+		},
+		renderHTML({ HTMLAttributes }) {
+			return ["nav", mergeAttributes({
+				"data-type": "breadcrumbs",
+				class: "wy-breadcrumbs"
+			}, HTMLAttributes)];
+		}
+	})],
+	nodeViews: { breadcrumbs: BreadcrumbsView_default },
+	markdown: {
+		fences: [{
+			kind: "breadcrumbs",
+			parse: (ctx) => ctx.atom("breadcrumbs_block", {})
+		}],
+		tokens: { breadcrumbs_block: { node: "breadcrumbs" } },
+		nodes: { breadcrumbs(state, node, _parent, _index, h) {
+			h.writeFence(state, node, "breadcrumbs", "");
+		} }
+	},
+	slash: [{
+		id: "breadcrumbs",
+		group: "blocks",
+		rank: 42,
+		label: "",
+		icon: ChevronsRight,
+		keywords: "breadcrumbs path parent navigation trail",
+		enabled: (editor) => !!editor.storage.wysiwyg?.context?.services.breadcrumbs,
+		run: (c) => c.insert("breadcrumbs", {})
+	}]
+};
+// src/nodes/AiBlockView.vue?vue&type=script&setup=true&lang.ts
+var _hoisted_1$24 = {
+	key: 0,
+	class: "wy-ai-panel",
+	contenteditable: "false"
+};
+var _hoisted_2$20 = { class: "wy-ai-prompt" };
+var _hoisted_3$20 = [
+	"value",
+	"placeholder",
+	"aria-label",
+	"disabled"
+];
+var _hoisted_4$18 = { class: "wy-ai-bar" };
+var _hoisted_5$17 = [
+	"value",
+	"aria-label",
+	"disabled"
+];
+var _hoisted_6$13 = ["value"];
+var _hoisted_7$9 = {
+	key: 1,
+	class: "wy-ai-status"
+};
+var _hoisted_8$8 = {
+	key: 2,
+	class: "wy-ai-error",
+	role: "alert"
+};
+var _hoisted_9$7 = {
+	key: 3,
+	class: "wy-ai-status"
+};
+var _hoisted_10$7 = ["disabled"];
+// src/nodes/AiBlockView.vue
+var AiBlockView_default = /* @__PURE__ */ defineComponent({
+	__name: "AiBlockView",
+	props: nodeViewProps,
+	setup(__props) {
+		const props = __props;
+		const ctx = contextOf(props.editor);
+		const t = ctx.t;
+		const { selected, editing, startEdit, finishEdit, update, remove, copyText, readonly, onKeydown } = useBlockNode(props, { editOnInsert: true });
+		const scopes = computed(() => ctx.services.aiScopes ?? []);
+		const prompt = computed(() => props.node.attrs.prompt ?? "");
+		const scope = computed(() => props.node.attrs.scope || scopes.value[0]?.id || "");
+		const updatedAt = computed(() => props.node.attrs.updatedAt ?? "");
+		const busy = ref(false);
+		const error = ref("");
+		const area = ref(null);
+		const panel = computed(() => !readonly.value && (editing.value || busy.value || !prompt.value.trim()));
+		const canGenerate = computed(() => !!ctx.services.aiGenerate && !!prompt.value.trim());
+		const updatedLabel = computed(() => {
+			const d = new Date(updatedAt.value);
+			return Number.isNaN(d.getTime()) ? "" : new Intl.DateTimeFormat(ctx.locale, {
+				dateStyle: "medium",
+				timeStyle: "short"
+			}).format(d);
+		});
+		let abort = null;
+		watch(editing, async (on) => {
+			if (!on) return;
+			await nextTick();
+			area.value?.focus();
+		});
+		onBeforeUnmount(() => abort?.abort());
+		/** the content becomes the blocks of `md`; returns false once the block is gone */
+		function setContent(md, history, attrs) {
+			const pos = props.getPos();
+			const node = typeof pos === "number" ? props.editor.state.doc.nodeAt(pos) : null;
+			if (typeof pos !== "number" || node?.type.name !== "aiBlock") return false;
+			const schema = props.editor.schema;
+			const parsed = typeof md === "string" ? md.trim() ? ctx.markdown.parse(md, schema).content : Fragment.empty : md;
+			const tr = props.editor.state.tr.replaceWith(pos + 1, pos + node.nodeSize - 1, parsed.size ? parsed : schema.nodes.paragraph.create());
+			if (attrs) tr.setNodeMarkup(pos, void 0, {
+				...node.attrs,
+				...attrs
+			});
+			tr.setMeta("addToHistory", history);
+			props.editor.view.dispatch(tr);
+			return true;
+		}
+		function documentMarkdown() {
+			try {
+				return ctx.markdown.serialize(props.editor.state.doc);
+			} catch {
+				return props.editor.state.doc.textBetween(0, props.editor.state.doc.content.size, "\n\n");
+			}
+		}
+		async function generate() {
+			const run = ctx.services.aiGenerate;
+			if (!run || busy.value || !prompt.value.trim()) return;
+			const before = toRaw(props.node).content;
+			const ctrl = abort = new AbortController();
+			busy.value = true;
+			error.value = "";
+			let text = "";
+			let frame = 0;
+			const flush = () => {
+				frame = 0;
+				if (!setContent(text, false)) ctrl.abort();
+			};
+			try {
+				for await (const piece of run({
+					prompt: prompt.value,
+					scope: scope.value,
+					document: documentMarkdown()
+				}, ctrl.signal)) {
+					if (ctrl.signal.aborted) break;
+					text += piece;
+					frame ||= requestAnimationFrame(flush);
+				}
+			} catch (e) {
+				if (!ctrl.signal.aborted) error.value = e instanceof Error && e.message ? e.message : t("ai.failed");
+			} finally {
+				cancelAnimationFrame(frame);
+				busy.value = false;
+				abort = null;
+				if (text.trim() && setContent(before, false)) setContent(text, true, { updatedAt: (/* @__PURE__ */ new Date()).toISOString() });
+				else setContent(before, false);
+			}
+		}
+		function stop() {
+			abort?.abort();
+		}
+		function onPromptKey(e) {
+			if (e.key === "Enter" && !e.shiftKey) {
+				e.preventDefault();
+				generate();
+				return;
+			}
+			onKeydown(e);
+		}
+		return (_ctx, _cache) => {
+			return openBlock(), createBlock(unref(NodeViewWrapper), {
+				as: "div",
+				class: "wy-node wy-node-ai"
+			}, {
+				default: withCtx(() => [createVNode(BlockFrame_default, {
+					label: unref(t)("ai.label"),
+					selected: unref(selected),
+					editing: panel.value,
+					readonly: unref(readonly),
+					"copy-text": unref(copyText),
+					onEdit: unref(startEdit),
+					onDelete: unref(remove)
+				}, {
+					default: withCtx(() => [createElementVNode("div", { class: normalizeClass(["wy-ai-block", { "is-busy": busy.value }]) }, [panel.value ? (openBlock(), createElementBlock("div", _hoisted_1$24, [createElementVNode("div", _hoisted_2$20, [createVNode(unref(Sparkles), {
+						class: "wy-ai-icon",
+						size: 16,
+						"aria-hidden": "true"
+					}), createElementVNode("textarea", {
+						ref_key: "area",
+						ref: area,
+						class: "wy-ai-input",
+						rows: "1",
+						value: prompt.value,
+						placeholder: unref(t)("ai.promptPlaceholder"),
+						"aria-label": unref(t)("ai.prompt"),
+						disabled: busy.value,
+						onInput: _cache[0] || (_cache[0] = ($event) => unref(update)({ prompt: $event.target.value })),
+						onKeydown: onPromptKey
+					}, null, 40, _hoisted_3$20)]), createElementVNode("div", _hoisted_4$18, [
+						scopes.value.length ? (openBlock(), createElementBlock("select", {
+							key: 0,
+							class: "wy-input is-sm wy-ai-scope",
+							value: scope.value,
+							"aria-label": unref(t)("ai.scope"),
+							disabled: busy.value,
+							onChange: _cache[1] || (_cache[1] = ($event) => unref(update)({ scope: $event.target.value }))
+						}, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(scopes.value, (s) => {
+							return openBlock(), createElementBlock("option", {
+								key: s.id,
+								value: s.id
+							}, toDisplayString(s.label), 9, _hoisted_6$13);
+						}), 128))], 40, _hoisted_5$17)) : createCommentVNode("", true),
+						busy.value ? (openBlock(), createElementBlock("span", _hoisted_7$9, toDisplayString(unref(t)("ai.writing")), 1)) : error.value ? (openBlock(), createElementBlock("span", _hoisted_8$8, toDisplayString(error.value), 1)) : updatedLabel.value ? (openBlock(), createElementBlock("span", _hoisted_9$7, toDisplayString(unref(t)("ai.updated", { date: updatedLabel.value })), 1)) : createCommentVNode("", true),
+						_cache[3] || (_cache[3] = createElementVNode("span", { class: "wy-ai-spacer" }, null, -1)),
+						busy.value ? (openBlock(), createElementBlock("button", {
+							key: 4,
+							type: "button",
+							class: "wy-btn is-sm",
+							onClick: stop
+						}, toDisplayString(unref(t)("ai.stop")), 1)) : (openBlock(), createElementBlock(Fragment$1, { key: 5 }, [createElementVNode("button", {
+							type: "button",
+							class: "wy-btn is-sm is-primary",
+							disabled: !canGenerate.value,
+							onClick: generate
+						}, toDisplayString(updatedAt.value ? unref(t)("ai.regenerate") : unref(t)("ai.generate")), 9, _hoisted_10$7), prompt.value.trim() ? (openBlock(), createElementBlock("button", {
+							key: 0,
+							type: "button",
+							class: "wy-btn is-sm",
+							onClick: _cache[2] || (_cache[2] = (...args) => unref(finishEdit) && unref(finishEdit)(...args))
+						}, toDisplayString(unref(t)("ai.done")), 1)) : createCommentVNode("", true)], 64))
+					])])) : createCommentVNode("", true), createVNode(unref(NodeViewContent), { class: "wy-ai-content" })], 2)]),
+					_: 1
+				}, 8, [
+					"label",
+					"selected",
+					"editing",
+					"readonly",
+					"copy-text",
+					"onEdit",
+					"onDelete"
+				])]),
+				_: 1
+			});
+		};
+	}
+});
+// src/builtins/ai.ts
+function dataAttr(name, data) {
+	return {
+		default: "",
+		parseHTML: (dom) => dom.getAttribute(data) ?? "",
+		renderHTML: (a) => a[name] ? { [data]: String(a[name]) } : {}
+	};
+}
+var aiExtension = {
+	name: "aiBlock",
+	tiptap: [Node$1.create({
+		name: "aiBlock",
+		group: "block",
+		content: "block+",
+		defining: true,
+		isolating: true,
+		draggable: false,
+		addAttributes() {
+			return {
+				prompt: dataAttr("prompt", "data-prompt"),
+				scope: dataAttr("scope", "data-scope"),
+				updatedAt: dataAttr("updatedAt", "data-updated")
+			};
+		},
+		parseHTML() {
+			return [{ tag: "div[data-type=\"ai-block\"]" }];
+		},
+		renderHTML({ HTMLAttributes }) {
+			return [
+				"div",
+				mergeAttributes({
+					"data-type": "ai-block",
+					class: "wy-ai-block"
+				}, HTMLAttributes),
+				0
+			];
+		}
+	})],
+	nodeViews: { aiBlock: AiBlockView_default },
+	markdown: {
+		fences: [{
+			kind: "ai",
+			parse: (ctx) => {
+				const a = ctx.info.attrs;
+				ctx.container("ai_block", {
+					prompt: a.prompt ?? "",
+					scope: a.scope ?? "",
+					updatedAt: a.updated ?? ""
+				});
+			}
+		}],
+		tokens: { ai_block: {
+			block: "aiBlock",
+			getAttrs: (tok) => ({
+				prompt: tok.meta.prompt,
+				scope: tok.meta.scope,
+				updatedAt: tok.meta.updatedAt
+			})
+		} },
+		nodes: { aiBlock(state, node, _parent, _index, h) {
+			const a = node.attrs;
+			h.writeFence(state, node, formatInfo("ai", {
+				prompt: infoText(a.prompt),
+				scope: infoText(a.scope).replace(/\s/g, ""),
+				updated: infoText(a.updatedAt).replace(/\s/g, "")
+			}), h.contentMarkdown(node));
+		} }
+	},
+	slash: [{
+		id: "aiBlock",
+		group: "blocks",
+		rank: 5,
+		label: "",
+		icon: Sparkles,
+		keywords: "ai assistant generate write summarize",
+		enabled: (editor) => !!editor.storage.wysiwyg?.context?.services.aiGenerate,
+		run: (c) => c.insert("aiBlock", {
+			prompt: "",
+			scope: c.services.aiScopes?.[0]?.id ?? "",
+			updatedAt: ""
+		}, [{ type: "paragraph" }])
+	}]
+};
 // src/builtins/index.ts
 function builtinExtensions(base) {
 	const out = [];
@@ -5579,11 +8884,16 @@ function builtinExtensions(base) {
 	if (base.details) out.push(detailsExtension);
 	if (base.footnotes) out.push(footnotesExtension);
 	if (base.columns) out.push(columnsExtension);
+	if (base.tabs) out.push(tabsExtension);
 	if (base.bookmarks) out.push(bookmarkExtension);
 	if (base.embeds) out.push(embedExtension);
 	if (base.toc) out.push(tocExtension);
-	if (base.pageLinks) out.push(pageLinkExtension);
-	if (base.mentions) out.push(mentionExtension(base));
+	if (base.breadcrumbs) out.push(breadcrumbsExtension);
+	if (base.buttons) out.push(buttonExtension);
+	if (base.ai) out.push(aiExtension);
+	if (base.pageLinks) out.push(pageLinkExtension(base));
+	if (base.mentions) out.push(mentionExtension());
+	if (base.emoji) out.push(emojiExtension);
 	return out;
 }
 // src/schema/colors.ts
@@ -5598,8 +8908,7 @@ var BLOCK_COLOR_TYPES = [
 	"callout",
 	"details",
 	"tableCell",
-	"tableHeader",
-	"pageLink"
+	"tableHeader"
 ];
 function textToken(el) {
 	const data = el.getAttribute("data-color");
@@ -5720,8 +9029,13 @@ function resolveBase(format, base = {}) {
 		bookmarks: base.bookmarks ?? false,
 		embeds: base.embeds ?? false,
 		toc: base.toc ?? false,
-		pageLinks: base.pageLinks ?? false,
+		pageLinks: base.pageLinks ?? base.mentions ?? false,
 		mentions: base.mentions ?? false,
+		emoji: base.emoji ?? false,
+		tabs: base.tabs ?? false,
+		buttons: base.buttons ?? false,
+		breadcrumbs: base.breadcrumbs ?? false,
+		ai: base.ai ?? false,
 		diagrams: base.diagrams === true ? ["mermaid", "plantuml"] : base.diagrams || [],
 		plantumlServer: (base.plantumlServer ?? "https://www.plantuml.com/plantuml").replace(/\/+$/, ""),
 		pageHref: base.pageHref ?? "/p/{id}"
@@ -6149,6 +9463,21 @@ function retagFences(state, tokens, opts) {
 				atom: (name, meta) => {
 					t.type = name;
 					t.meta = withAttrs(meta);
+				},
+				inline: (name, meta) => {
+					const open = new state.Token("paragraph_open", "p", 1);
+					open.block = true;
+					open.map = t.map;
+					open.meta = withAttrs({});
+					const inline = new state.Token("inline", "", 0);
+					inline.content = "";
+					const chip = new state.Token(name, "span", 0);
+					chip.meta = meta;
+					inline.children = [chip];
+					const close = new state.Token("paragraph_close", "p", -1);
+					close.block = true;
+					tokens.splice(i, 1, open, inline, close);
+					advance = 2;
 				}
 			};
 			rule.parse(ctx);
@@ -6182,7 +9511,6 @@ var OWN_ATTR_LINE = {
 	tableHeader: true,
 	horizontalRule: true,
 	callout: true,
-	pageLink: true,
 	tableOfContents: true,
 	bookmark: true
 };
@@ -6871,1037 +10199,6 @@ function markdownFor(config) {
 function createMarkdown(extensions = NO_EXTENSIONS, options = {}) {
 	return markdownFor(resolveConfig("markdown", options.base, extensions));
 }
-// src/i18n/index.ts
-var MESSAGES = {
-	en: {
-		editor: {
-			placeholder: "Write, or type / for blocks",
-			parseFailed: "The content could not be shown visually. It opened in source mode.",
-			uploading: "Uploading {n} file(s)",
-			uploadingProgress: "Uploading {n} file(s), {percent} %",
-			uploadFailed: "Upload failed: {name}",
-			copied: "Copied",
-			inlineOnly: "Table cells hold text only"
-		},
-		toolbar: {
-			label: "Formatting",
-			undo: "Undo",
-			redo: "Redo",
-			textStyle: "Text style",
-			paragraph: "Text",
-			heading: "Heading {n}",
-			codeBlock: "Code",
-			bold: "Bold",
-			italic: "Italic",
-			underline: "Underline",
-			strike: "Strikethrough",
-			code: "Inline code",
-			highlight: "Highlight",
-			color: "Colour",
-			link: "Link",
-			bulletList: "Bulleted list",
-			orderedList: "Numbered list",
-			taskList: "Checklist",
-			listStyle: "List style",
-			quote: "Quote",
-			callout: "Callout",
-			insert: "Insert",
-			image: "Image",
-			file: "File",
-			align: "Alignment",
-			alignLeft: "Left",
-			alignCenter: "Center",
-			alignRight: "Right",
-			alignJustify: "Justify",
-			focus: "Focus mode",
-			exitFocus: "Leave focus mode",
-			source: "Markdown source",
-			visual: "Visual editor",
-			more: "More"
-		},
-		listStyle: {
-			numbering: "Numbering",
-			bullets: "Bullets",
-			custom: "Own character",
-			apply: "Apply",
-			customHint: "One or two characters, no spaces or quotes.",
-			styles: {
-				decimal: "1, 2, 3",
-				"lower-alpha": "a, b, c",
-				"upper-alpha": "A, B, C",
-				"lower-roman": "i, ii, iii",
-				"upper-roman": "I, II, III",
-				disc: "Dot",
-				circle: "Circle",
-				square: "Square",
-				dash: "Dash",
-				arrow: "Arrow"
-			}
-		},
-		colors: {
-			text: "Text colour",
-			background: "Background colour",
-			default: "Default",
-			none: "No highlight",
-			gray: "Gray",
-			red: "Red",
-			orange: "Orange",
-			yellow: "Yellow",
-			green: "Green",
-			blue: "Blue",
-			purple: "Purple",
-			pink: "Pink",
-			brown: "Brown",
-			reset: "Remove colour"
-		},
-		bubble: {
-			label: "Selection",
-			askAi: "Ask AI"
-		},
-		slash: {
-			title: "Blocks",
-			empty: "Nothing found",
-			groups: {
-				text: "Text",
-				lists: "Lists",
-				blocks: "Blocks",
-				media: "Media"
-			},
-			items: {
-				paragraph: {
-					label: "Text",
-					description: "Plain paragraph"
-				},
-				heading1: {
-					label: "Heading 1",
-					description: "Title of the page"
-				},
-				heading2: {
-					label: "Heading 2",
-					description: "Section heading"
-				},
-				heading3: {
-					label: "Heading 3",
-					description: "Subsection heading"
-				},
-				heading4: {
-					label: "Heading 4",
-					description: "Small heading"
-				},
-				heading5: {
-					label: "Heading 5",
-					description: "Smaller heading"
-				},
-				heading6: {
-					label: "Heading 6",
-					description: "Smallest heading"
-				},
-				quote: {
-					label: "Quote",
-					description: "Quoted text"
-				},
-				callout: {
-					label: "Callout",
-					description: "Box for a note, tip or warning"
-				},
-				codeBlock: {
-					label: "Code",
-					description: "Code with syntax highlighting"
-				},
-				hr: {
-					label: "Divider",
-					description: "Line between sections"
-				},
-				bulletList: {
-					label: "Bulleted list",
-					description: "List with bullets"
-				},
-				orderedList: {
-					label: "Numbered list",
-					description: "List with numbers"
-				},
-				taskList: {
-					label: "Checklist",
-					description: "List with checkboxes"
-				},
-				table: {
-					label: "Table",
-					description: "Rows and columns"
-				},
-				image: {
-					label: "Image",
-					description: "Upload or pick a picture"
-				},
-				file: {
-					label: "File",
-					description: "Attach a file as a link"
-				},
-				mathInline: {
-					label: "Inline formula",
-					description: "LaTeX in the text"
-				},
-				mathBlock: {
-					label: "Formula",
-					description: "LaTeX on its own line"
-				},
-				details: {
-					label: "Collapsible",
-					description: "Section readers open on click"
-				},
-				toggleHeading1: {
-					label: "Toggle heading 1",
-					description: "Large heading that folds its content"
-				},
-				toggleHeading2: {
-					label: "Toggle heading 2",
-					description: "Medium heading that folds its content"
-				},
-				toggleHeading3: {
-					label: "Toggle heading 3",
-					description: "Small heading that folds its content"
-				},
-				columns2: {
-					label: "2 columns",
-					description: "Blocks side by side"
-				},
-				columns3: {
-					label: "3 columns",
-					description: "Three blocks side by side"
-				},
-				columns4: {
-					label: "4 columns",
-					description: "Four blocks side by side"
-				},
-				bookmark: {
-					label: "Bookmark",
-					description: "Link with a preview card"
-				},
-				embed: {
-					label: "Embed",
-					description: "Video, map, design or page"
-				},
-				tableOfContents: {
-					label: "Table of contents",
-					description: "Links to the headings"
-				},
-				pageLink: {
-					label: "Link to page",
-					description: "Block that opens another page"
-				}
-			}
-		},
-		convert: {
-			title: "Turn into",
-			targets: {
-				paragraph: "Text",
-				unwrap: "Unwrap",
-				columns: "Columns"
-			}
-		},
-		blockMenu: {
-			label: "Block",
-			duplicate: "Duplicate",
-			copy: "Copy as markdown",
-			delete: "Delete",
-			color: "Colour"
-		},
-		gutter: {
-			drag: "Drag to move, click for options",
-			add: "Add a block below"
-		},
-		table: {
-			menu: "Table",
-			column: "Column {n}",
-			row: "Row {n}",
-			dragHint: "Drag to move, click for options",
-			insertLeft: "Insert left",
-			insertRight: "Insert right",
-			insertAbove: "Insert above",
-			insertBelow: "Insert below",
-			align: "Align",
-			alignLeft: "Left",
-			alignCenter: "Center",
-			alignRight: "Right",
-			headerRow: "Header row",
-			headerColumn: "Header column",
-			deleteColumn: "Delete column",
-			deleteRow: "Delete row",
-			deleteTable: "Delete table",
-			addColumn: "Add column",
-			addRow: "Add row"
-		},
-		link: {
-			title: "Link",
-			url: "Address",
-			urlPlaceholder: "Paste a link",
-			text: "Text",
-			textPlaceholder: "Shown text",
-			searchPlaceholder: "Search or paste a link",
-			results: "Results",
-			searching: "Searching",
-			linkTo: "Link to this address",
-			noResults: "Nothing found",
-			apply: "Apply",
-			remove: "Remove link",
-			open: "Open link",
-			copy: "Copy link",
-			edit: "Edit link"
-		},
-		field: {
-			tools: "Formatting",
-			expand: "Open the full editor",
-			expandTitle: "Edit",
-			close: "Close"
-		},
-		draft: {
-			idle: "Unsaved changes",
-			saving: "Saving",
-			saved: "Saved",
-			offline: "Offline",
-			error: "Not saved"
-		},
-		block: {
-			edit: "Edit",
-			copy: "Copy as markdown",
-			delete: "Delete",
-			more: "More"
-		},
-		code: {
-			label: "Code",
-			language: "Language",
-			languagePlaceholder: "e.g. python"
-		},
-		callout: {
-			label: "Callout",
-			changeType: "Change the type",
-			title: "Title",
-			addTitle: "Add a title",
-			changeIcon: "Change the icon",
-			icon: "Icon",
-			ownIcon: "Emoji or text",
-			useIcon: "Use",
-			defaultIcon: "Default icon",
-			kinds: "Kind",
-			types: {
-				note: "Note",
-				info: "Info",
-				tip: "Tip",
-				success: "Success",
-				important: "Important",
-				warning: "Warning",
-				caution: "Caution",
-				danger: "Danger",
-				question: "Question",
-				example: "Example",
-				details: "Details"
-			}
-		},
-		image: {
-			label: "Image",
-			video: "Video",
-			audio: "Audio",
-			alt: "Description",
-			altPlaceholder: "What the picture shows",
-			altHelp: "Read by screen readers and shown when the image cannot load.",
-			title: "Title",
-			caption: "Caption",
-			captionPlaceholder: "Caption (optional)",
-			width: "Width",
-			resize: "Drag to resize",
-			replace: "Image",
-			replaceFile: "Replace the file",
-			originalSize: "Original size",
-			toFigure: "Own block",
-			zoom: "Enlarge",
-			align: {
-				left: "Left",
-				center: "Center",
-				right: "Right",
-				"float-left": "Wrap on the left",
-				"float-right": "Wrap on the right"
-			}
-		},
-		divider: {
-			label: "Divider",
-			line: "Line",
-			width: "Width",
-			widthPx: "{n} px",
-			color: "Colour",
-			defaultColor: "Default",
-			customColor: "Own colour",
-			design: "Ornament",
-			customChar: "Own ornament",
-			charInvalid: "One or two characters, no spaces or quotes.",
-			styles: {
-				solid: "Solid",
-				dashed: "Dashed",
-				dotted: "Dotted",
-				double: "Double"
-			},
-			designs: {
-				none: "None",
-				star: "Star",
-				diamond: "Diamond",
-				dots: "Dots",
-				fleuron: "Fleuron"
-			},
-			colors: {
-				red: "Red",
-				orange: "Orange",
-				amber: "Amber",
-				green: "Green",
-				teal: "Teal",
-				blue: "Blue",
-				violet: "Violet",
-				pink: "Pink"
-			}
-		},
-		math: {
-			label: "Formula",
-			edit: "Edit the formula",
-			empty: "Empty formula",
-			placeholder: "LaTeX, e.g. \\frac{a}{b}",
-			tex: "LaTeX"
-		},
-		details: {
-			label: "Collapsible",
-			title: "Title",
-			titlePlaceholder: "Title readers click to open",
-			toggleDefault: "Open for readers",
-			openByDefault: "Open for readers",
-			closedByDefault: "Closed for readers",
-			headingLabel: "Toggle heading {n}",
-			expand: "Expand",
-			collapse: "Collapse"
-		},
-		footnote: { label: "Footnote" },
-		source: { label: "Markdown source" },
-		columns: {
-			label: "Columns",
-			add: "Add column",
-			remove: "Remove column",
-			removeHint: "Its blocks move to the column next to it.",
-			equal: "Equal widths",
-			resize: "Drag to resize"
-		},
-		bookmark: {
-			edit: "Change link",
-			label: "Bookmark",
-			url: "Link",
-			placeholder: "Paste a link",
-			create: "Create bookmark",
-			loading: "Loading preview",
-			failed: "The preview could not be loaded.",
-			refresh: "Refresh preview",
-			open: "Open link"
-		},
-		embed: {
-			edit: "Change link",
-			url: "Link",
-			placeholder: "Paste a link to embed",
-			create: "Embed",
-			open: "Open original",
-			interact: "Click to interact",
-			resize: "Drag to resize",
-			defaultHeight: "Default height",
-			providers: {
-				youtube: "YouTube",
-				vimeo: "Vimeo",
-				loom: "Loom",
-				figma: "Figma",
-				gist: "Gist",
-				maps: "Google Maps",
-				tweet: "Post on X",
-				codepen: "CodePen",
-				generic: "Embed"
-			}
-		},
-		toc: {
-			label: "Table of contents",
-			empty: "No headings yet"
-		},
-		pageLink: {
-			label: "Page",
-			untitled: "Untitled",
-			search: "Link to page",
-			searchPlaceholder: "Search pages"
-		},
-		mention: {
-			label: "Mention",
-			empty: "Nothing found",
-			searching: "Searching",
-			groups: {
-				user: "People",
-				page: "Pages",
-				date: "Dates"
-			},
-			today: "Today",
-			tomorrow: "Tomorrow",
-			yesterday: "Yesterday",
-			date: "Date",
-			time: "Time",
-			includeTime: "Include time",
-			endDate: "End date",
-			editDate: "Change the date"
-		},
-		paste: {
-			label: "Paste as",
-			link: "Keep as link",
-			bookmark: "Bookmark",
-			embed: "Embed"
-		},
-		diagram: {
-			alt: "Diagram",
-			loading: "Drawing the diagram",
-			empty: "Empty diagram",
-			failed: "The diagram could not be drawn."
-		},
-		palette: {
-			background: "Background",
-			text: "Text color",
-			default: "Default color",
-			gray: "Gray",
-			brown: "Brown",
-			orange: "Orange",
-			yellow: "Yellow",
-			green: "Green",
-			blue: "Blue",
-			purple: "Purple",
-			pink: "Pink",
-			red: "Red"
-		},
-		dialog: {
-			close: "Close",
-			cancel: "Cancel"
-		}
-	},
-	sk: {
-		editor: {
-			placeholder: "Píšte text alebo napíšte / pre vloženie bloku",
-			parseFailed: "Obsah sa nepodarilo zobraziť vizuálne, otvoril sa zdrojový text.",
-			uploading: "Nahráva sa súborov: {n}",
-			uploadingProgress: "Nahráva sa súborov: {n} ({percent} %)",
-			uploadFailed: "Súbor {name} sa nepodarilo nahrať.",
-			copied: "Skopírované",
-			inlineOnly: "V bunke tabuľky môže byť len text"
-		},
-		toolbar: {
-			label: "Nástroje editora",
-			undo: "Späť",
-			redo: "Znova",
-			textStyle: "Štýl textu",
-			paragraph: "Odsek",
-			heading: "Nadpis {n}",
-			codeBlock: "Blok kódu",
-			bold: "Tučné",
-			italic: "Kurzíva",
-			underline: "Podčiarknuté",
-			strike: "Prečiarknuté",
-			code: "Kód v texte",
-			highlight: "Zvýraznenie",
-			color: "Farba",
-			link: "Odkaz",
-			bulletList: "Odrážky",
-			orderedList: "Číslovaný zoznam",
-			taskList: "Zoznam úloh",
-			listStyle: "Štýl zoznamu",
-			quote: "Citát",
-			callout: "Upozornenie",
-			insert: "Vložiť",
-			image: "Obrázok",
-			file: "Súbor",
-			align: "Zarovnanie",
-			alignLeft: "Doľava",
-			alignCenter: "Na stred",
-			alignRight: "Doprava",
-			alignJustify: "Do bloku",
-			focus: "Sústrediť sa",
-			exitFocus: "Ukončiť sústredenie",
-			source: "Zdrojový text (Markdown)",
-			visual: "Vizuálny editor",
-			more: "Ďalšie"
-		},
-		listStyle: {
-			numbering: "Číslovanie",
-			bullets: "Odrážky",
-			custom: "Vlastný znak",
-			apply: "Použiť",
-			customHint: "Jeden alebo dva znaky bez medzier a úvodzoviek.",
-			styles: {
-				decimal: "Čísla",
-				"lower-alpha": "Malé písmená",
-				"upper-alpha": "Veľké písmená",
-				"lower-roman": "Malé rímske číslice",
-				"upper-roman": "Veľké rímske číslice",
-				disc: "Plný krúžok",
-				circle: "Prázdny krúžok",
-				square: "Štvorček",
-				dash: "Pomlčka",
-				arrow: "Šípka"
-			}
-		},
-		colors: {
-			text: "Farba textu",
-			background: "Farba pozadia",
-			default: "Predvolená",
-			none: "Bez zvýraznenia",
-			gray: "Sivá",
-			red: "Červená",
-			orange: "Oranžová",
-			yellow: "Žltá",
-			green: "Zelená",
-			blue: "Modrá",
-			purple: "Fialová",
-			pink: "Ružová",
-			brown: "Hnedá",
-			reset: "Odstrániť farbu"
-		},
-		bubble: {
-			label: "Formátovanie výberu",
-			askAi: "Opýtať sa AI"
-		},
-		slash: {
-			title: "Vložiť blok",
-			empty: "Žiadny blok nezodpovedá hľadaniu",
-			groups: {
-				text: "Text",
-				lists: "Zoznamy",
-				blocks: "Bloky",
-				media: "Médiá"
-			},
-			items: {
-				paragraph: {
-					label: "Odsek",
-					description: "Obyčajný text"
-				},
-				heading1: {
-					label: "Nadpis 1",
-					description: "Najvyššia úroveň, nad kapitolami"
-				},
-				heading2: {
-					label: "Nadpis 2",
-					description: "Hlavná sekcia"
-				},
-				heading3: {
-					label: "Nadpis 3",
-					description: "Podsekcia"
-				},
-				heading4: {
-					label: "Nadpis 4",
-					description: "Menší nadpis"
-				},
-				heading5: {
-					label: "Nadpis 5",
-					description: "Drobný nadpis"
-				},
-				heading6: {
-					label: "Nadpis 6",
-					description: "Najmenší nadpis"
-				},
-				quote: {
-					label: "Citát",
-					description: "Odsadený citát"
-				},
-				callout: {
-					label: "Upozornenie",
-					description: "Zvýraznený box: poznámka, tip, varovanie"
-				},
-				codeBlock: {
-					label: "Blok kódu",
-					description: "Kód so zvýraznením syntaxe"
-				},
-				hr: {
-					label: "Oddeľovač",
-					description: "Vodorovná čiara"
-				},
-				bulletList: {
-					label: "Odrážky",
-					description: "Jednoduchý zoznam"
-				},
-				orderedList: {
-					label: "Číslovaný zoznam",
-					description: "Zoznam s poradím"
-				},
-				taskList: {
-					label: "Zoznam úloh",
-					description: "Zoznam so zaškrtávacími políčkami"
-				},
-				table: {
-					label: "Tabuľka",
-					description: "Tabuľka 3 x 3 s hlavičkou"
-				},
-				image: {
-					label: "Obrázok",
-					description: "Nahrať alebo vybrať obrázok"
-				},
-				file: {
-					label: "Súbor",
-					description: "Priložiť súbor ako odkaz"
-				},
-				mathInline: {
-					label: "Vzorec v texte",
-					description: "Matematika (LaTeX) v riadku"
-				},
-				mathBlock: {
-					label: "Vzorec",
-					description: "Matematika (LaTeX) ako samostatný blok"
-				},
-				details: {
-					label: "Zbaliť obsah",
-					description: "Skrytý text, napríklad riešenie"
-				},
-				toggleHeading1: {
-					label: "Rozbaľovací nadpis 1",
-					description: "Veľký nadpis, ktorý skryje obsah"
-				},
-				toggleHeading2: {
-					label: "Rozbaľovací nadpis 2",
-					description: "Stredný nadpis, ktorý skryje obsah"
-				},
-				toggleHeading3: {
-					label: "Rozbaľovací nadpis 3",
-					description: "Malý nadpis, ktorý skryje obsah"
-				},
-				columns2: {
-					label: "2 stĺpce",
-					description: "Bloky vedľa seba"
-				},
-				columns3: {
-					label: "3 stĺpce",
-					description: "Tri bloky vedľa seba"
-				},
-				columns4: {
-					label: "4 stĺpce",
-					description: "Štyri bloky vedľa seba"
-				},
-				bookmark: {
-					label: "Záložka",
-					description: "Odkaz s náhľadom"
-				},
-				embed: {
-					label: "Vložiť obsah",
-					description: "Video, mapa, návrh alebo stránka"
-				},
-				tableOfContents: {
-					label: "Obsah",
-					description: "Odkazy na nadpisy"
-				},
-				pageLink: {
-					label: "Odkaz na stránku",
-					description: "Blok, ktorý otvorí inú stránku"
-				}
-			}
-		},
-		convert: {
-			title: "Previesť na",
-			targets: {
-				paragraph: "Text",
-				unwrap: "Zrušiť obal",
-				columns: "Stĺpce"
-			}
-		},
-		blockMenu: {
-			label: "Ponuka bloku",
-			duplicate: "Duplikovať",
-			copy: "Kopírovať ako markdown",
-			delete: "Odstrániť",
-			color: "Farba"
-		},
-		gutter: {
-			drag: "Potiahnutím presuniete, kliknutím otvoríte ponuku bloku",
-			add: "Vložiť blok pod"
-		},
-		table: {
-			menu: "Tabuľka",
-			column: "Stĺpec {n}",
-			row: "Riadok {n}",
-			dragHint: "Kliknutím otvoríte ponuku, potiahnutím presuniete.",
-			insertLeft: "Vložiť stĺpec vľavo",
-			insertRight: "Vložiť stĺpec vpravo",
-			insertAbove: "Vložiť riadok nad",
-			insertBelow: "Vložiť riadok pod",
-			align: "Zarovnanie stĺpca",
-			alignLeft: "Doľava",
-			alignCenter: "Na stred",
-			alignRight: "Doprava",
-			headerRow: "Hlavičkový riadok",
-			headerColumn: "Hlavičkový stĺpec",
-			deleteColumn: "Odstrániť stĺpec",
-			deleteRow: "Odstrániť riadok",
-			deleteTable: "Odstrániť tabuľku",
-			addColumn: "Pridať stĺpec",
-			addRow: "Pridať riadok"
-		},
-		link: {
-			title: "Odkaz",
-			url: "Adresa",
-			urlPlaceholder: "Vložte odkaz",
-			text: "Text odkazu",
-			textPlaceholder: "Zobrazený text",
-			searchPlaceholder: "Hľadajte alebo vložte odkaz",
-			results: "Výsledky",
-			searching: "Hľadám",
-			linkTo: "Odkaz na túto adresu",
-			noResults: "Nič sa nenašlo",
-			apply: "Použiť",
-			remove: "Odstrániť odkaz",
-			open: "Otvoriť odkaz",
-			copy: "Kopírovať odkaz",
-			edit: "Upraviť odkaz"
-		},
-		field: {
-			tools: "Formátovanie",
-			expand: "Otvoriť v editore",
-			expandTitle: "Úprava textu",
-			close: "Zavrieť"
-		},
-		draft: {
-			idle: "Neuložené zmeny",
-			saving: "Ukladá sa",
-			saved: "Koncept uložený",
-			offline: "Offline, koncept sa neuložil",
-			error: "Koncept sa nepodarilo uložiť"
-		},
-		block: {
-			edit: "Upraviť",
-			copy: "Kopírovať ako markdown",
-			delete: "Odstrániť",
-			more: "Ďalšie"
-		},
-		code: {
-			label: "Kód",
-			language: "Jazyk",
-			languagePlaceholder: "napr. python"
-		},
-		callout: {
-			label: "Upozornenie",
-			changeType: "Zmeniť typ",
-			title: "Nadpis",
-			addTitle: "Pridať nadpis",
-			changeIcon: "Zmeniť ikonu",
-			icon: "Ikona",
-			ownIcon: "Emoji alebo text",
-			useIcon: "Použiť",
-			defaultIcon: "Predvolená ikona",
-			kinds: "Typ",
-			types: {
-				note: "Poznámka",
-				info: "Informácia",
-				tip: "Tip",
-				success: "Úspech",
-				important: "Dôležité",
-				warning: "Varovanie",
-				caution: "Pozor",
-				danger: "Nebezpečenstvo",
-				question: "Otázka",
-				example: "Príklad",
-				details: "Podrobnosti"
-			}
-		},
-		image: {
-			label: "Obrázok",
-			video: "Video",
-			audio: "Zvuk",
-			alt: "Popis",
-			altPlaceholder: "Čo je na obrázku",
-			altHelp: "Prečíta ho čítačka obrazovky a ukáže sa, keď sa obrázok nenačíta.",
-			title: "Titulok",
-			caption: "Popisok",
-			captionPlaceholder: "Popisok (nepovinný)",
-			width: "Šírka",
-			resize: "Potiahnutím zmeníte veľkosť",
-			replace: "Obrázok",
-			replaceFile: "Nahradiť súbor",
-			originalSize: "Pôvodná veľkosť",
-			toFigure: "Samostatný blok",
-			zoom: "Zväčšiť",
-			align: {
-				left: "Vľavo",
-				center: "Na stred",
-				right: "Vpravo",
-				"float-left": "Obtekať zľava",
-				"float-right": "Obtekať sprava"
-			}
-		},
-		divider: {
-			label: "Oddeľovač",
-			line: "Čiara",
-			width: "Hrúbka",
-			widthPx: "{n} px",
-			color: "Farba",
-			defaultColor: "Predvolená",
-			customColor: "Vlastná farba",
-			design: "Ozdoba",
-			customChar: "Vlastná ozdoba",
-			charInvalid: "Jeden alebo dva znaky bez medzier a úvodzoviek.",
-			styles: {
-				solid: "Plná",
-				dashed: "Čiarkovaná",
-				dotted: "Bodkovaná",
-				double: "Dvojitá"
-			},
-			designs: {
-				none: "Žiadna",
-				star: "Hviezda",
-				diamond: "Kosoštvorec",
-				dots: "Bodky",
-				fleuron: "Kvet"
-			},
-			colors: {
-				red: "Červená",
-				orange: "Oranžová",
-				amber: "Jantárová",
-				green: "Zelená",
-				teal: "Tyrkysová",
-				blue: "Modrá",
-				violet: "Fialová",
-				pink: "Ružová"
-			}
-		},
-		math: {
-			label: "Vzorec",
-			edit: "Upraviť vzorec",
-			empty: "Prázdny vzorec",
-			placeholder: "LaTeX, napr. \\frac{a}{b}",
-			tex: "LaTeX"
-		},
-		details: {
-			label: "Zbaliť obsah",
-			title: "Nadpis",
-			titlePlaceholder: "Nadpis, na ktorý čitateľ klikne",
-			toggleDefault: "Otvorené pre čitateľov",
-			openByDefault: "Čitatelia ho uvidia otvorené",
-			closedByDefault: "Čitatelia ho uvidia zbalené",
-			headingLabel: "Rozbaľovací nadpis {n}",
-			expand: "Rozbaliť",
-			collapse: "Zbaliť"
-		},
-		footnote: { label: "Poznámka pod čiarou" },
-		source: { label: "Zdrojový text (Markdown)" },
-		columns: {
-			label: "Stĺpce",
-			add: "Pridať stĺpec",
-			remove: "Odstrániť stĺpec",
-			removeHint: "Jeho bloky sa presunú do susedného stĺpca.",
-			equal: "Rovnaké šírky",
-			resize: "Potiahnutím zmeníte šírku"
-		},
-		bookmark: {
-			edit: "Zmeniť odkaz",
-			label: "Záložka",
-			url: "Odkaz",
-			placeholder: "Vložte odkaz",
-			create: "Vytvoriť záložku",
-			loading: "Načítava sa náhľad",
-			failed: "Náhľad sa nepodarilo načítať.",
-			refresh: "Obnoviť náhľad",
-			open: "Otvoriť odkaz"
-		},
-		embed: {
-			edit: "Zmeniť odkaz",
-			url: "Odkaz",
-			placeholder: "Vložte odkaz na obsah",
-			create: "Vložiť",
-			open: "Otvoriť originál",
-			interact: "Kliknutím ovládate obsah",
-			resize: "Potiahnutím zmeníte výšku",
-			defaultHeight: "Predvolená výška",
-			providers: {
-				youtube: "YouTube",
-				vimeo: "Vimeo",
-				loom: "Loom",
-				figma: "Figma",
-				gist: "Gist",
-				maps: "Mapy Google",
-				tweet: "Príspevok na X",
-				codepen: "CodePen",
-				generic: "Vložený obsah"
-			}
-		},
-		toc: {
-			label: "Obsah",
-			empty: "Zatiaľ bez nadpisov"
-		},
-		pageLink: {
-			label: "Stránka",
-			untitled: "Bez názvu",
-			search: "Odkaz na stránku",
-			searchPlaceholder: "Hľadať stránky"
-		},
-		mention: {
-			label: "Zmienka",
-			empty: "Nič sa nenašlo",
-			searching: "Hľadá sa",
-			groups: {
-				user: "Ľudia",
-				page: "Stránky",
-				date: "Dátumy"
-			},
-			today: "Dnes",
-			tomorrow: "Zajtra",
-			yesterday: "Včera",
-			date: "Dátum",
-			time: "Čas",
-			includeTime: "Aj s časom",
-			endDate: "Dátum konca",
-			editDate: "Zmeniť dátum"
-		},
-		paste: {
-			label: "Vložiť ako",
-			link: "Ponechať odkaz",
-			bookmark: "Záložka",
-			embed: "Vložený obsah"
-		},
-		diagram: {
-			alt: "Diagram",
-			loading: "Kreslí sa diagram",
-			empty: "Prázdny diagram",
-			failed: "Diagram sa nepodarilo nakresliť."
-		},
-		palette: {
-			background: "Pozadie",
-			text: "Farba textu",
-			default: "Predvolená farba",
-			gray: "Sivá",
-			brown: "Hnedá",
-			orange: "Oranžová",
-			yellow: "Žltá",
-			green: "Zelená",
-			blue: "Modrá",
-			purple: "Fialová",
-			pink: "Ružová",
-			red: "Červená"
-		},
-		dialog: {
-			close: "Zavrieť",
-			cancel: "Zrušiť"
-		}
-	}
-};
-function lookup(tree, path) {
-	let cur = tree;
-	for (const p of path) {
-		if (!cur || typeof cur !== "object") return void 0;
-		cur = Reflect.get(cur, p);
-	}
-	return typeof cur === "string" ? cur : void 0;
-}
-function hasMessage(trees, key) {
-	const path = key.split(".");
-	return trees.some((t) => lookup(t, path) !== void 0);
-}
-function createTranslator(trees) {
-	return (key, params) => {
-		const path = key.split(".");
-		let text;
-		for (const t of trees) {
-			text = lookup(t, path);
-			if (text !== void 0) break;
-		}
-		if (text === void 0) return key;
-		return params ? text.replace(/\{(\w+)\}/g, (m, k) => k in params ? String(params[k]) : m) : text;
-	};
-}
 // src/core/math.ts
 var katex = shallowRef(null);
 var loader = null;
@@ -8423,126 +10720,6 @@ var ServerHistory = Extension.create({
 		};
 	}
 });
-// src/components/EmojiPicker.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$24 = { class: "wy-emoji-picker" };
-var _hoisted_2$20 = ["aria-label"];
-var _hoisted_3$20 = [
-	"aria-selected",
-	"aria-label",
-	"onClick"
-];
-var _hoisted_4$18 = ["placeholder", "aria-label"];
-var _hoisted_5$17 = ["disabled"];
-// src/components/EmojiPicker.vue
-var EmojiPicker_default = /* @__PURE__ */ defineComponent({
-	__name: "EmojiPicker",
-	props: {
-		value: {},
-		t: { type: Function }
-	},
-	emits: ["pick"],
-	setup(__props, { emit: __emit }) {
-		const validIcon = (v) => !!v && parseBlockAttrs({ icon: v }) !== null;
-		const props = __props;
-		const emit = __emit;
-		const EMOJIS = [
-			"💡",
-			"📌",
-			"📝",
-			"✅",
-			"❌",
-			"⚠️",
-			"❗",
-			"❓",
-			"ℹ️",
-			"🔥",
-			"🚀",
-			"🎯",
-			"📣",
-			"🔒",
-			"🔑",
-			"🛠️",
-			"⚙️",
-			"📎",
-			"📅",
-			"⏰",
-			"💬",
-			"👉",
-			"⭐",
-			"🧪",
-			"🐛",
-			"📦",
-			"🔗",
-			"📖",
-			"🧭",
-			"🏁",
-			"❤️",
-			"👍",
-			"👀",
-			"🎉",
-			"🧠",
-			"💰",
-			"🌱",
-			"☕",
-			"🗂️",
-			"📊",
-			"🛡️",
-			"🔍",
-			"🚧",
-			"📢",
-			"🤝",
-			"🏆",
-			"🧩",
-			"✏️"
-		];
-		const own = ref(EMOJIS.includes(props.value) ? "" : props.value);
-		function applyOwn() {
-			const v = own.value.trim();
-			if (validIcon(v)) emit("pick", v);
-		}
-		return (_ctx, _cache) => {
-			return openBlock(), createElementBlock("div", _hoisted_1$24, [
-				createElementVNode("div", {
-					class: "wy-emoji-grid",
-					role: "listbox",
-					"aria-label": __props.t("callout.icon")
-				}, [(openBlock(), createElementBlock(Fragment$1, null, renderList(EMOJIS, (e) => {
-					return createElementVNode("button", {
-						key: e,
-						type: "button",
-						role: "option",
-						class: "wy-emoji",
-						"aria-selected": e === __props.value,
-						"aria-label": e,
-						onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
-						onClick: ($event) => emit("pick", e)
-					}, toDisplayString(e), 41, _hoisted_3$20);
-				}), 64))], 8, _hoisted_2$20),
-				createElementVNode("form", {
-					class: "wy-emoji-own",
-					onSubmit: withModifiers(applyOwn, ["prevent"])
-				}, [withDirectives(createElementVNode("input", {
-					"onUpdate:modelValue": _cache[1] || (_cache[1] = ($event) => own.value = $event),
-					class: "wy-input is-sm",
-					maxlength: "32",
-					placeholder: __props.t("callout.ownIcon"),
-					"aria-label": __props.t("callout.ownIcon")
-				}, null, 8, _hoisted_4$18), [[vModelText, own.value]]), createElementVNode("button", {
-					type: "submit",
-					class: "wy-btn is-sm",
-					disabled: !validIcon(own.value.trim())
-				}, toDisplayString(__props.t("callout.useIcon")), 9, _hoisted_5$17)], 32),
-				__props.value ? (openBlock(), createElementBlock("button", {
-					key: 0,
-					type: "button",
-					class: "wy-menu-item",
-					onMousedown: _cache[2] || (_cache[2] = withModifiers(() => {}, ["prevent"])),
-					onClick: _cache[3] || (_cache[3] = ($event) => emit("pick", ""))
-				}, toDisplayString(__props.t("callout.defaultIcon")), 33)) : createCommentVNode("", true)
-			]);
-		};
-	}
-});
 // src/nodes/CalloutIcon.vue?vue&type=script&setup=true&lang.ts
 var _hoisted_1$23 = ["width", "height"];
 // src/nodes/CalloutIcon.vue
@@ -8592,13 +10769,15 @@ var _hoisted_5$16 = [
 	"aria-label",
 	"readonly"
 ];
-var _hoisted_6$12 = { class: "wy-menu-heading" };
-var _hoisted_7$8 = [
+var _hoisted_6$12 = ["placeholder", "aria-label"];
+var _hoisted_7$8 = ["disabled"];
+var _hoisted_8$7 = { class: "wy-menu-heading" };
+var _hoisted_9$6 = [
 	"data-variant",
 	"aria-pressed",
 	"onClick"
 ];
-var _hoisted_8$7 = ["data-variant"];
+var _hoisted_10$6 = ["data-variant"];
 // src/nodes/CalloutView.vue
 var CalloutView_default = /* @__PURE__ */ defineComponent({
 	__name: "CalloutView",
@@ -8628,6 +10807,12 @@ var CalloutView_default = /* @__PURE__ */ defineComponent({
 			picker.value = false;
 			props.editor.commands.focus();
 		}
+		const own = ref("");
+		const validIcon = (v) => !!v && parseBlockAttrs({ icon: v }) !== null;
+		function applyOwn() {
+			const v = own.value.trim();
+			if (validIcon(v)) setIcon(v);
+		}
 		function setColor(next) {
 			update({ color: next });
 		}
@@ -8655,12 +10840,12 @@ var CalloutView_default = /* @__PURE__ */ defineComponent({
 					"copy-text": unref(copyText),
 					editable: false,
 					onDelete: unref(remove),
-					onMore: _cache[8] || (_cache[8] = ($event) => menu.value = !menu.value)
+					onMore: _cache[10] || (_cache[10] = ($event) => menu.value = !menu.value)
 				}, {
 					menu: withCtx(() => [createVNode(BlockMenu_default, {
 						open: menu.value,
 						convert: props,
-						onClose: _cache[7] || (_cache[7] = ($event) => menu.value = false)
+						onClose: _cache[9] || (_cache[9] = ($event) => menu.value = false)
 					}, {
 						default: withCtx(() => [
 							!titled.value && !unref(readonly) ? (openBlock(), createElementBlock("button", {
@@ -8677,7 +10862,7 @@ var CalloutView_default = /* @__PURE__ */ defineComponent({
 								t: unref(t),
 								onPick: setColor
 							}, null, 8, ["value", "t"]),
-							createElementVNode("div", _hoisted_6$12, toDisplayString(unref(t)("callout.kinds")), 1),
+							createElementVNode("div", _hoisted_8$7, toDisplayString(unref(t)("callout.kinds")), 1),
 							(openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(kinds), (k) => {
 								return openBlock(), createElementBlock("button", {
 									key: k,
@@ -8690,7 +10875,7 @@ var CalloutView_default = /* @__PURE__ */ defineComponent({
 								}, [createElementVNode("span", {
 									class: "wy-callout-swatch",
 									"data-variant": k
-								}, [createVNode(CalloutIcon_default, { type: k }, null, 8, ["type"])], 8, _hoisted_8$7), createElementVNode("span", null, toDisplayString(kindLabel(k)), 1)], 8, _hoisted_7$8);
+								}, [createVNode(CalloutIcon_default, { type: k }, null, 8, ["type"])], 8, _hoisted_10$6), createElementVNode("span", null, toDisplayString(kindLabel(k)), 1)], 8, _hoisted_9$6);
 							}), 128))
 						]),
 						_: 1
@@ -8733,13 +10918,34 @@ var CalloutView_default = /* @__PURE__ */ defineComponent({
 						key: 0,
 						anchor: iconButton.value,
 						class: "wy-menu wy-callout-picker",
-						onEscape: _cache[6] || (_cache[6] = ($event) => picker.value = false)
+						onEscape: _cache[8] || (_cache[8] = ($event) => picker.value = false)
 					}, {
 						default: withCtx(() => [createVNode(EmojiPicker_default, {
 							value: icon.value,
 							t: unref(t),
 							onPick: setIcon
-						}, null, 8, ["value", "t"])]),
+						}, {
+							footer: withCtx(() => [createElementVNode("form", {
+								class: "wy-emoji-own",
+								onSubmit: withModifiers(applyOwn, ["prevent"])
+							}, [withDirectives(createElementVNode("input", {
+								"onUpdate:modelValue": _cache[6] || (_cache[6] = ($event) => own.value = $event),
+								class: "wy-input is-sm",
+								maxlength: "32",
+								placeholder: unref(t)("callout.ownIcon"),
+								"aria-label": unref(t)("callout.ownIcon")
+							}, null, 8, _hoisted_6$12), [[vModelText, own.value]]), createElementVNode("button", {
+								type: "submit",
+								class: "wy-btn is-sm",
+								disabled: !validIcon(own.value.trim())
+							}, toDisplayString(unref(t)("callout.useIcon")), 9, _hoisted_7$8)], 32), icon.value ? (openBlock(), createElementBlock("button", {
+								key: 0,
+								type: "button",
+								class: "wy-btn is-sm",
+								onClick: _cache[7] || (_cache[7] = ($event) => setIcon(""))
+							}, toDisplayString(unref(t)("callout.defaultIcon")), 1)) : createCommentVNode("", true)]),
+							_: 1
+						}, 8, ["value", "t"])]),
 						_: 1
 					}, 8, ["anchor"])) : createCommentVNode("", true)]),
 					_: 1
@@ -14611,6 +16817,670 @@ var WysiwygEditor_default = /* @__PURE__ */ defineComponent({
 		};
 	}
 });
+// src/diff/docdiff.ts
+/** Inline node types (besides text) of the base schema, used without a schema. */
+var INLINE = {
+	hardBreak: true,
+	mention: true,
+	mathInline: true,
+	footnoteRef: true,
+	emoji: true,
+	image: true,
+	inlineImage: true,
+	pageLink: true
+};
+/** Types that are text blocks even when empty, used without a schema. */
+var TEXT_TYPES = {
+	paragraph: true,
+	heading: true,
+	codeBlock: true,
+	detailsSummary: true
+};
+/** Containers whose children are matched by position when both sides have as many: a row's cells, columns. */
+var POSITIONAL = {
+	tableRow: true,
+	columns: true
+};
+var DIAGRAMS = {
+	mermaid: true,
+	plantuml: true
+};
+/** A code block in a diagram language: it shows as its picture, so a changed source is a changed picture. */
+function isDiagram(n) {
+	const lang = n.attrs?.language;
+	return n.type === "codeBlock" && typeof lang === "string" && DIAGRAMS[lang] === true;
+}
+/** A JSON string with sorted keys: equal nodes give equal keys. */
+function canonical(v) {
+	if (Array.isArray(v)) return `[${v.map(canonical).join(",")}]`;
+	if (v && typeof v === "object") {
+		const o = v;
+		return `{${Object.keys(o).filter((k) => o[k] !== void 0).sort().map((k) => `${JSON.stringify(k)}:${canonical(o[k])}`).join(",")}}`;
+	}
+	return JSON.stringify(v ?? null);
+}
+function words(s) {
+	return s.toLowerCase().match(/[\p{L}\p{N}_]+/gu) ?? [];
+}
+/** Dice coefficient of two texts' word multisets, 0…1. */
+function similarity(a, b) {
+	const wa = words(a);
+	const wb = words(b);
+	if (!wa.length && !wb.length) return 1;
+	if (!wa.length || !wb.length) return 0;
+	const count = /* @__PURE__ */ new Map();
+	for (const w of wa) count.set(w, (count.get(w) ?? 0) + 1);
+	let common = 0;
+	for (const w of wb) {
+		const n = count.get(w) ?? 0;
+		if (n > 0) {
+			common++;
+			count.set(w, n - 1);
+		}
+	}
+	return 2 * common / (wa.length + wb.length);
+}
+/** Below this similarity two blocks are shown as one removed and one added. */
+var PAIR_THRESHOLD = .4;
+/** Bounds the cells of one LCS table; larger middles are replaced whole. */
+var MAX_CELLS = 4e6;
+/** Bounds the cells of the similarity-weighted alignment; longer block lists are matched exactly (lcs). */
+var MAX_ALIGN = 25e4;
+/** A minimal edit script from a to b by longest common subsequence of keys, after trimming the common ends. */
+function lcs(a, b) {
+	let start = 0;
+	while (start < a.length && start < b.length && a[start] === b[start]) start++;
+	let endA = a.length;
+	let endB = b.length;
+	while (endA > start && endB > start && a[endA - 1] === b[endB - 1]) {
+		endA--;
+		endB--;
+	}
+	const ops = [];
+	for (let i = 0; i < start; i++) ops.push({
+		kind: "keep",
+		a: i,
+		b: i
+	});
+	const n = endA - start;
+	const m = endB - start;
+	if (n * m > MAX_CELLS) {
+		for (let i = start; i < endA; i++) ops.push({
+			kind: "del",
+			a: i
+		});
+		for (let j = start; j < endB; j++) ops.push({
+			kind: "ins",
+			b: j
+		});
+	} else {
+		const w = m + 1;
+		const t = new Uint32Array((n + 1) * w);
+		for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) t[i * w + j] = a[start + i] === b[start + j] ? t[(i + 1) * w + j + 1] + 1 : Math.max(t[(i + 1) * w + j], t[i * w + j + 1]);
+		let i = 0;
+		let j = 0;
+		while (i < n || j < m) if (i < n && j < m && a[start + i] === b[start + j]) ops.push({
+			kind: "keep",
+			a: start + i++,
+			b: start + j++
+		});
+		else if (i < n && (j === m || t[(i + 1) * w + j] >= t[i * w + j + 1])) ops.push({
+			kind: "del",
+			a: start + i++
+		});
+		else ops.push({
+			kind: "ins",
+			b: start + j++
+		});
+	}
+	for (let k = 0; k < a.length - endA; k++) ops.push({
+		kind: "keep",
+		a: endA + k,
+		b: endB + k
+	});
+	return ops;
+}
+/** Diffs two documents (or containers). `before` null shows every block of `after` as added. */
+function diffDocs(before, after, options = {}) {
+	const d = new Differ(options);
+	if (!before) return (after.content ?? []).map((n) => d.plain(n, "added"));
+	return d.blocks(before.content ?? [], after.content ?? []);
+}
+/** Whether a diff shows any change. */
+function diffHasChanges(blocks) {
+	return blocks.some((b) => b.change !== "same");
+}
+var Differ = class {
+	texts = /* @__PURE__ */ new WeakMap();
+	isAtomic;
+	isInline;
+	isTextType;
+	constructor(opts) {
+		this.isAtomic = opts.atomic ?? isDiagram;
+		const schema = opts.schema;
+		this.isInline = schema ? (t) => t === "text" || (schema.nodes[t]?.isInline ?? INLINE[t] === true) : (t) => t === "text" || INLINE[t] === true;
+		this.isTextType = schema ? (t) => schema.nodes[t]?.isTextblock ?? TEXT_TYPES[t] === true : (t) => TEXT_TYPES[t] === true;
+	}
+	textblock(n) {
+		if (n.type === "text" || this.isInline(n.type)) return false;
+		const c = n.content ?? [];
+		if (!c.length) return this.isTextType(n.type);
+		return c.every((k) => this.isInline(k.type));
+	}
+	textOf(n) {
+		if (n.text !== void 0) return n.text;
+		let s = this.texts.get(n);
+		if (s === void 0) {
+			s = (n.content ?? []).map((k) => this.textOf(k)).join(n.content?.every((k) => k.type === "text") ? "" : " ");
+			this.texts.set(n, s);
+		}
+		return s;
+	}
+	plain(n, change) {
+		if (this.textblock(n)) return {
+			node: n,
+			change,
+			inline: merge(tokens(n.content ?? [], change).map((t) => t.inline))
+		};
+		if (n.content?.length) return {
+			node: n,
+			change,
+			children: n.content.map((c) => this.plain(c, change))
+		};
+		return {
+			node: n,
+			change
+		};
+	}
+	blocks(a, b) {
+		const ka = a.map(canonical);
+		const kb = b.map(canonical);
+		const ops = this.align(a, b, ka, kb);
+		const added = /* @__PURE__ */ new Map();
+		for (const op of ops) if (op.kind === "ins") added.set(kb[op.b], (added.get(kb[op.b]) ?? 0) + 1);
+		const movedKeys = /* @__PURE__ */ new Map();
+		for (const op of ops) {
+			if (op.kind !== "del") continue;
+			const n = added.get(ka[op.a]) ?? 0;
+			if (n > 0) {
+				added.set(ka[op.a], n - 1);
+				movedKeys.set(ka[op.a], (movedKeys.get(ka[op.a]) ?? 0) + 1);
+			}
+		}
+		const movedDel = new Map(movedKeys);
+		const movedIns = new Map(movedKeys);
+		const take = (m, k) => {
+			const n = m.get(k) ?? 0;
+			if (n > 0) m.set(k, n - 1);
+			return n > 0;
+		};
+		const out = [];
+		for (let i = 0; i < ops.length;) {
+			const op = ops[i];
+			if (op.kind === "keep" || op.kind === "pair") {
+				out.push(op.kind === "keep" ? this.plain(b[op.b], "same") : this.modified(a[op.a], b[op.b]));
+				i++;
+				continue;
+			}
+			const dels = [];
+			const ins = [];
+			for (; i < ops.length && (ops[i].kind === "del" || ops[i].kind === "ins"); i++) {
+				const o = ops[i];
+				if (o.kind === "del") dels.push(o.a);
+				else if (o.kind === "ins") ins.push(o.b);
+			}
+			const delMoved = dels.map((d) => take(movedDel, ka[d]));
+			const insMoved = ins.map((x) => take(movedIns, kb[x]));
+			out.push(...this.hunk(a, b, dels, ins, delMoved, insMoved));
+		}
+		return out;
+	}
+	/**
+	* Aligns two block lists, maximizing a score: equal blocks count 2, alike blocks 1 plus their likeness. Two edited
+	* blocks in place so outweigh one unchanged block that moved past them, which then shows as moved.
+	*/
+	align(a, b, ka, kb) {
+		let start = 0;
+		while (start < a.length && start < b.length && ka[start] === kb[start]) start++;
+		let endA = a.length;
+		let endB = b.length;
+		while (endA > start && endB > start && ka[endA - 1] === kb[endB - 1]) {
+			endA--;
+			endB--;
+		}
+		const n = endA - start;
+		const m = endB - start;
+		if (n * m > MAX_ALIGN) return lcs(ka, kb);
+		const score = new Float64Array(n * m);
+		for (let i = 0; i < n; i++) for (let j = 0; j < m; j++) {
+			const x = start + i;
+			const y = start + j;
+			if (ka[x] === kb[y]) {
+				score[i * m + j] = 2;
+				continue;
+			}
+			const like = this.likeness(a[x], b[y]);
+			if (like > 0) score[i * m + j] = 1 + like;
+		}
+		const w = m + 1;
+		const t = new Float64Array((n + 1) * w);
+		for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) {
+			const s = score[i * m + j];
+			t[i * w + j] = Math.max(t[(i + 1) * w + j], t[i * w + j + 1], s > 0 ? s + t[(i + 1) * w + j + 1] : 0);
+		}
+		const ops = [];
+		for (let k = 0; k < start; k++) ops.push({
+			kind: "keep",
+			a: k,
+			b: k
+		});
+		let i = 0;
+		let j = 0;
+		while (i < n || j < m) {
+			const s = i < n && j < m ? score[i * m + j] : 0;
+			if (s > 0 && t[i * w + j] === s + t[(i + 1) * w + j + 1]) ops.push({
+				kind: ka[start + i] === kb[start + j] ? "keep" : "pair",
+				a: start + i++,
+				b: start + j++
+			});
+			else if (i < n && (j === m || t[(i + 1) * w + j] >= t[i * w + j + 1])) ops.push({
+				kind: "del",
+				a: start + i++
+			});
+			else ops.push({
+				kind: "ins",
+				b: start + j++
+			});
+		}
+		for (let k = 0; k < a.length - endA; k++) ops.push({
+			kind: "keep",
+			a: endA + k,
+			b: endB + k
+		});
+		return ops;
+	}
+	/**
+	* Orders a hunk's blocks: pairs of alike blocks become modified ones, in place; a replaced atom (an image swapped,
+	* a diagram redrawn) shows as the old one removed right before the new one; the rest removed before added.
+	*/
+	hunk(a, b, dels, ins, delMoved, insMoved) {
+		const pairs = [];
+		let from = 0;
+		for (let j = 0; j < ins.length; j++) {
+			if (insMoved[j]) continue;
+			const nb = b[ins[j]];
+			for (let i = from; i < dels.length; i++) {
+				if (delMoved[i]) continue;
+				const na = a[dels[i]];
+				const kind = this.likeness(na, nb) > 0 ? "modified" : na.type === nb.type && (this.isAtomic(na) || !this.textblock(na) && !na.content?.length) ? "swap" : null;
+				if (kind) {
+					pairs.push([
+						i,
+						j,
+						kind
+					]);
+					from = i + 1;
+					break;
+				}
+			}
+		}
+		const out = [];
+		const removed = (i) => ({
+			...this.plain(a[dels[i]], "removed"),
+			...delMoved[i] ? { moved: true } : {}
+		});
+		const addedB = (j) => ({
+			...this.plain(b[ins[j]], "added"),
+			...insMoved[j] ? { moved: true } : {}
+		});
+		let i = 0;
+		let j = 0;
+		for (const [pi, pj, kind] of pairs) {
+			for (; i < pi; i++) out.push(removed(i));
+			for (; j < pj; j++) out.push(addedB(j));
+			if (kind === "modified") out.push(this.modified(a[dels[pi]], b[ins[pj]]));
+			else out.push(removed(pi), addedB(pj));
+			i = pi + 1;
+			j = pj + 1;
+		}
+		for (; i < dels.length; i++) out.push(removed(i));
+		for (; j < ins.length; j++) out.push(addedB(j));
+		return out;
+	}
+	/** How alike two blocks of the same kind are, PAIR_THRESHOLD…1, or 0 when they should show as removed and added. */
+	likeness(x, y) {
+		if (x.type !== y.type) return 0;
+		const tx = this.textblock(x);
+		if (tx !== this.textblock(y)) return 0;
+		if (!tx && !x.content?.length && !y.content?.length) return 0;
+		if (canonical(x.content ?? []) === canonical(y.content ?? [])) return 1;
+		if (this.isAtomic(x) || this.isAtomic(y)) return 0;
+		const s = similarity(this.textOf(x), this.textOf(y));
+		return s >= PAIR_THRESHOLD ? s : 0;
+	}
+	/** Whether two blocks can show as one modified block, whatever their likeness. */
+	pairable(x, y) {
+		if (canonical(x) === canonical(y)) return true;
+		if (x.type !== y.type || this.textblock(x) !== this.textblock(y)) return false;
+		if (!x.content?.length && !y.content?.length && !this.textblock(x)) return false;
+		return canonical(x.content ?? []) === canonical(y.content ?? []) || !(this.isAtomic(x) || this.isAtomic(y));
+	}
+	modified(x, y) {
+		const attrsChanged = canonical(x.attrs ?? {}) !== canonical(y.attrs ?? {});
+		if (this.textblock(y)) return {
+			node: y,
+			before: x,
+			change: "modified",
+			attrsChanged,
+			inline: diffInline(x.content ?? [], y.content ?? [])
+		};
+		const a = x.content ?? [];
+		const b = y.content ?? [];
+		return {
+			node: y,
+			before: x,
+			change: "modified",
+			attrsChanged,
+			children: (POSITIONAL[y.type] === true || a.length === 1) && a.length === b.length && a.every((n, i) => this.pairable(n, b[i])) ? a.map((n, i) => canonical(n) === canonical(b[i]) ? this.plain(b[i], "same") : this.modified(n, b[i])) : this.blocks(a, b)
+		};
+	}
+};
+function tokens(content, change) {
+	const out = [];
+	for (const n of content) {
+		if (n.type !== "text") {
+			out.push({
+				key: `\u0001${canonical(n)}`,
+				inline: {
+					kind: "atom",
+					node: n,
+					change
+				}
+			});
+			continue;
+		}
+		const marks = [...n.marks ?? []].sort((p, q) => p.type.localeCompare(q.type));
+		const mk = canonical(marks);
+		for (const piece of (n.text ?? "").match(/[\p{L}\p{N}_]+|\s+|[^\p{L}\p{N}_\s]/gu) ?? []) out.push({
+			key: `${piece}\u0000${mk}`,
+			inline: {
+				kind: "text",
+				text: piece,
+				marks,
+				change
+			}
+		});
+	}
+	return out;
+}
+/** Word-level diff of two text blocks' inline content. A formatting change shows as the old words removed and the
+*  newly formatted ones added. */
+function diffInline(a, b) {
+	const ta = tokens(a, "removed");
+	const tb = tokens(b, "added");
+	const out = [];
+	for (const op of lcs(ta.map((t) => t.key), tb.map((t) => t.key))) if (op.kind === "keep") out.push({
+		...tb[op.b].inline,
+		change: "same"
+	});
+	else if (op.kind === "del") out.push(ta[op.a].inline);
+	else if (op.kind === "ins") out.push(tb[op.b].inline);
+	return merge(reorder(out));
+}
+/** Within each changed stretch, puts removed runs before added ones, so a replaced phrase reads "old new". Spaces
+*  kept between two changes join the stretch on both sides: "[-one hour][+thirty minutes]", not word by word. */
+function reorder(list) {
+	const out = [];
+	const gap = (s) => s.kind === "text" && s.change === "same" && /^\s+$/.test(s.text);
+	for (let i = 0; i < list.length;) {
+		if (list[i].change === "same") {
+			out.push(list[i++]);
+			continue;
+		}
+		const removed = [];
+		const added = [];
+		for (; i < list.length; i++) {
+			const s = list[i];
+			if (s.change !== "same") (s.change === "removed" ? removed : added).push(s);
+			else if (gap(s) && list[i + 1] && list[i + 1].change !== "same") {
+				removed.push({
+					...s,
+					change: "removed"
+				});
+				added.push({
+					...s,
+					change: "added"
+				});
+			} else break;
+		}
+		out.push(...removed, ...added);
+	}
+	return out;
+}
+/** Joins adjacent text runs with the same change and marks. */
+function merge(list) {
+	const out = [];
+	for (const s of list) {
+		const last = out.at(-1);
+		if (last && last.kind === "text" && s.kind === "text" && last.change === s.change && canonical(last.marks) === canonical(s.marks)) out[out.length - 1] = {
+			...last,
+			text: last.text + s.text
+		};
+		else out.push(s);
+	}
+	return out;
+}
+// src/diff/render.ts
+/** Drops the node types and marks the schema lacks (a document saved by an editor with other extensions). */
+function fitSchema(node, schema) {
+	if (node.type === "text") {
+		if (!node.text) return null;
+	} else if (!schema.nodes[node.type]) return null;
+	const marks = node.marks?.filter((m) => !!schema.marks[m.type]);
+	const content = node.content?.flatMap((c) => fitSchema(c, schema) ?? []);
+	return {
+		...node,
+		...node.marks ? { marks: marks?.length ? marks : void 0 } : {},
+		...node.content ? { content } : {}
+	};
+}
+/** A node as the diff shows it: modified containers and text blocks hold the old and the new content together. */
+function shown(b) {
+	let node = b.node;
+	if (b.change !== "same" && node.attrs?.open === false) node = {
+		...node,
+		attrs: {
+			...node.attrs,
+			open: true
+		}
+	};
+	if (b.inline) return {
+		...node,
+		content: b.inline.map((s) => s.kind === "atom" ? s.node : {
+			type: "text",
+			text: s.text,
+			...s.marks.length ? { marks: s.marks } : {}
+		})
+	};
+	if (b.children) return {
+		...node,
+		content: b.children.map(shown)
+	};
+	return node;
+}
+/**
+* Makes a diff fit the schema: a modified container whose old and new children together break its content rule (two
+* captions, a second title) shows as the old container removed and the new one added.
+*/
+function fit(blocks, schema) {
+	return blocks.flatMap((b) => {
+		if (b.change !== "modified" || !b.children || !b.before) return [b];
+		const children = fit(b.children, schema);
+		const type = schema.nodes[b.node.type];
+		const content = Fragment.fromJSON(schema, children.map(shown));
+		if (!type || type.validContent(content)) return [{
+			...b,
+			children
+		}];
+		return [{
+			node: b.before,
+			change: "removed"
+		}, {
+			node: b.node,
+			change: "added"
+		}];
+	});
+}
+/** The document a diff shows and the decorations that mark its changes. */
+function diffDocument(schema, diff, labels) {
+	const blocks = fit(diff, schema);
+	const doc = schema.nodeFromJSON({
+		type: "doc",
+		content: blocks.map(shown)
+	});
+	const out = [];
+	decorate(schema, blocks, doc, 0, labels, out);
+	return {
+		doc,
+		decorations: out
+	};
+}
+function decorate(schema, blocks, parent, start, labels, out) {
+	parent.forEach((child, offset, i) => {
+		const b = blocks[i];
+		if (!b) return;
+		const from = start + offset;
+		const to = from + child.nodeSize;
+		if (b.change === "added" || b.change === "removed") {
+			const moved = b.moved ? { "data-diff-label": b.change === "added" ? labels.movedHere : labels.movedAway } : {};
+			out.push(Decoration.node(from, to, {
+				class: `wy-diff-block wy-diff-${b.change}${b.moved ? " wy-diff-moved" : ""}`,
+				...moved
+			}));
+			return;
+		}
+		if (b.change !== "modified") return;
+		if (b.attrsChanged) out.push(Decoration.node(from, to, {
+			class: "wy-diff-changed",
+			title: labels.changed
+		}));
+		if (b.inline) {
+			let at = from + 1;
+			for (const s of b.inline) {
+				const size = s.kind === "text" ? s.text.length : schema.nodeFromJSON(s.node).nodeSize;
+				if (s.change !== "same") out.push(Decoration.inline(at, at + size, { class: s.change === "added" ? "wy-diff-ins" : "wy-diff-del" }));
+				at += size;
+			}
+		} else if (b.children) decorate(schema, b.children, child, from + 1, labels, out);
+	});
+}
+var diffKey = new PluginKey("wyDiff");
+/** Holds the diff decorations of a DocDiffView's editor; a transaction with `diffKey` meta replaces them. */
+var DiffDecorations = Extension.create({
+	name: "docDiff",
+	addProseMirrorPlugins() {
+		return [new Plugin({
+			key: diffKey,
+			state: {
+				init: () => DecorationSet.empty,
+				apply: (tr, set) => tr.getMeta(diffKey) ?? set.map(tr.mapping, tr.doc)
+			},
+			props: { decorations: (state) => diffKey.getState(state) }
+		})];
+	}
+});
+// src/components/DocDiffView.vue
+var DocDiffView_default = /* @__PURE__ */ defineComponent({
+	name: "DocDiffView",
+	__name: "DocDiffView",
+	props: {
+		before: {},
+		after: {},
+		format: { default: "json" },
+		extensions: { default: void 0 },
+		base: { default: void 0 },
+		services: { default: void 0 },
+		locale: { default: void 0 },
+		messages: { default: void 0 },
+		contentClass: { default: "" }
+	},
+	emits: ["diff"],
+	setup(__props, { emit: __emit }) {
+		const props = __props;
+		const emit = __emit;
+		const inherited = inject(EDITOR_CONTEXT, null)?.inherit ?? inject(WYSIWYG_DEFAULTS, {});
+		const DIFF = {
+			name: "docDiff",
+			tiptap: [DiffDecorations]
+		};
+		const extensions = [...props.extensions ?? inherited.extensions ?? [], DIFF];
+		const editor = shallowRef(null);
+		function parse(e, value) {
+			if (typeof value !== "string") return value;
+			if (props.format === "json") return JSON.parse(value);
+			if (props.format === "html") return createDocument(value, e.schema, { preserveWhitespace: false }).toJSON();
+			return contextOf(e).markdown.parse(value, e.schema).toJSON();
+		}
+		function render() {
+			const e = editor.value;
+			if (!e) return;
+			const ctx = contextOf(e);
+			const schema = e.schema;
+			const empty = {
+				type: "doc",
+				content: []
+			};
+			const fitted = (v) => fitSchema(parse(e, v), schema) ?? empty;
+			const diagrams = ctx.config.base.diagrams;
+			const blocks = diffDocs(props.before === null ? null : fitted(props.before), fitted(props.after), {
+				schema,
+				atomic: (n) => n.type === "codeBlock" && typeof n.attrs?.language === "string" && diagrams.includes(n.attrs.language)
+			});
+			const { doc, decorations } = diffDocument(schema, blocks, {
+				movedHere: ctx.t("diff.movedHere"),
+				movedAway: ctx.t("diff.movedAway"),
+				changed: ctx.t("diff.changed")
+			});
+			const tr = e.state.tr.replaceWith(0, e.state.doc.content.size, doc.content);
+			tr.setSelection(Selection.findFrom(tr.doc.resolve(0), 1, true) ?? Selection.atStart(tr.doc));
+			tr.setMeta(diffKey, DecorationSet.create(tr.doc, decorations)).setMeta("addToHistory", false);
+			e.view.dispatch(tr);
+			emit("diff", blocks);
+		}
+		function onReady(handle) {
+			editor.value = handle.editor;
+			render();
+		}
+		watch(() => [
+			props.before,
+			props.after,
+			props.format
+		], render);
+		return (_ctx, _cache) => {
+			return openBlock(), createBlock(WysiwygEditor_default, {
+				class: "wy-diff",
+				"model-value": "",
+				format: __props.format === "html" ? "html" : "markdown",
+				extensions,
+				base: __props.base,
+				services: __props.services,
+				locale: __props.locale,
+				messages: __props.messages,
+				"content-class": __props.contentClass,
+				gutter: false,
+				readonly: "",
+				onReady
+			}, null, 8, [
+				"format",
+				"base",
+				"services",
+				"locale",
+				"messages",
+				"content-class"
+			]);
+		};
+	}
+});
 // src/blocks/useFenceSync.ts
 function useFenceSync(source, emit, reload) {
 	const read = () => {
@@ -15097,4 +17967,4 @@ function convertBlocks(blocks, target, options = {}) {
 function markdownToHtml(md, extensions, base) {
 	return createMarkdown(extensions, { base }).toHtml(md);
 }
-export { AnchoredPopover_default as AnchoredPopover, BLOCK_EDIT_EVENT, BlockFrame_default as BlockFrame, BlockMenu_default as BlockMenu, CODE_LANGUAGES, EMBED_PROVIDERS, HTML_CALLOUTS, MARKDOWN_CALLOUTS, MESSAGES, PALETTE, PageSearch_default as PageSearch, SaveStatus_default as SaveStatus, SuggestionList_default as SuggestionList, WysiwygEditor_default as WysiwygEditor, blockBody, blockStopEvent, cleanPastedHtml, clipboardText, collaborationCaret, contextOf, convertBlocks, convertTargets, createMarkdown, createWysiwyg, defineEditorExtension, defineFenceBlock, embedFor, escapeHtml, fenceAtom, fenceClose, fenceFor, fenceOpen, formatBytes, formatInfo, highlightCode, insertFresh, isBgToken, isColorToken, isImageSrc, isInCell, isTextToken, joinSections, looksLikeMarkdown, markFresh, markdownToHtml, mediaKind, mentionMarkdown, moveItem, newBlockId, normalizeHref, parseInfo, parseMentionTarget, pasteAsMarkdown, registerCodeLanguage, renderMath, splitSections, takeFresh, tokenCss, useBlockNode, useDraft, useEditorContext, useEditorHandle, useFenceSync, vTooltip };
+export { AT_LINK, AnchoredPopover_default as AnchoredPopover, BLOCK_EDIT_EVENT, BlockFrame_default as BlockFrame, BlockMenu_default as BlockMenu, CODE_LANGUAGES, DocDiffView_default as DocDiffView, EMBED_PROVIDERS, EmojiPicker_default as EmojiPicker, HTML_CALLOUTS, InlineChip_default as InlineChip, MARKDOWN_CALLOUTS, MESSAGES, PALETTE, PageSearch_default as PageSearch, SaveStatus_default as SaveStatus, SuggestionList_default as SuggestionList, WysiwygEditor_default as WysiwygEditor, blockBody, blockStopEvent, cleanPastedHtml, clipboardText, collaborationCaret, contextOf, convertBlocks, convertTargets, createMarkdown, createWysiwyg, dateLabel, defineEditorExtension, defineFenceBlock, defineInlineBlock, diffDocs, diffHasChanges, diffInline, embedFor, escapeChipLabel, escapeHtml, fenceAtom, fenceClose, fenceFor, fenceOpen, formatButtonActions, formatBytes, formatInfo, highlightCode, inlineBlockNode, inlineBlockToken, inlineChipKeys, inlineSyntaxRule, insertFresh, isBgToken, isColorToken, isDiagram, isImageSrc, isInCell, isTextToken, joinSections, loadEmoji, looksLikeMarkdown, markFresh, markdownToHtml, mediaKind, mentionMarkdown, moveItem, newBlockId, normalizeHref, pageLinkMarkdown, parseButtonActions, parseInfo, parseMentionTarget, parseNaturalDate, pasteAsMarkdown, registerCodeLanguage, renderMath, searchEmoji, splitSections, takeFresh, tokenCss, unescapeChipLabel, useBlockNode, useDraft, useEditorContext, useEditorHandle, useFenceSync, vTooltip, withTone };

@@ -70,9 +70,6 @@ declare const __VLS_base: import("vue").DefineComponent<__VLS_Props, EditorHandl
     readonly: boolean;
     autofocus: boolean | "end" | "start";
     placeholder: string;
-    services: EditorServices;
-    locale: Locale;
-    toolbar: "floating" | "fixed" | "both";
     messages: DeepPartial<{
         editor: {
             placeholder: string;
@@ -285,6 +282,34 @@ declare const __VLS_base: import("vue").DefineComponent<__VLS_Props, EditorHandl
                     description: string;
                 };
                 pageLink: {
+                    label: string;
+                    description: string;
+                };
+                mentionPerson: {
+                    label: string;
+                    description: string;
+                };
+                date: {
+                    label: string;
+                    description: string;
+                };
+                emoji: {
+                    label: string;
+                    description: string;
+                };
+                tabs: {
+                    label: string;
+                    description: string;
+                };
+                button: {
+                    label: string;
+                    description: string;
+                };
+                breadcrumbs: {
+                    label: string;
+                    description: string;
+                };
+                aiBlock: {
                     label: string;
                     description: string;
                 };
@@ -538,6 +563,7 @@ declare const __VLS_base: import("vue").DefineComponent<__VLS_Props, EditorHandl
                 user: string;
                 page: string;
                 date: string;
+                reminder: string;
             };
             today: string;
             tomorrow: string;
@@ -547,6 +573,93 @@ declare const __VLS_base: import("vue").DefineComponent<__VLS_Props, EditorHandl
             includeTime: string;
             endDate: string;
             editDate: string;
+            editReminder: string;
+            reminder: string;
+            remind: string;
+            person: string;
+            personPlaceholder: string;
+            datePlaceholder: string;
+        };
+        emoji: {
+            label: string;
+            search: string;
+            results: string;
+            empty: string;
+            loading: string;
+            failed: string;
+            categories: string;
+            recent: string;
+            tone: string;
+            tones: {
+                0: string;
+                1: string;
+                2: string;
+                3: string;
+                4: string;
+                5: string;
+            };
+            groups: {
+                0: string;
+                1: string;
+                3: string;
+                4: string;
+                5: string;
+                6: string;
+                7: string;
+                8: string;
+                9: string;
+            };
+        };
+        tabs: {
+            label: string;
+            untitled: string;
+            labelField: string;
+            moveLeft: string;
+            moveRight: string;
+            remove: string;
+            add: string;
+        };
+        button: {
+            label: string;
+            untitled: string;
+            labelField: string;
+            actions: string;
+            noActions: string;
+            kind: string;
+            kinds: {
+                insert: string;
+                link: string;
+            };
+            fields: {
+                markdown: string;
+                url: string;
+            };
+            placeholders: {
+                markdown: string;
+                url: string;
+            };
+            moveUp: string;
+            moveDown: string;
+            removeAction: string;
+            addAction: string;
+            done: string;
+        };
+        breadcrumbs: {
+            label: string;
+            empty: string;
+        };
+        ai: {
+            label: string;
+            prompt: string;
+            promptPlaceholder: string;
+            scope: string;
+            generate: string;
+            regenerate: string;
+            stop: string;
+            done: string;
+            writing: string;
+            failed: string;
+            updated: string;
         };
         paste: {
             label: string;
@@ -578,7 +691,15 @@ declare const __VLS_base: import("vue").DefineComponent<__VLS_Props, EditorHandl
             close: string;
             cancel: string;
         };
+        diff: {
+            movedHere: string;
+            movedAway: string;
+            changed: string;
+        };
     }> & Record<string, unknown>;
+    services: EditorServices;
+    locale: Locale;
+    toolbar: "floating" | "fixed" | "both";
     extensions: readonly EditorExtension[];
     minRows: number;
     expandable: boolean;

@@ -1,0 +1,4 @@
+import { Node } from "@tiptap/core";
+import type { EditorExtension } from "../types";
+export declare const Breadcrumbs: Node<any, any>;
+export declare const breadcrumbsExtension: EditorExtension;

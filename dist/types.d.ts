@@ -46,10 +46,20 @@ export interface BaseOptions {
     embeds?: boolean;
     /** ```` ```toc ```` table of contents. */
     toc?: boolean;
-    /** ```` ```page ```` "link to page" blocks; their slash item needs `services.searchMentions`. */
+    /** inline page links `@[Title](/p/<id>)`; their "Link to page" slash item needs `services.searchMentions`. default: `mentions`. */
     pageLinks?: boolean;
-    /** inline `@[label](user:1)` mentions with an `@` menu fed by `services.searchMentions`. */
+    /** inline `@[label](user:1)` and date mentions with an `@` menu fed by `services.searchMentions`. */
     mentions?: boolean;
+    /** `:` emoji suggestions and the "Emoji" slash item. */
+    emoji?: boolean;
+    /** ```` ```tabs ```` with one `==== label` section per tab. */
+    tabs?: boolean;
+    /** ```` ```button ```` blocks that insert a template, open a link or run `services.buttonActions`. */
+    buttons?: boolean;
+    /** ```` ```breadcrumbs ```` blocks filled by `services.breadcrumbs`. */
+    breadcrumbs?: boolean;
+    /** ```` ```ai ```` blocks whose content `services.aiGenerate` writes; the slash item needs that service. */
+    ai?: boolean;
     /** code blocks in these languages render as diagrams below their source; true = mermaid and plantuml. */
     diagrams?: boolean | DiagramLanguage[];
     /** default https://www.plantuml.com/plantuml; used when `services.plantuml` is absent. */
@@ -85,6 +95,11 @@ export interface ResolvedBase {
     toc: boolean;
     pageLinks: boolean;
     mentions: boolean;
+    emoji: boolean;
+    tabs: boolean;
+    buttons: boolean;
+    breadcrumbs: boolean;
+    ai: boolean;
     diagrams: DiagramLanguage[];
     plantumlServer: string;
     pageHref: string;
@@ -131,6 +146,8 @@ export interface MentionSuggestion {
     /** dates: ISO date or datetime */
     start?: string;
     end?: string;
+    /** dates: a reminder */
+    remind?: boolean;
 }
 export interface ResolvedLink {
     title: string;
@@ -161,6 +178,59 @@ export interface EditorServices {
     linkPreview?: (url: string, signal: AbortSignal) => Promise<LinkPreview | null>;
     /** SVG markup of a PlantUML diagram */
     plantuml?: (source: string, signal: AbortSignal) => Promise<string>;
+    /** the trail of pages above this one for breadcrumbs blocks, outermost first */
+    breadcrumbs?: () => Promise<Breadcrumb[]>;
+    /** button action kinds besides the built-in `insert` and `link`, by kind */
+    buttonActions?: Record<string, ButtonActionDef>;
+    /** markdown for an AI block, streamed in pieces; it replaces the block's content as it arrives */
+    aiGenerate?: (request: AiGenerateRequest, signal: AbortSignal) => AsyncIterable<string>;
+    /** what an AI block may read, picked in its scope menu; the first is the default */
+    aiScopes?: AiScope[];
+}
+export interface Breadcrumb {
+    title: string;
+    /** an emoji or image address */
+    icon?: string;
+    href: string;
+}
+export interface AiGenerateRequest {
+    prompt: string;
+    /** an `aiScopes` id, "" without scopes */
+    scope: string;
+    /** markdown of the whole document */
+    document: string;
+}
+export interface AiScope {
+    id: string;
+    label: string;
+}
+/** one action of a button: `{ kind: "insert", markdown }`, `{ kind: "link", url }` or a host kind with its own fields */
+export interface ButtonAction {
+    kind: string;
+    [field: string]: unknown;
+}
+export interface ButtonActionField {
+    /** the action property it edits */
+    key: string;
+    label: MaybeText;
+    placeholder?: MaybeText;
+    multiline?: boolean;
+}
+export interface ButtonRunContext {
+    editor: Editor;
+    /** position of the button block */
+    pos: number;
+    services: EditorServices;
+    event: MouseEvent;
+}
+export interface ButtonActionDef {
+    label: MaybeText;
+    icon?: Component;
+    /** text fields of the action in the button's editor */
+    fields?: ButtonActionField[];
+    /** also runs in a readonly editor; default true for host kinds */
+    readonly?: boolean;
+    run(action: ButtonAction, ctx: ButtonRunContext): void | Promise<void>;
 }
 export interface MarkdownPluginContext {
     schema: Schema;
@@ -177,6 +247,8 @@ export interface FenceContext {
     sections(name: string, child: string, meta: Record<string, unknown>, body?: string): void;
     /** the fence becomes a single `<name>` token with `meta` (body in `token.content`). */
     atom(name: string, meta: Record<string, unknown>): void;
+    /** the fence becomes a paragraph holding one inline `<name>` token with `meta`; an attribute line goes to the paragraph. */
+    inline(name: string, meta: Record<string, unknown>): void;
 }
 /** without `parse` the fence becomes an atom node holding `{attrs, body}`. */
 export interface FenceRule {
