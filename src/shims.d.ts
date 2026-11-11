@@ -3,3 +3,8 @@ declare module "markdown-it-mark" {
   const mark: PluginSimple;
   export default mark;
 }
+declare module "markdown-it-ins" {
+  import type { PluginSimple } from "markdown-it";
+  const ins: PluginSimple;
+  export default ins;
+}

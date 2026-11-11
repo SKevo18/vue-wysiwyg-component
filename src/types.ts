@@ -15,11 +15,11 @@ export type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
 export interface BaseOptions {
   /** false disables headings. default 1-6 (markdown), 1-3 (html). */
   headings?: HeadingLevel[] | false;
-  /** html only. */
+  /** markdown `++text++`. */
   underline?: boolean;
-  /** markdown `==text==`; multicolour `<mark>` in html. */
+  /** markdown `==text==` and `[text]{bg=yellow}`; multicolour `<mark>` in html. */
   highlight?: boolean;
-  /** html only. */
+  /** text colour: markdown `[text]{color=red}` with palette colours, any CSS colour in html. markdown also gets block colours (`{color=yellow_bg}` under a block). */
   color?: boolean;
   /** html only; markdown cannot store it. */
   textAlign?: boolean;

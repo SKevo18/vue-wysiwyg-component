@@ -1,18 +1,55 @@
 // serialising a parsed document must reproduce the documented syntax byte for byte
 import markdownit from "markdown-it";
 import type { MarkdownIt, Token } from "markdown-it";
+import ins from "markdown-it-ins";
 import mark from "markdown-it-mark";
 import { MarkdownParser, MarkdownSerializer, MarkdownSerializerState, type ParseSpec } from "prosemirror-markdown";
-import { DOMSerializer, Slice, type Fragment, type Node as PMNode, type Schema } from "@tiptap/pm/model";
-import { DEFAULT_DIVIDER, blockAttrsPlugin, formatDividerAttrs, formatListAttrs, type DividerAttrs, type ListAttrs } from "../core/attrs";
+import { DOMSerializer, Slice, type Fragment, type Mark, type Node as PMNode, type NodeType, type Schema } from "@tiptap/pm/model";
+import { BLOCK_ATTR_KEYS, DEFAULT_DIVIDER, blockAttrsPlugin, formatBlockAttrs, formatDividerAttrs, formatListAttrs, type DividerAttrs, type ListAttrs } from "../core/attrs";
+import { isBgToken, isTextToken } from "../core/colors";
 import { fenceFor, formatInfo, joinSections, type Section } from "../core/info";
 import { formatImageAttrs, type ImageAttrs } from "../core/media";
 import { NO_EXTENSIONS, resolveConfig, schemaFor, type EditorConfig } from "../schema";
 import type { BaseOptions, EditorExtension, MarkSerializer, NodeSerializer, SerializeHelpers } from "../types";
-import { atomToken, figureRule, imageAttrsRule, retagTokens, tableCellsRule, type FigureMeta, type RetagOptions } from "./rules";
+import { atomToken, colorSpanRule, figureRule, imageAttrsRule, retagTokens, tableCellsRule, type FigureMeta, type RetagOptions } from "./rules";
 
 type NodeFn = (state: MarkdownSerializerState, node: PMNode, parent: PMNode, index: number) => void;
 type MarkSpec = ConstructorParameters<typeof MarkdownSerializer>[1][string];
+type FlushState = MarkdownSerializerState & { closed: PMNode | null; flushClose(size: number): void };
+
+/** inline tokens whose mark the schema may lack (e.g. no text colour); they are dropped then, keeping their text */
+const OPTIONAL_MARK_TOKENS: Record<string, true> = { text_color: true, bg_color: true, ins: true };
+/** these write their own attribute line, or none: a list item writes its line after its first child */
+const OWN_ATTR_LINE: Record<string, true> = { listItem: true, taskItem: true, tableCell: true, tableHeader: true, horizontalRule: true, callout: true, pageLink: true, tableOfContents: true };
+const ITEMS: Record<string, true> = { listItem: true, taskItem: true };
+
+function markStart(parent: PMNode, index: number, m: Mark): number {
+  let i = index;
+  while (i > 0 && m.isInSet(parent.child(i - 1).marks)) i--;
+  return i;
+}
+
+function markEnd(parent: PMNode, index: number, m: Mark): number {
+  let i = index;
+  while (i < parent.childCount && m.isInSet(parent.child(i).marks)) i++;
+  return i;
+}
+
+function tokenMark(node: PMNode, name: string, valid: (v: unknown) => boolean): Mark | null {
+  const m = node.marks.find((x) => x.type.name === name);
+  return m && valid(m.attrs.color) ? m : null;
+}
+
+/** text colour and background colour over exactly the same run are written as one `[text]{color=red bg=yellow}` */
+function pairedColors(parent: PMNode, index: number): { color: string; bg: string } | null {
+  if (index < 0 || index >= parent.childCount) return null;
+  const node = parent.child(index);
+  const fg = tokenMark(node, "textStyle", isTextToken);
+  const bg = tokenMark(node, "highlight", isBgToken);
+  if (!fg || !bg) return null;
+  if (markStart(parent, index, fg) !== markStart(parent, index, bg) || markEnd(parent, index, fg) !== markEnd(parent, index, bg)) return null;
+  return { color: String(fg.attrs.color), bg: String(bg.attrs.color) };
+}
 
 export interface MarkdownConverter {
   readonly config: EditorConfig;
@@ -74,7 +111,10 @@ function baseTokens(config: EditorConfig): Record<string, ParseSpec> {
     em: { mark: "italic" },
     strong: { mark: "bold" },
     s: { mark: "strike" },
-    mark: { mark: "highlight" },
+    mark: { mark: "highlight", getAttrs: () => ({ color: null }) },
+    text_color: { mark: "textStyle", getAttrs: (tok) => ({ color: tok.meta.color }) },
+    bg_color: { mark: "highlight", getAttrs: (tok) => ({ color: tok.meta.color }) },
+    ins: { mark: "underline" },
     link: { mark: "link", getAttrs: (tok) => ({ href: tok.attrGet("href"), title: tok.attrGet("title") || null }) },
     code_inline: { mark: "code", noCloseToken: true },
     table: { block: "table" },
@@ -115,12 +155,14 @@ function buildConverter(config: EditorConfig): MarkdownConverter {
   function markdownIt(schema: Schema, inline: boolean): MarkdownIt {
     const md = markdownit({ html: false, linkify: false, typographer: false, breaks: false });
     if (b.highlight) md.use(mark);
+    if (b.underline) md.use(ins);
+    if (b.color || b.highlight) md.inline.ruler.before("link", "color_span", colorSpanRule);
     if (!b.images) md.disable("image");
     else md.inline.ruler.after("image", "image_attrs", imageAttrsRule);
     if (b.images && schema.nodes.figure) md.core.ruler.after("inline", "figures", figureRule);
     if (b.tables) md.core.ruler.before("text_join", "table_cells", tableCellsRule);
     else md.disable("table");
-    if (b.listStyles || b.dividers) md.use(blockAttrsPlugin);
+    if (b.listStyles || b.dividers || b.color || b.callouts.length) md.use(blockAttrsPlugin);
     if (!b.dividers) md.disable("hr");
     if (!b.headings.length) md.disable(["heading", "lheading"]);
     if (!b.blockquote && !b.callouts.length) md.disable("blockquote");
@@ -139,11 +181,31 @@ function buildConverter(config: EditorConfig): MarkdownConverter {
   for (const e of exts) Object.assign(specs, e.markdown?.tokens);
   const normalizers = exts.flatMap((e) => (e.markdown?.normalize ? [e.markdown.normalize] : []));
 
+  /** an attribute line's fields (`{color=…}`) land on every node type that has an attribute of that name */
+  function withBlockAttrs(spec: ParseSpec, type: NodeType): ParseSpec {
+    const keys = BLOCK_ATTR_KEYS.filter((k) => k in type.attrs);
+    if (!keys.length) return spec;
+    return {
+      ...spec,
+      getAttrs: (tok, tokens, i) => {
+        const own = spec.getAttrs ? spec.getAttrs(tok, tokens, i) : typeof spec.attrs === "function" ? (spec.attrs as (t: Token) => Record<string, unknown>)(tok) : spec.attrs;
+        const extra = (tok.meta as { blockAttrs?: Record<string, string> } | null)?.blockAttrs;
+        if (!extra) return own ?? null;
+        const attrs: Record<string, unknown> = { ...own };
+        for (const k of keys) if (extra[k] !== undefined) attrs[k] = extra[k];
+        return attrs;
+      },
+    };
+  }
+
   function specsFor(schema: Schema): Record<string, ParseSpec> {
     const out: Record<string, ParseSpec> = {};
     for (const [token, spec] of Object.entries(specs)) {
       const name = spec.block ?? spec.node ?? spec.mark;
-      if (!name || schema.nodes[name] || schema.marks[name]) out[token] = spec;
+      const type = name ? schema.nodes[name] : undefined;
+      if (type) out[token] = withBlockAttrs(spec, type);
+      else if (!name || schema.marks[name]) out[token] = spec;
+      else if (OPTIONAL_MARK_TOKENS[token] === true) out[token] = { ignore: true };
     }
     return out;
   }
@@ -199,7 +261,22 @@ function buildConverter(config: EditorConfig): MarkdownConverter {
     italic: { open: "*", close: "*", mixable: true, expelEnclosingWhitespace: true },
     bold: { open: "**", close: "**", mixable: true, expelEnclosingWhitespace: true },
     strike: { open: "~~", close: "~~", mixable: true, expelEnclosingWhitespace: true },
-    highlight: { open: "==", close: "==", mixable: true, expelEnclosingWhitespace: true },
+    highlight: {
+      open: (_state, m, parent, index) => (!isBgToken(m.attrs.color) ? "==" : pairedColors(parent, index) ? "" : "["),
+      close: (_state, m, parent, index) => (!isBgToken(m.attrs.color) ? "==" : pairedColors(parent, index - 1) ? "" : `]{bg=${String(m.attrs.color).slice(0, -3)}}`),
+      mixable: true,
+      expelEnclosingWhitespace: true,
+    },
+    textStyle: {
+      open: (_state, m) => (isTextToken(m.attrs.color) ? "[" : ""),
+      close(_state, m, parent, index) {
+        if (!isTextToken(m.attrs.color)) return "";
+        const pair = pairedColors(parent, index - 1);
+        return `]{color=${m.attrs.color}${pair ? ` bg=${pair.bg.slice(0, -3)}` : ""}}`;
+      },
+      expelEnclosingWhitespace: true,
+    },
+    underline: { open: "++", close: "++", mixable: true, expelEnclosingWhitespace: true },
     link: {
       open(_state, mark, parent, index) {
         inAutolink = isPlainURL(mark, parent, index);
@@ -222,7 +299,7 @@ function buildConverter(config: EditorConfig): MarkdownConverter {
   };
   for (const e of exts) Object.assign(marks, e.markdown?.marks as Record<string, MarkSerializer> | undefined);
 
-  const escapes = [...(b.highlight ? ["=(?==)"] : []), ...exts.flatMap((e) => (e.markdown?.escape ? [e.markdown.escape] : []))];
+  const escapes = [...(b.highlight ? ["=(?==)"] : []), ...(b.underline ? [String.raw`\+(?=\+)`] : []), ...exts.flatMap((e) => (e.markdown?.escape ? [e.markdown.escape] : []))];
   const options = { hardBreakNodeName: "hardBreak", escapeExtraCharacters: escapes.length ? new RegExp(escapes.join("|"), "g") : undefined, strict: false };
 
   function writeFence(state: MarkdownSerializerState, node: PMNode, info: string, body: string) {
@@ -263,9 +340,27 @@ function buildConverter(config: EditorConfig): MarkdownConverter {
   function writeListAttrs(state: MarkdownSerializerState, node: PMNode) {
     const attrs = formatListAttrs({ style: node.attrs.listStyle as ListAttrs["style"], marker: node.attrs.marker as string | null });
     if (!attrs) return;
-    (state as MarkdownSerializerState & { flushClose(size: number): void }).flushClose(1);
+    (state as FlushState).flushClose(1);
     state.write(attrs);
     state.closeBlock(node.lastChild!);
+  }
+
+  /** `{color=…}` on its own line right under the block just written */
+  function writeAttrLine(state: MarkdownSerializerState, node: PMNode, line: string) {
+    const s = state as FlushState;
+    if (s.closed) s.flushClose(1);
+    else s.ensureNewLine();
+    state.write(line);
+    state.closeBlock(node);
+  }
+
+  /** a list item's line follows its first child, so its nested blocks keep their own lines */
+  function renderItem(state: MarkdownSerializerState, item: PMNode) {
+    item.forEach((child, _, i) => {
+      state.render(child, item, i);
+      const line = i === 0 ? formatBlockAttrs(item.attrs) || formatBlockAttrs(child.attrs) : "";
+      if (line) writeAttrLine(state, child, line);
+    });
   }
 
   // cells are one line: typed `<br>` text is marked with U+0000 while serialising, then escaped as `\<`
@@ -275,6 +370,7 @@ function buildConverter(config: EditorConfig): MarkdownConverter {
     cellSerializer ??= new MarkdownSerializer(
       {
         ...nodes,
+        paragraph: plainParagraph,
         hardBreak(state) {
           state.write("<br>");
         },
@@ -315,6 +411,11 @@ function buildConverter(config: EditorConfig): MarkdownConverter {
     state.write(line(header ? rows[0]! : []) + "\n");
     state.write("|" + aligns.map((a) => " " + (ALIGN_RULES[a ?? ""] ?? "--- |")).join("") + (body.length ? "\n" : ""));
     state.write(body.map(line).join("\n"));
+    state.closeBlock(node);
+  }
+
+  function plainParagraph(state: MarkdownSerializerState, node: PMNode) {
+    state.renderInline(node);
     state.closeBlock(node);
   }
 
@@ -360,20 +461,15 @@ function buildConverter(config: EditorConfig): MarkdownConverter {
       });
       writeListAttrs(state, node);
     },
-    listItem(state, node) {
-      state.renderContent(node);
-    },
+    listItem: renderItem,
     taskList(state, node) {
       state.renderList(node, "  ", () => "- ");
     },
     taskItem(state, node) {
       state.write(node.attrs.checked ? "[x] " : "[ ] ");
-      state.renderContent(node);
+      renderItem(state, node);
     },
-    paragraph(state, node) {
-      state.renderInline(node);
-      state.closeBlock(node);
-    },
+    paragraph: plainParagraph,
     image(state, node) {
       state.write(imageSyntax(state, node));
     },
@@ -406,6 +502,15 @@ function buildConverter(config: EditorConfig): MarkdownConverter {
     for (const [name, fn] of Object.entries(e.markdown?.nodes ?? {}) as [string, NodeSerializer][]) {
       nodes[name] = (state, node, parent, index) => fn(state, node, parent, index, helpers);
     }
+  }
+  for (const [name, fn] of Object.entries(nodes)) {
+    if (OWN_ATTR_LINE[name] === true) continue;
+    nodes[name] = (state, node, parent, index) => {
+      fn(state, node, parent, index);
+      if (!node.isBlock || (ITEMS[parent.type.name] === true && index === 0)) return;
+      const line = formatBlockAttrs(node.attrs);
+      if (line) writeAttrLine(state, node, line);
+    };
   }
 
   const serializer = new MarkdownSerializer(nodes, marks, options);

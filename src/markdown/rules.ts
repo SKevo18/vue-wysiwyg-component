@@ -1,4 +1,6 @@
 import type { StateCore, StateInline, Token } from "markdown-it";
+import { parseAttrLine } from "../core/attrs";
+import { isBgToken, isTextToken } from "../core/colors";
 import { newBlockId, parseInfo, splitSections, type FenceInfo } from "../core/info";
 import { parseImageAttrs, type ImageAttrs } from "../core/media";
 import type { FenceContext, FenceRule } from "../types";
@@ -18,6 +20,51 @@ export function imageAttrsRule(state: StateInline, silent: boolean): boolean {
   if (!attrs) return false;
   prev.meta = { ...prev.meta, ...attrs };
   state.pos += m[0].length;
+  return true;
+}
+
+export interface SpanColors {
+  /** text token, `red` */
+  color: string | null;
+  /** background token, `yellow_bg` */
+  bg: string | null;
+}
+
+/** `color=red bg=yellow`; `bg` also takes `yellow_bg`, `color` also takes a background token */
+export function parseSpanAttrs(fields: Record<string, string>): SpanColors | null {
+  const out: SpanColors = { color: null, bg: null };
+  for (const [k, v] of Object.entries(fields)) {
+    if (k === "color" && isTextToken(v)) out.color = v;
+    else if (k === "color" && isBgToken(v) && !fields.bg) out.bg = v;
+    else if (k === "bg" && (isTextToken(v) || isBgToken(v))) out.bg = isBgToken(v) ? v : `${v}_bg`;
+    else return null;
+  }
+  return out;
+}
+
+const SPAN_ATTRS_RE = /^\{[^{}\n]*\}/;
+
+/** `[text]{color=red bg=yellow}`: text colour and background colour marks around the bracketed inline content */
+export function colorSpanRule(state: StateInline, silent: boolean): boolean {
+  if (state.src.charCodeAt(state.pos) !== 0x5b) return false;
+  const labelEnd = state.md.helpers.parseLinkLabel(state, state.pos, false);
+  if (labelEnd < 0) return false;
+  const m = SPAN_ATTRS_RE.exec(state.src.slice(labelEnd + 1, state.posMax));
+  const fields = m ? parseAttrLine(m[0]) : null;
+  const span = fields && parseSpanAttrs(fields);
+  if (!m || !span) return false;
+  if (!silent) {
+    const max = state.posMax;
+    state.pos += 1;
+    state.posMax = labelEnd;
+    if (span.color) state.push("text_color_open", "span", 1).meta = { color: span.color };
+    if (span.bg) state.push("bg_color_open", "mark", 1).meta = { color: span.bg };
+    state.md.inline.tokenize(state);
+    if (span.bg) state.push("bg_color_close", "mark", -1);
+    if (span.color) state.push("text_color_close", "span", -1);
+    state.posMax = max;
+  }
+  state.pos = labelEnd + 1 + m[0].length;
   return true;
 }
 
@@ -104,7 +151,7 @@ export function retagCallouts(tokens: Token[], kinds: readonly string[]) {
     const callout = calloutAt(tokens, i, kinds);
     if (!callout) continue;
     tokens[i]!.type = "callout_open";
-    tokens[i]!.meta = { type: callout.type, title: callout.title };
+    tokens[i]!.meta = { ...tokens[i]!.meta, type: callout.type, title: callout.title };
     tokens[callout.close]!.type = "callout_close";
     if (callout.rest.trim() === "") {
       tokens.splice(i + 1, 3);
@@ -152,7 +199,7 @@ export function retagTaskLists(tokens: Token[]) {
       else if (depth === 1 && t.type === "list_item_close") t.type = "task_item_close";
     }
     for (const it of items) {
-      it.open.meta = { checked: it.checked };
+      it.open.meta = { ...it.open.meta, checked: it.checked };
       it.inline.content = it.inline.content.replace(TASK_RE, "");
       it.inline.children = [];
     }
@@ -239,6 +286,9 @@ function retagFences(state: StateCore, tokens: Token[], opts: RetagOptions) {
     const info = parseInfo(t.info.trim());
     const rule = findRule(opts.fences, info);
     if (!rule) continue;
+    // an attribute line after the fence (`{color=…}`) stays with the block the fence becomes
+    const blockAttrs = (t.meta as { blockAttrs?: Record<string, string> } | null)?.blockAttrs;
+    const withAttrs = (meta: Record<string, unknown>) => (blockAttrs ? { ...meta, blockAttrs } : meta);
     if (rule.parse) {
       let advance = 0;
       const own = t.content.replace(/\n$/, "");
@@ -246,11 +296,11 @@ function retagFences(state: StateCore, tokens: Token[], opts: RetagOptions) {
         info,
         body: own,
         token: t,
-        container: (name, meta, body = own) => void (advance = spliceContainer(state, tokens, i, name, meta, body, opts)),
-        sections: (name, child, meta, body = own) => void (advance = spliceSections(state, tokens, i, name, child, meta, body, opts)),
+        container: (name, meta, body = own) => void (advance = spliceContainer(state, tokens, i, name, withAttrs(meta), body, opts)),
+        sections: (name, child, meta, body = own) => void (advance = spliceSections(state, tokens, i, name, child, withAttrs(meta), body, opts)),
         atom: (name, meta) => {
           t.type = name;
-          t.meta = meta;
+          t.meta = withAttrs(meta);
         },
       };
       rule.parse(ctx);
@@ -259,7 +309,7 @@ function retagFences(state: StateCore, tokens: Token[], opts: RetagOptions) {
     }
     if (!rule.node) continue;
     if (rule.ensureId && !info.attrs.id) info.attrs = { id: newBlockId(), ...info.attrs };
-    t.meta = { kind: info.kind, attrs: info.attrs };
+    t.meta = withAttrs({ kind: info.kind, attrs: info.attrs });
     t.type = atomToken(rule.node);
   }
 }

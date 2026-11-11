@@ -23,6 +23,7 @@ import { HTML_CALLOUTS, MARKDOWN_CALLOUTS } from "../core/callouts";
 import type { BaseOptions, EditorExtension, EditorFormat, HeadingLevel, ResolvedBase } from "../types";
 import { Callout, Divider, FileChips, Figure, GenericCodeBlock, InlineDocument, InlineImage, InlineTableCell, InlineTableHeader, ListStyles } from "./nodes";
 import { builtinExtensions } from "../builtins";
+import { BlockColor, PaletteColor, PaletteHighlight, PaletteTextStyle } from "./colors";
 
 const ALL_LEVELS: HeadingLevel[] = [1, 2, 3, 4, 5, 6];
 
@@ -32,9 +33,9 @@ export function resolveBase(format: EditorFormat, base: BaseOptions = {}): Resol
   const code = base.codeBlocks ?? true;
   return {
     headings: base.headings === false ? [] : (base.headings ?? (html ? [1, 2, 3] : ALL_LEVELS)),
-    underline: base.underline ?? html,
+    underline: base.underline ?? true,
     highlight: base.highlight ?? true,
-    color: base.color ?? html,
+    color: base.color ?? true,
     textAlign: base.textAlign ?? html,
     lists: base.lists ?? true,
     listStyles: base.listStyles ?? !html,
@@ -112,8 +113,9 @@ export function schemaExtensions(config: EditorConfig, inline = false, history =
   const out: AnyExtension[] = [];
   if (inline) out.push(InlineDocument);
   out.push(...coreExtensions(config, inline, history));
-  if (b.highlight) out.push(Highlight.configure({ multicolor: html }));
-  if (b.color) out.push(TextStyle, Color);
+  if (b.highlight) out.push(html ? Highlight.configure({ multicolor: true }) : PaletteHighlight);
+  if (b.color) out.push(...(html ? [TextStyle, Color] : [PaletteTextStyle, PaletteColor]));
+  if (b.color && !html && !inline) out.push(BlockColor);
   if (b.textAlign && !inline) out.push(TextAlign.configure({ types: ["heading", "paragraph"] }));
   if (b.links && b.files) out.push(FileChips);
   if (!inline) {
