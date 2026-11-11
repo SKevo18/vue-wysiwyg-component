@@ -68,7 +68,7 @@ defineExpose({ close });
 <template>
   <span ref="host" class="wy-dropdown">
     <slot name="trigger" :open="open" :toggle="toggle" />
-    <AnchoredPopover v-if="open" ref="popover" :anchor="host" :side="side" class="wy-menu wy-dropdown-panel is-open" :class="panelClass" @escape="close()" @keydown="onPanelKey">
+    <AnchoredPopover v-if="open" ref="popover" :anchor="host" :side="side" class="wy-menu wy-dropdown-panel is-open" :class="panelClass" @escape="close()" @close="close()" @keydown="onPanelKey">
       <slot :close="() => close()" />
     </AnchoredPopover>
   </span>

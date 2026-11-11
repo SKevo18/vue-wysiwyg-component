@@ -8,10 +8,18 @@ const FOCUSABLE = "button:not([disabled]), input:not([disabled]), select:not([di
 import { nextTick, onBeforeUnmount, ref, watch } from "vue";
 import { X } from "@lucide/vue";
 import { vTooltip } from "./tooltip";
+import { passWheel as forwardWheel } from "./floating";
 
-const props = withDefaults(defineProps<{ open: boolean; title?: string; size?: "sm" | "lg"; closeLabel?: string }>(), { title: "", size: "sm", closeLabel: "Close" });
+const props = withDefaults(defineProps<{ open: boolean; title?: string; size?: "sm" | "lg"; closeLabel?: string; /** the wheel over the dialog scrolls the page it was opened from */ passWheel?: boolean }>(), {
+  title: "",
+  size: "sm",
+  closeLabel: "Close",
+  passWheel: false,
+});
 const emit = defineEmits<{ close: [] }>();
 const panel = ref<HTMLElement | null>(null);
+const backdrop = ref<HTMLElement | null>(null);
+let unwheel = () => {};
 let previous: HTMLElement | null = null;
 let overflow = "";
 
@@ -53,6 +61,8 @@ function release() {
   const i = stack.indexOf(self);
   if (i < 0) return;
   stack.splice(i, 1);
+  unwheel();
+  unwheel = () => {};
   document.body.style.overflow = overflow;
   document.removeEventListener("keydown", onKey);
 }
@@ -67,6 +77,8 @@ watch(
       stack.push(self);
       document.addEventListener("keydown", onKey);
       await nextTick();
+      const from = previous;
+      if (props.passWheel && backdrop.value) unwheel = forwardWheel(backdrop.value, () => from);
       if (!panel.value?.contains(document.activeElement)) panel.value?.focus();
     } else if (was) {
       release();
@@ -81,7 +93,7 @@ onBeforeUnmount(release);
 
 <template>
   <Teleport to="body">
-    <div v-if="open" class="wy-modal-backdrop" @mousedown.self="emit('close')">
+    <div v-if="open" ref="backdrop" class="wy-modal-backdrop" @mousedown.self="emit('close')">
       <div ref="panel" class="wy-modal" :class="`is-${size}`" role="dialog" aria-modal="true" :aria-label="title || undefined" tabindex="-1">
         <div class="wy-modal-head">
           <span class="wy-modal-title">{{ title }}</span>

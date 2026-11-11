@@ -29,7 +29,7 @@ describe("toolbar modes", () => {
     const { wrapper: w, handle } = await mountEditor({ modelValue: "Wombat burrow.\n" });
     expect(w.find(".wy-toolbar").exists()).toBe(true);
     handle.editor!.commands.setTextSelection({ from: 1, to: 7 });
-    await vi.waitFor(() => expect(bubbleLabels()).toEqual(expect.arrayContaining(["Bold", "Underline", "Link", "Colour"])));
+    await vi.waitFor(() => expect(bubbleLabels()).toEqual(expect.arrayContaining(["Bold", "Underline", "Link", "Color"])));
     expect(document.querySelector(".wy-bubble [data-convert-menu]")).toBeNull();
   });
 
@@ -54,6 +54,7 @@ describe("toolbar modes", () => {
     document.querySelector<HTMLButtonElement>(".wy-bubble .wy-color-trigger")!.click();
     await vi.waitFor(() => expect(document.querySelector(".wy-colors")).not.toBeNull());
     document.querySelector<HTMLButtonElement>('.wy-colors .is-text[aria-label="Red"]')!.click();
+    await vi.waitFor(() => expect(document.querySelector(".wy-colors")).toBeNull());
     handle.editor!.commands.setTextSelection({ from: 1, to: 8 });
     document.querySelector<HTMLButtonElement>(".wy-bubble .wy-color-trigger")!.click();
     await vi.waitFor(() => expect(document.querySelector(".wy-colors")).not.toBeNull());
@@ -78,7 +79,7 @@ describe("toolbar modes", () => {
     await vi.waitFor(() => expect(w.get(".wy-field-tools").isVisible()).toBe(true));
     const tools = w.get(".wy-field-tools").element;
     expect(w.get(".wy-field-body").element.compareDocumentPosition(tools) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    tools.querySelector<HTMLButtonElement>('button[aria-label="Colour"]')!.click();
+    tools.querySelector<HTMLButtonElement>('button[aria-label="Color"]')!.click();
     await vi.waitFor(() => expect(document.querySelector(".wy-colors")).not.toBeNull());
     document.querySelector<HTMLButtonElement>('.wy-colors .is-text[aria-label="Blue"]')!.click();
     expect(handle.getContent()).toMatch(/<span style="color: (#2563eb|rgb\(37, 99, 235\));?">Otter<\/span>/);

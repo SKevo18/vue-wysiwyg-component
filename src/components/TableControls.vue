@@ -473,7 +473,7 @@ onBeforeUnmount(() => {
       </button>
     </template>
 
-    <AnchoredPopover v-if="menu" :key="`${menu.kind}-${menu.index}`" :anchor="menu.anchor" :side="menu.kind === 'row' ? 'right' : 'bottom'" class="wy-menu wy-table-menu" role="menu" @escape="close">
+    <AnchoredPopover v-if="menu" :key="`${menu.kind}-${menu.index}`" :anchor="menu.anchor" :side="menu.kind === 'row' ? 'right' : 'bottom'" class="wy-menu wy-table-menu" role="menu" @escape="close" @close="close">
       <template v-if="menu.kind === 'col'">
         <button type="button" class="wy-menu-item" role="menuitem" @mousedown.prevent @click="run({ kind: 'col', index: menu.index, action: 'before' })"><BetweenVerticalStart class="wy-menu-icon" :size="16" />{{ t("table.insertLeft") }}</button>
         <button type="button" class="wy-menu-item" role="menuitem" @mousedown.prevent @click="run({ kind: 'col', index: menu.index, action: 'after' })"><BetweenVerticalEnd class="wy-menu-icon" :size="16" />{{ t("table.insertRight") }}</button>

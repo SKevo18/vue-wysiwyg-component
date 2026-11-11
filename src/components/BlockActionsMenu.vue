@@ -165,7 +165,7 @@ onBeforeUnmount(() => document.removeEventListener("mousedown", onDocDown, true)
 </script>
 
 <template>
-  <AnchoredPopover :anchor="anchor" class="wy-menu wy-block-actions">
+  <AnchoredPopover :anchor="anchor" class="wy-menu wy-block-actions" @close="emit('close')">
     <div ref="menuEl" class="wy-menu-list" role="menu" :aria-label="convertOnly ? t('convert.title') : t('blockMenu.label')" @keydown="onKeydown($event, false)">
       <ConvertItems v-if="convertOnly" ref="convertList" :targets="targets" :inserts="inserts" @pick="convert" @insert="insert" />
       <template v-else>
@@ -208,7 +208,8 @@ onBeforeUnmount(() => document.removeEventListener("mousedown", onDocDown, true)
       </template>
     </div>
   </AnchoredPopover>
-  <AnchoredPopover v-if="sub && trigger" :anchor="trigger" side="right" class="wy-menu wy-block-actions" :class="{ 'wy-color-panel': sub === 'color' }">
+  <!-- hovering opens the submenu, so a click on its trigger keeps it open -->
+  <AnchoredPopover v-if="sub && trigger" :anchor="trigger" side="right" class="wy-menu wy-block-actions" :class="{ 'wy-color-panel': sub === 'color' }" :anchor-closes="false">
     <div v-if="sub === 'convert'" ref="subEl" class="wy-menu-list" role="menu" :aria-label="t('convert.title')" @keydown="onKeydown($event, true)">
       <ConvertItems ref="convertList" :targets="targets" :inserts="inserts" @pick="convert" @insert="insert" />
     </div>

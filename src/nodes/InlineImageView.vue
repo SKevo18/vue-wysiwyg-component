@@ -56,7 +56,7 @@ function toFigure() {
       @click="editor.isEditable ? startEdit() : zoom()"
       @dblclick="zoom"
     />
-    <AnchoredPopover v-if="editing" :anchor="image" class="wy-popover" @escape="onKeydown">
+    <AnchoredPopover v-if="editing" :anchor="image" class="wy-popover" @escape="onKeydown" @close="finishEdit">
       <label class="wy-field">
         <span class="wy-label">{{ t("image.alt") }}</span>
         <input ref="altInput" class="wy-input" type="text" :value="node.attrs.alt || ''" :placeholder="t('image.altPlaceholder')" @input="update({ alt: ($event.target as HTMLInputElement).value || null })" @keydown.enter.prevent="finishEdit" />

@@ -67,7 +67,7 @@ function onKey(e: KeyboardEvent) {
     ><span v-else ref="anchor" class="wy-mention" :class="`is-${a.kind}`" :title="a.kind === 'date' && !readonly ? t('mention.editDate') : undefined" @click="onClick"
       ><CalendarDays v-if="a.kind === 'date'" class="wy-mention-icon" :size="14" aria-hidden="true" />{{ text }}</span
     >
-    <AnchoredPopover v-if="editing && a.kind === 'date'" :anchor="anchor" class="wy-popover wy-date-picker" @escape="onKeydown">
+    <AnchoredPopover v-if="editing && a.kind === 'date'" :anchor="anchor" class="wy-popover wy-date-picker" @escape="onKeydown" @close="finishEdit">
       <label class="wy-field">
         <span class="wy-label">{{ t("mention.date") }}</span>
         <input class="wy-input is-sm" type="date" :value="startDate" @change="setDate({ date: ($event.target as HTMLInputElement).value })" @keydown="onKey" />

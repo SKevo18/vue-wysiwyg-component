@@ -2,7 +2,7 @@ import type { Editor } from "@tiptap/core";
 import { VueRenderer } from "@tiptap/vue-3";
 import type { Component } from "vue";
 import type { Placement } from "@floating-ui/dom";
-import { floatNear } from "../components/floating";
+import { floatNear, passWheel } from "../components/floating";
 
 export interface Popup {
   readonly element: HTMLElement;
@@ -22,6 +22,7 @@ export function openPopup(editor: Editor, component: Component, props: Record<st
   el.setAttribute("data-block-portal", "");
   el.classList.add("wy-menu");
   document.body.appendChild(el);
+  const unwheel = passWheel(el, () => (editor.isDestroyed ? null : editor.view.dom));
   const reference = { getBoundingClientRect: () => rect() ?? new DOMRect() };
   const floating = floatNear(reference, el, {
     placement,
@@ -48,6 +49,7 @@ export function openPopup(editor: Editor, component: Component, props: Record<st
     close() {
       if (!open) return;
       open = false;
+      unwheel();
       floating.stop();
       renderer.destroy();
       el.remove();

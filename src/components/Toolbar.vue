@@ -226,7 +226,7 @@ function toggleCallout() {
                   :aria-disabled="(state.inCell && !a.inline) || !a.enabled(editor) || undefined"
                   :title="state.inCell && !a.inline ? t('editor.inlineOnly') : undefined"
                   @mousedown.prevent
-                  @click="(!state.inCell || a.inline) && a.enabled(editor) && (a.run(editor), close())"
+                  @click="(!state.inCell || a.inline) && a.enabled(editor) && (close(), a.run(editor))"
                 >
                   <component :is="a.icon" v-if="a.icon" class="wy-menu-icon" :size="16" aria-hidden="true" />{{ a.label }}
                 </button>

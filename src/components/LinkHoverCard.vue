@@ -132,7 +132,7 @@ function remove() {
 </script>
 
 <template>
-  <AnchoredPopover v-if="anchor" :anchor="anchor" class="wy-link-card" role="toolbar" :aria-label="t('link.title')" @mouseenter="onCardEnter" @mouseleave="onCardLeave" @escape="show(null)">
+  <AnchoredPopover v-if="anchor" :anchor="anchor" :anchor-closes="false" class="wy-link-card" role="toolbar" :aria-label="t('link.title')" @mouseenter="onCardEnter" @mouseleave="onCardLeave" @escape="show(null)">
     <span class="wy-link-card-url" :title="href">{{ href }}</span>
     <button v-tooltip="t('link.open')" type="button" class="wy-tool is-sm" :aria-label="t('link.open')" @mousedown.prevent @click="openHref(ctx.services, href, $event)"><ExternalLink :size="15" /></button>
     <button v-tooltip="t('link.copy')" type="button" class="wy-tool is-sm" :aria-label="t('link.copy')" @mousedown.prevent @click="copy"><Copy :size="15" /></button>

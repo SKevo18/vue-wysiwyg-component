@@ -95,7 +95,7 @@ async function addTitle() {
         </div>
         <NodeViewContent class="wy-callout-body" />
       </div>
-      <AnchoredPopover v-if="picker" :anchor="iconButton" class="wy-menu wy-callout-picker" @escape="picker = false">
+      <AnchoredPopover v-if="picker" :anchor="iconButton" class="wy-menu wy-callout-picker" @escape="picker = false" @close="picker = false">
         <EmojiPicker :value="icon" :t="t" @pick="setIcon" />
       </AnchoredPopover>
       <template #menu>

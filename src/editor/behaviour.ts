@@ -2,7 +2,7 @@ import { Extension, type Editor } from "@tiptap/core";
 import { VueRenderer } from "@tiptap/vue-3";
 import Suggestion, { type SuggestionProps } from "@tiptap/suggestion";
 import { NodeSelection, Plugin, PluginKey, Selection, TextSelection } from "@tiptap/pm/state";
-import { floatNear } from "../components/floating";
+import { floatNear, passWheel } from "../components/floating";
 import type { EditorServices, SlashItem } from "../types";
 import SlashMenu from "../components/SlashMenu.vue";
 import { cellSlice, isInCell } from "./tables";
@@ -146,7 +146,9 @@ export const SlashCommand = Extension.create<SlashOptions>({
           let el: HTMLElement | null = null;
           let floating: { update(): void; stop(): void } | null = null;
           let rect: (() => DOMRect | null) | null = null;
+          let unwheel = () => {};
           const close = () => {
+            unwheel();
             floating?.stop();
             renderer?.destroy();
             el?.remove();
@@ -164,6 +166,7 @@ export const SlashCommand = Extension.create<SlashOptions>({
               menu.style.position = "fixed";
               menu.style.zIndex = "1000";
               document.body.appendChild(menu);
+              unwheel = passWheel(menu, () => p.editor.view.dom);
               floating = floatNear(reference, menu, {
                 placement: "bottom-start",
                 offset: 6,
