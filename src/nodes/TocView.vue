@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { NodeViewWrapper, nodeViewProps } from "@tiptap/vue-3";
 import { computed, onBeforeUnmount, ref, shallowRef } from "vue";
-import { tocEntries, type TocEntry } from "../builtins/toc";
+import { scrollToHeading, tocEntries, type TocEntry } from "../editor/headings";
 import { paletteCss } from "../core/palette";
 import { contextOf } from "../editor/context";
 import BlockFrame from "../blocks/BlockFrame.vue";
@@ -29,9 +29,9 @@ props.editor.on("transaction", refresh);
 onBeforeUnmount(() => props.editor.off("transaction", refresh));
 
 function go(e: TocEntry, ev: MouseEvent) {
+  // a prevented click: the editor's link handling leaves it alone instead of opening "#Heading" in a new tab
   ev.preventDefault();
-  const dom = props.editor.view.nodeDOM(e.pos);
-  if (dom instanceof HTMLElement) dom.scrollIntoView({ behavior: "smooth", block: "start" });
+  scrollToHeading(props.editor.view, e.pos);
 }
 </script>
 

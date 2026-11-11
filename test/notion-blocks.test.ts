@@ -5,7 +5,7 @@ import { resolveConfig } from "../src/schema";
 import { convertBlocks, convertRegistry } from "../src/editor/convert";
 import { embedFor } from "../src/core/embeds";
 import { PLANTUML_ALPHABET, plantumlEncode, plantumlUrl } from "../src/core/diagrams";
-import { tocEntries } from "../src/builtins/toc";
+import { tocEntries } from "../src/editor/headings";
 import { columnShares } from "../src/builtins/columns";
 import { dateLabel } from "../src/core/mentions";
 

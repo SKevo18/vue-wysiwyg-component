@@ -6,6 +6,7 @@ import { floatNear, passWheel } from "../components/floating";
 import type { EditorServices, SlashItem } from "../types";
 import SlashMenu from "../components/SlashMenu.vue";
 import { cellSlice, isInCell } from "./tables";
+import { headingFor, scrollToHeading } from "./headings";
 
 export const BLOCK_EDIT_EVENT = "wy-block-edit";
 
@@ -78,7 +79,11 @@ export function openHref(services: EditorServices, raw: string, event: MouseEven
 
 const DRAG_PX = 4;
 
-/** a plain click on a link opens it in editable and readonly editors; dragging, shift and multi clicks select text */
+/**
+ * A plain click on a link opens it in editable and readonly editors; dragging, shift and multi clicks select text. A
+ * link to a heading of this document (`#Heading`) scrolls to it. Blocks that follow their own links (a bookmark, a page
+ * link, the table of contents) prevent the click's default, so the editor leaves it alone.
+ */
 export const LinkClicks = Extension.create<{ open(href: string, event: MouseEvent): void }>({
   name: "linkClicks",
   addOptions() {
@@ -99,12 +104,18 @@ export const LinkClicks = Extension.create<{ open(href: string, event: MouseEven
             click(view, event) {
               const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
               // links of a nested editor (a caption field) belong to that editor
-              if (!link || event.button !== 0 || link.closest(".ProseMirror") !== view.dom) return false;
+              if (!link || event.button !== 0 || event.defaultPrevented || link.closest(".ProseMirror") !== view.dom) return false;
               event.preventDefault();
               const moved = !!down && Math.hypot(event.clientX - down.x, event.clientY - down.y) > DRAG_PX;
               const selecting = window.getSelection()?.isCollapsed === false;
               if (moved || selecting || event.shiftKey || event.detail > 1) return false;
-              open(link.getAttribute("href") ?? "", event);
+              const href = link.getAttribute("href") ?? "";
+              if (href.startsWith("#")) {
+                const heading = headingFor(view.state.doc, href);
+                if (heading) scrollToHeading(view, heading.pos);
+                return true;
+              }
+              open(href, event);
               return true;
             },
           },

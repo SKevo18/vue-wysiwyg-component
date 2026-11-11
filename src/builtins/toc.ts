@@ -7,26 +7,6 @@ import { formatBlockAttrs } from "../core/attrs";
 import type { EditorExtension } from "../types";
 import { paletteAttribute } from "../schema/nodes";
 
-export interface TocEntry {
-  pos: number;
-  level: number;
-  text: string;
-}
-
-/** headings and toggle headings in document order */
-export function tocEntries(doc: PMNode): TocEntry[] {
-  const out: TocEntry[] = [];
-  doc.descendants((node, pos) => {
-    if (node.type.name === "heading") {
-      if (node.textContent.trim()) out.push({ pos, level: node.attrs.level as number, text: node.textContent.trim() });
-      return false;
-    }
-    if (node.type.name === "details" && node.attrs.heading && String(node.attrs.title ?? "").trim()) out.push({ pos, level: node.attrs.heading as number, text: String(node.attrs.title).trim() });
-    return !node.isTextblock;
-  });
-  return out;
-}
-
 /** `{color=…}` on the line after an atom fence */
 export function writeColorLine(state: MarkdownSerializerState, node: PMNode) {
   const attrs = formatBlockAttrs({ color: node.attrs.color });
