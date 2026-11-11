@@ -1,4 +1,5 @@
 import { Node, mergeAttributes } from "@tiptap/core";
+import EmbedView from "../nodes/EmbedView.vue";
 import { AppWindow } from "@lucide/vue";
 import { EMBED_MAX_HEIGHT, EMBED_MIN_HEIGHT, EMBED_PROVIDERS, embedFor, embedSandbox, type EmbedProvider } from "../core/embeds";
 import { formatInfo } from "../core/info";
@@ -50,6 +51,7 @@ export const Embed = Node.create({
 export const embedExtension: EditorExtension = {
   name: "embed",
   tiptap: [Embed],
+  nodeViews: { embed: EmbedView },
   markdown: {
     fences: [{ kind: "embed", parse: (ctx) => ctx.atom("embed", embedAttrs(ctx.info.attrs.url ?? ctx.body.trim(), { provider: ctx.info.attrs.provider, height: ctx.info.attrs.height })) }],
     tokens: { embed: { node: "embed", getAttrs: (tok) => ({ url: tok.meta.url, src: tok.meta.src, provider: tok.meta.provider, height: tok.meta.height }) } },

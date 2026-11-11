@@ -1,4 +1,5 @@
 import { Node, mergeAttributes } from "@tiptap/core";
+import PageLinkView from "../nodes/PageLinkView.vue";
 import { FileSymlink } from "@lucide/vue";
 import { formatInfo } from "../core/info";
 import type { EditorExtension } from "../types";
@@ -29,6 +30,7 @@ export const PageLink = Node.create({
 export const pageLinkExtension: EditorExtension = {
   name: "pageLink",
   tiptap: [PageLink],
+  nodeViews: { pageLink: PageLinkView },
   markdown: {
     fences: [
       {

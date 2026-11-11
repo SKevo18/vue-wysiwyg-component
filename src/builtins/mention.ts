@@ -1,4 +1,5 @@
 import { Extension, Node, mergeAttributes } from "@tiptap/core";
+import MentionView from "../nodes/MentionView.vue";
 import Suggestion from "@tiptap/suggestion";
 import { PluginKey } from "@tiptap/pm/state";
 import SuggestionList from "../components/SuggestionList.vue";
@@ -130,6 +131,7 @@ export function mentionExtension(base: ResolvedBase): EditorExtension {
   return {
     name: "mention",
     tiptap: [Mention.configure({ pageHref: base.pageHref }), MentionSuggest],
+    nodeViews: { mention: MentionView },
     markdown: {
       plugins: [(md) => md.inline.ruler.before("link", "mention", mentionRule)],
       tokens: { mention: { node: "mention", getAttrs: (tok) => ({ ...tok.meta }) } },

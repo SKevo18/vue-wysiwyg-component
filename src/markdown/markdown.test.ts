@@ -133,7 +133,7 @@ describe("markdown round trip", () => {
     expect(doc.child(0).attrs).toEqual({ title: "Moje riešenie", open: true, heading: 0 });
     expect(doc.child(0).childCount).toBe(3);
     expect(doc.child(0).child(2).type.name).toBe("codeBlock");
-    expect(doc.child(1).attrs).toEqual({ title: "", open: false });
+    expect(doc.child(1).attrs).toEqual({ title: "", open: false, heading: 0 });
     expect(roundTrip("```details\n```\n")).toBe("```details\n```\n");
   });
 

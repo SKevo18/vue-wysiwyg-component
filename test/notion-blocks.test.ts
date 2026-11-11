@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DOMParser } from "@tiptap/pm/model";
 import { createMarkdown, defineFenceBlock, markdownToHtml } from "../src/index";
 import { resolveConfig } from "../src/schema";
 import { convertBlocks, convertRegistry } from "../src/editor/convert";
@@ -184,6 +185,22 @@ describe("notion blocks: markdown", () => {
     expect(html).toContain('sandbox="allow-scripts');
     expect(html).toContain('data-type="page-link"');
     expect(html).toContain('<a data-type="mention" class="wy-mention is-page" data-kind="page" data-id="x" data-label="Doc" href="/p/x">Doc</a>');
+  });
+
+  it("renders callout colors and toggle headings in html", () => {
+    const html = markdownToHtml("> [!TIP] Dig\n> Deep.\n{icon=🦡 color=yellow_bg}\n\n```details title=Setts heading=2\nNorth\n```\n", [], BASE);
+    expect(html).toContain('data-icon="🦡"');
+    expect(html).toContain('data-color="yellow_bg"');
+    expect(html).toContain("--wy-callout-bg: var(--vc-bg-yellow");
+    expect(html).toContain("<summary><h2>Setts</h2></summary>");
+  });
+
+  it("reads html back into the same nodes", () => {
+    const html = markdownToHtml("```columns\n==== 25\nA\n\n====\nB\n```\n\n```embed url=https://youtu.be/dQw4w9WgXcQ provider=youtube height=300\n```\n", [], BASE);
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    const doc = DOMParser.fromSchema(md.schema).parse(host);
+    expect(md.serialize(doc)).toBe("```columns\n==== 25\nA\n\n====\nB\n```\n\n```embed url=https://youtu.be/dQw4w9WgXcQ provider=youtube height=300\n```\n");
   });
 
   it("lists headings and toggle headings for the table of contents", () => {

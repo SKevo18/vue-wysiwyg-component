@@ -209,7 +209,18 @@
   background: color-mix(in srgb, var(--vc-accent) 18%, transparent);
 }
 .wy-content .column-resize-handle {
-  display: none;
+  position: absolute;
+  top: 0;
+  bottom: -1px;
+  right: -2px;
+  z-index: 3;
+  width: 3px;
+  background: var(--vc-accent);
+  pointer-events: none;
+}
+.wy-content.resize-cursor,
+.ProseMirror.resize-cursor {
+  cursor: col-resize;
 }
 .wy-content ::selection {
   background: color-mix(in srgb, var(--vc-accent) 26%, transparent);

@@ -11,6 +11,7 @@ import FigureView from "../nodes/FigureView.vue";
 import InlineImageView from "../nodes/InlineImageView.vue";
 import MathBlockView from "../nodes/MathBlockView.vue";
 import MathInlineView from "../nodes/MathInlineView.vue";
+import { PasteUrl } from "./pasteUrl";
 import { BlockKeys, HostKeys, InlineAtomClick, InlineKeys, SlashCommand, TableCells, blockStopEvent } from "./behaviour";
 import { filterItems, groupLabel } from "./catalog";
 import { clipboardExtension } from "./clipboard";
@@ -70,6 +71,7 @@ export function editorExtensions(ctx: EditorContext, opts: SetupOptions): Extens
     }),
     SlashCommand.configure({ items: (q) => filterItems(ctx.slashItems, q), groupLabel: (id) => groupLabel(ctx.config, id, ctx.text), t: (k) => ctx.t(k) }),
   );
+  if (ctx.config.base.bookmarks || ctx.config.base.embeds) out.push(PasteUrl);
   if (opts.gutter) {
     const g = opts.gutter;
     out.push(GutterHandle.configure({ onInsertAfter: g.onInsertAfter, onMenu: g.onMenu, menuOpen: g.menuOpen, labels: () => ({ drag: ctx.t("gutter.drag"), add: ctx.t("gutter.add") }) }));

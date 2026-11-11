@@ -1,4 +1,5 @@
 import { Node, mergeAttributes } from "@tiptap/core";
+import TocView from "../nodes/TocView.vue";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import type { MarkdownSerializerState } from "prosemirror-markdown";
 import { ListTree } from "@lucide/vue";
@@ -55,6 +56,7 @@ export const TableOfContents = Node.create({
 export const tocExtension: EditorExtension = {
   name: "tableOfContents",
   tiptap: [TableOfContents],
+  nodeViews: { tableOfContents: TocView },
   markdown: {
     fences: [{ kind: "toc", parse: (ctx) => ctx.atom("table_of_contents", {}) }],
     tokens: { table_of_contents: { node: "tableOfContents", getAttrs: (tok) => ({ color: tok.meta.blockAttrs?.color ?? null }) } },

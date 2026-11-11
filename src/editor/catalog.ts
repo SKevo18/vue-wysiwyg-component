@@ -131,8 +131,16 @@ export function groupLabel(config: EditorConfig, id: string, text: (label: Slash
   return text(def?.label, `slash.groups.${id}`) || id;
 }
 
+/** items whose label matches come first, group by group, so "/columns" offers the columns before the table */
 export function filterItems(items: SlashItem[], query: string): SlashItem[] {
   const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
   if (!words.length) return items;
-  return items.filter((i) => words.every((w) => i.keywords.includes(w)));
+  const hits = items.filter((i) => words.every((w) => i.keywords.includes(w)));
+  const labelled = (i: SlashItem) => words.every((w) => i.label.toLowerCase().includes(w));
+  const strong = new Set(hits.filter(labelled).map((i) => i.group));
+  const first = new Map<string, number>();
+  hits.forEach((i, n) => first.has(i.group) || first.set(i.group, n));
+  const keyed = hits.map((item, n) => ({ item, group: (strong.has(item.group) ? 0 : hits.length) + first.get(item.group)!, label: labelled(item) ? 0 : 1, n }));
+  keyed.sort((a, b) => a.group - b.group || a.label - b.label || a.n - b.n);
+  return keyed.map((x) => x.item);
 }

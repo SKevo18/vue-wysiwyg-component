@@ -1,4 +1,6 @@
 import { Node, mergeAttributes } from "@tiptap/core";
+import ColumnView from "../nodes/ColumnView.vue";
+import ColumnsView from "../nodes/ColumnsView.vue";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import { Columns2, Columns3, Columns4 } from "@lucide/vue";
 import { joinSections, type Section } from "../core/info";
@@ -70,6 +72,7 @@ const ICONS = [Columns2, Columns3, Columns4];
 export const columnsExtension: EditorExtension = {
   name: "columns",
   tiptap: [Columns, Column],
+  nodeViews: { columns: ColumnsView, column: ColumnView },
   markdown: {
     fences: [{ kind: "columns", parse: (ctx) => ctx.sections("columns", "column", {}) }],
     tokens: {

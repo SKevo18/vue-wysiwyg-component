@@ -20,6 +20,7 @@ export function openPopup(editor: Editor, component: Component, props: Record<st
   el.style.position = "fixed";
   el.style.zIndex = "1000";
   el.setAttribute("data-block-portal", "");
+  el.classList.add("wy-menu");
   document.body.appendChild(el);
   const reference = { getBoundingClientRect: () => rect() ?? new DOMRect() };
   const floating = floatNear(reference, el, {

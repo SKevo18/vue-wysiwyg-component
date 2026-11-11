@@ -1,4 +1,5 @@
 import { Node, mergeAttributes } from "@tiptap/core";
+import BookmarkView from "../nodes/BookmarkView.vue";
 import { Bookmark as BookmarkIcon } from "@lucide/vue";
 import { formatInfo } from "../core/info";
 import type { EditorExtension } from "../types";
@@ -43,6 +44,7 @@ export const Bookmark = Node.create({
 export const bookmarkExtension: EditorExtension = {
   name: "bookmark",
   tiptap: [Bookmark],
+  nodeViews: { bookmark: BookmarkView },
   markdown: {
     fences: [
       {

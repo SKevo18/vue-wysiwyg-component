@@ -6,7 +6,7 @@ import Image from "@tiptap/extension-image";
 import { TableCell, TableHeader } from "@tiptap/extension-table";
 import { DEFAULT_DIVIDER, dividerOrnament, dividerStyle, listLook, parseDividerAttrs, parseListAttrs, type DividerAttrs, type ListAttrs } from "../core/attrs";
 import { FIGURE_ALIGNS, SIZE_RE, shownAlign, type FigureAlign } from "../core/media";
-import { isPaletteToken } from "../core/palette";
+import { calloutStyle, isPaletteToken } from "../core/palette";
 
 /** a palette token from `data-color`; html may carry other colors, which stay out of the palette attribute */
 export function paletteAttribute() {
@@ -126,7 +126,7 @@ export const Callout = Node.create({
     return [{ tag: 'div[data-type="callout"]' }, { tag: "div[data-callout]" }];
   },
   renderHTML({ HTMLAttributes, node }) {
-    return ["div", mergeAttributes({ "data-type": "callout", "data-variant": node.attrs.type, class: "wy-callout" }, HTMLAttributes), 0];
+    return ["div", mergeAttributes({ "data-type": "callout", "data-variant": node.attrs.type, class: "wy-callout", style: calloutStyle(node.attrs.color) ?? null }, HTMLAttributes), 0];
   },
 });
 

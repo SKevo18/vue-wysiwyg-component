@@ -130,7 +130,7 @@ export function schemaExtensions(config: EditorConfig, inline = false, history =
     if (b.listStyles && b.lists) out.push(ListStyles);
     if (b.codeBlocks) out.push(GenericCodeBlock);
     if (b.images) out.push(InlineImage, Figure);
-    if (b.tables) out.push(Table.configure({ resizable: true, cellMinWidth: 48 }), TableRow, InlineTableHeader, InlineTableCell);
+    if (b.tables) out.push(Table.configure({ resizable: true }), TableRow, InlineTableHeader, InlineTableCell);
     if (b.taskLists) out.push(TaskList, TaskItem.configure({ nested: true }));
     if (b.callouts.length) out.push(Callout);
   }

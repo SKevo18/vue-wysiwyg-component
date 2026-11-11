@@ -18,7 +18,7 @@ import {
   Trash2,
 } from "@lucide/vue";
 import { useEditorContext } from "../editor/context";
-import { hasHeaderRow, moveLine, runTableAction, selectLine, type ColumnAlign, type TableAction, type TableRef } from "../editor/tables";
+import { hasHeaderColumn, hasHeaderRow, moveLine, runTableAction, selectLine, type ColumnAlign, type TableAction, type TableRef } from "../editor/tables";
 import AnchoredPopover from "./AnchoredPopover.vue";
 import { vTooltip } from "./tooltip";
 
@@ -55,6 +55,7 @@ interface Geometry {
   currentRows: Set<number>;
   caret: Cell | null;
   header: boolean;
+  headerColumn: boolean;
   left: number;
   right: number;
   top: number;
@@ -149,6 +150,7 @@ function measure() {
     currentRows,
     caret: sel ? { row: sel.top, col: sel.left } : null,
     header: hasHeaderRow(table.node),
+    headerColumn: hasHeaderColumn(table.node),
     left: left - base.left,
     right: right - base.left,
     top: box.top - base.top,
@@ -475,6 +477,7 @@ onBeforeUnmount(() => {
       <template v-if="menu.kind === 'col'">
         <button type="button" class="wy-menu-item" role="menuitem" @mousedown.prevent @click="run({ kind: 'col', index: menu.index, action: 'before' })"><BetweenVerticalStart class="wy-menu-icon" :size="16" />{{ t("table.insertLeft") }}</button>
         <button type="button" class="wy-menu-item" role="menuitem" @mousedown.prevent @click="run({ kind: 'col', index: menu.index, action: 'after' })"><BetweenVerticalEnd class="wy-menu-icon" :size="16" />{{ t("table.insertRight") }}</button>
+        <button v-if="menu.index === 0" type="button" class="wy-menu-item" role="menuitemcheckbox" :aria-checked="geo?.headerColumn" :aria-pressed="geo?.headerColumn" @mousedown.prevent @click="run({ kind: 'col', index: 0, action: 'header' })"><Heading class="wy-menu-icon" :size="16" />{{ t("table.headerColumn") }}</button>
         <div class="wy-menu-split">
           <span class="wy-menu-hint">{{ t("table.align") }}</span>
           <div class="wy-seg" role="group" :aria-label="t('table.align')">
@@ -493,6 +496,7 @@ onBeforeUnmount(() => {
       </template>
       <template v-else>
         <button type="button" class="wy-menu-item" role="menuitemcheckbox" :aria-checked="geo?.header" :aria-pressed="geo?.header" @mousedown.prevent @click="run({ kind: 'row', index: 0, action: 'header' })"><Heading class="wy-menu-icon" :size="16" />{{ t("table.headerRow") }}</button>
+        <button type="button" class="wy-menu-item" role="menuitemcheckbox" :aria-checked="geo?.headerColumn" :aria-pressed="geo?.headerColumn" @mousedown.prevent @click="run({ kind: 'col', index: 0, action: 'header' })"><Heading class="wy-menu-icon" :size="16" />{{ t("table.headerColumn") }}</button>
         <button type="button" class="wy-menu-item is-danger" role="menuitem" @mousedown.prevent @click="run({ kind: 'table', action: 'delete' })"><Trash2 class="wy-menu-icon" :size="16" />{{ t("table.deleteTable") }}</button>
       </template>
     </AnchoredPopover>

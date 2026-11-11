@@ -16,8 +16,96 @@ const services: EditorServices = {
   searchLinks: async (q) => [{ href: `/notes/${q}`, title: `Note about ${q}`, detail: "Burrows" }],
   toast: (m, k) => log.value.unshift(`${k}: ${m}`),
   askAi: (r) => log.value.unshift(`ask ai: ${r.selection}`),
-  katex: () => import("katex"),
 };
+
+const PAGES = [
+  { id: "handbook", label: "Sansec handbook", icon: "📘", detail: "Workspace" },
+  { id: "onboarding", label: "Onboarding", icon: "🧭", detail: "Handbook" },
+  { id: "security", label: "Security policy", icon: "🛡️", detail: "Handbook" },
+];
+const USERS = [
+  { id: "58501171", label: "Ada Lovelace", detail: "ada@example.com" },
+  { id: "1", label: "Bob Badger", detail: "bob@example.com" },
+];
+const notionServices: EditorServices = {
+  ...services,
+  openLink: (href) => {
+    log.value.unshift(`open ${href}`);
+    return href.startsWith("/");
+  },
+  resolveLink: async (href) => {
+    const page = PAGES.find((p) => href === `/p/${p.id}`);
+    return page ? { href, title: page.label, icon: page.icon } : null;
+  },
+  searchMentions: async (q, kind) => {
+    await new Promise((r) => setTimeout(r, 150));
+    const match = (l: string) => l.toLowerCase().includes(q.toLowerCase());
+    const pages = PAGES.filter((p) => match(p.label)).map((p) => ({ kind: "page" as const, ...p }));
+    const users = kind === "page" ? [] : USERS.filter((u) => match(u.label)).map((u) => ({ kind: "user" as const, ...u }));
+    return [...users, ...pages];
+  },
+  linkPreview: async () => {
+    await new Promise((r) => setTimeout(r, 300));
+    return { title: "Example Domain", description: "This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission.", site: "example.com" };
+  },
+};
+const notionBase = { math: true, details: true, columns: true, bookmarks: true, embeds: true, toc: true, pageLinks: true, mentions: true, diagrams: true };
+const notionMd = ref(`# Handbook
+
+\`\`\`toc
+\`\`\`
+
+## Columns
+
+\`\`\`columns
+==== 40
+> [!NOTE] Heads up
+> Callout with an emoji and a background.
+{icon=💡 color=yellow_bg}
+
+==== 60
+Ask @[Ada Lovelace](user:58501171) about @[Onboarding](page:onboarding) on @[May 1, 2024](date:2024-05-01).
+
+- one
+- two
+\`\`\`
+
+\`\`\`details title="Toggle heading" heading=2 open
+Hidden until opened.
+\`\`\`
+
+## Links
+
+\`\`\`page href=/p/security title="Security policy" icon=🛡️
+\`\`\`
+
+\`\`\`bookmark url=https://example.com title="Example Domain" description="This domain is for use in illustrative examples in documents." site=example.com
+\`\`\`
+
+\`\`\`embed url=https://www.youtube.com/watch?v=dQw4w9WgXcQ provider=youtube
+\`\`\`
+
+## Diagrams
+
+\`\`\`mermaid
+graph LR
+  A[Write] --> B{Review}
+  B -->|ok| C[Ship]
+  B -->|no| A
+\`\`\`
+
+\`\`\`plantuml
+@startuml
+Bob -> Alice : hello
+@enduml
+\`\`\`
+
+Formula $\\ce{H2O}$ and $e^{i\\pi} = -1$.
+
+| Name | Role |
+| --- | --- |
+| Ada | Math |
+`);
 const extensions = [badgerCensus];
 
 const fullMd = ref(`# Badger notes
@@ -64,6 +152,11 @@ const bobMd = ref("");
       <h2>Full, markdown</h2>
       <WysiwygEditor v-model="fullMd" size="full" :extensions="extensions" :services="services" :base="{ math: true, details: true, footnotes: true }" focus-mode source-mode @save="log.unshift('save')" />
       <pre class="pg-out" data-testid="full-md">{{ fullMd }}</pre>
+    </section>
+    <section>
+      <h2>Notion blocks</h2>
+      <WysiwygEditor v-model="notionMd" size="full" :services="notionServices" :base="notionBase" />
+      <pre class="pg-out" data-testid="notion-md">{{ notionMd }}</pre>
     </section>
     <section>
       <h2>Compact, markdown</h2>

@@ -51,7 +51,7 @@ function caretIn(editor: Editor, tablePos: number, row: number, col: number) {
 }
 
 export type TableAction =
-  | { kind: "col"; index: number; action: "before" | "after" | "delete" | ColumnAlign }
+  | { kind: "col"; index: number; action: "before" | "after" | "delete" | "header" | ColumnAlign }
   | { kind: "row"; index: number; action: "before" | "after" | "delete" | "header" }
   | { kind: "table"; action: "addCol" | "addRow" | "delete" };
 
@@ -95,7 +95,8 @@ export function runTableAction(editor: Editor, table: TableRef, a: TableAction) 
       target = a.index + 1;
       break;
     case "header":
-      chain.toggleHeaderRow().run();
+      if (isCol) chain.toggleHeaderColumn().run();
+      else chain.toggleHeaderRow().run();
       break;
     default:
       chain.setCellAttribute("align", a.action).run();
@@ -119,6 +120,15 @@ export function hasHeaderRow(table: PMNode): boolean {
   let header = table.firstChild !== null && table.firstChild.childCount > 0;
   table.firstChild?.forEach((cell) => {
     if (cell.type.name !== "tableHeader") header = false;
+  });
+  return header;
+}
+
+/** every row starts with a header cell (markdown has no header column; it lives in html and the shared document) */
+export function hasHeaderColumn(table: PMNode): boolean {
+  let header = table.childCount > 0;
+  table.forEach((row) => {
+    if (row.firstChild?.type.name !== "tableHeader") header = false;
   });
   return header;
 }

@@ -19,10 +19,6 @@ export function isPaletteToken(v: unknown): v is string {
   return (PALETTE as readonly string[]).includes(v.endsWith("_bg") ? v.slice(0, -3) : v);
 }
 
-export function isBackgroundToken(v: unknown): boolean {
-  return isPaletteToken(v) && v.endsWith("_bg");
-}
-
 /** `--vc-color-<name>` / `--vc-bg-<name>`, with a fallback mixed from the theme so it reads in light and dark themes */
 export function paletteCss(token: string): string {
   if (!isPaletteToken(token)) return "";
@@ -31,8 +27,8 @@ export function paletteCss(token: string): string {
   return bg ? `var(--vc-bg-${name}, color-mix(in srgb, ${TINTS[name]} 14%, var(--vc-bg)))` : `var(--vc-color-${name}, ${TINTS[name]})`;
 }
 
-/** inline style of a block colored with `token` */
-export function paletteStyle(token: unknown): string {
-  if (!isPaletteToken(token)) return "";
-  return token.endsWith("_bg") ? `background: ${paletteCss(token)}` : `color: ${paletteCss(token)}`;
+/** custom properties the callout css reads: `--wy-callout-bg` for a background token, `--wy-callout-fg` for a text token */
+export function calloutStyle(token: unknown): string | undefined {
+  if (!isPaletteToken(token)) return undefined;
+  return token.endsWith("_bg") ? `--wy-callout-bg: ${paletteCss(token)}` : `--wy-callout-fg: ${paletteCss(token)}`;
 }
