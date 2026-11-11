@@ -66,11 +66,66 @@ const notionServices: EditorServices = {
     await new Promise((r) => setTimeout(r, 300));
     return { title: "Example Domain", description: "This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission.", site: "example.com" };
   },
+  breadcrumbs: async () => {
+    await new Promise((r) => setTimeout(r, 200));
+    return [
+      { title: "Sansec", icon: "🏢", href: "/p/root" },
+      { title: "Sansec handbook", icon: "📘", href: "/p/handbook" },
+      { title: "Onboarding", icon: "🧭", href: "/p/onboarding" },
+    ];
+  },
+  buttonActions: {
+    toast: { label: "Show a message", fields: [{ key: "message", label: "Message" }], run: (a) => void log.value.unshift(`button: ${String(a.message ?? "")}`) },
+  },
+  aiScopes: [
+    { id: "page", label: "This page" },
+    { id: "workspace", label: "Whole workspace" },
+  ],
+  async *aiGenerate(req, signal) {
+    const answer = `## Summary\n\nThis page (${req.document.length} characters, scope **${req.scope}**) answers: *${req.prompt}*.\n\n- Columns hold a callout and a mention\n- Links point to @[Security policy](/p/security)\n- A reminder is due @[tomorrow](date:2026-11-12T09:00!)\n`;
+    for (const word of answer.split(/(?<= )/)) {
+      if (signal.aborted) return;
+      await new Promise((r) => setTimeout(r, 40));
+      yield word;
+    }
+  },
 };
-const notionBase = { math: true, details: true, columns: true, bookmarks: true, embeds: true, toc: true, pageLinks: true, mentions: true, diagrams: true };
-const notionMd = ref(`# Handbook
+const notionBase = { math: true, details: true, columns: true, bookmarks: true, embeds: true, toc: true, pageLinks: true, mentions: true, diagrams: true, emoji: true, tabs: true, buttons: true, breadcrumbs: true, ai: true };
+const notionMd = ref(`\`\`\`breadcrumbs
+\`\`\`
+
+# Handbook
 
 \`\`\`toc
+\`\`\`
+
+See @[Security policy](/p/security) and @[Old page id](page:handbook) before you start. Call Ada @[Nov 12, 2026, 9:00 AM](date:2026-11-12T09:00!).
+
+\`\`\`\`tabs
+==== Python
+\`\`\`python
+print(1)
+\`\`\`
+
+==== Java
+Use **Java** 21.
+\`\`\`\`
+
+\`\`\`button label="Add a task"
+[
+  {
+    "kind": "insert",
+    "markdown": "- [ ] New task for @[Ada Lovelace](user:58501171)"
+  },
+  {
+    "kind": "toast",
+    "message": "Task added"
+  }
+]
+\`\`\`
+
+\`\`\`ai prompt="Summarize this page" scope=page
+Nothing generated yet.
 \`\`\`
 
 ## Columns
@@ -96,6 +151,7 @@ Hidden until opened.
 
 \`\`\`page href=/p/security title="Security policy" icon=🛡️
 \`\`\`
+{color=yellow_bg}
 
 \`\`\`bookmark url=https://example.com title="Example Domain" description="This domain is for use in illustrative examples in documents." site=example.com
 \`\`\`
