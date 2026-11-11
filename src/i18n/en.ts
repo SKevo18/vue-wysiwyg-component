@@ -370,6 +370,11 @@ export const en = {
     close: "Close",
     cancel: "Cancel",
   },
+  diff: {
+    movedHere: "Moved here",
+    movedAway: "Moved from here",
+    changed: "Style changed",
+  },
 };
 
 export type Messages = typeof en;

@@ -1,0 +1,91 @@
+/* DocDiffView: added words and blocks green, removed ones kept in place, struck through and red */
+.wy-diff .wy-diff-ins {
+  background: var(--vc-success-soft);
+  color: var(--vc-success);
+  text-decoration: none;
+  border-radius: 2px;
+}
+.wy-diff .wy-diff-del {
+  background: var(--vc-danger-soft);
+  color: var(--vc-danger);
+  text-decoration: line-through;
+  border-radius: 2px;
+}
+.wy-diff .wy-diff-del + .wy-diff-ins {
+  margin-left: 2px;
+}
+.wy-diff .wy-diff-block,
+.wy-diff .wy-diff-changed {
+  position: relative;
+}
+.wy-diff .wy-diff-added {
+  color: var(--vc-success);
+  background: var(--vc-success-soft);
+  border-radius: var(--vc-radius-sm);
+}
+.wy-diff .wy-diff-removed {
+  color: var(--vc-danger);
+  background: var(--vc-danger-soft);
+  border-radius: var(--vc-radius-sm);
+  text-decoration: line-through;
+}
+.wy-diff .wy-diff-block::before,
+.wy-diff .wy-diff-changed::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: -14px;
+  width: 3px;
+  border-radius: 2px;
+}
+.wy-diff .wy-diff-added::before {
+  background: var(--vc-success);
+}
+.wy-diff .wy-diff-removed::before {
+  background: var(--vc-danger);
+}
+.wy-diff .wy-diff-changed::before {
+  background: var(--vc-border-strong);
+}
+.wy-diff li.wy-diff-block::before,
+.wy-diff li.wy-diff-changed::before {
+  left: -34px;
+}
+.wy-diff :is(tr, td, th).wy-diff-block::before,
+.wy-diff :is(tr, td, th).wy-diff-changed::before {
+  display: none;
+}
+/* media inside a changed block: outlined, the removed one faded */
+.wy-diff .wy-diff-removed :is(img, iframe, svg, video, .wy-bookmark-card, .wy-code-diagram) {
+  opacity: 0.55;
+}
+.wy-diff .wy-diff-removed :is(img, iframe, .wy-code-diagram) {
+  outline: 2px solid var(--vc-danger);
+  outline-offset: 2px;
+}
+.wy-diff .wy-diff-added :is(img, iframe, .wy-code-diagram) {
+  outline: 2px solid var(--vc-success);
+  outline-offset: 2px;
+}
+.wy-diff .wy-diff-removed hr {
+  border-color: var(--vc-danger);
+}
+.wy-diff .wy-diff-added hr {
+  border-color: var(--vc-success);
+}
+
+.wy-diff .wy-diff-moved::after {
+  content: attr(data-diff-label);
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: var(--vc-bg-muted);
+  color: var(--vc-fg-muted);
+  font-size: 11px;
+  line-height: 18px;
+  text-decoration: none;
+  pointer-events: none;
+}

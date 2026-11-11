@@ -8,6 +8,8 @@ export { default as AnchoredPopover } from "./components/AnchoredPopover.vue";
 export { vTooltip, type TooltipValue } from "./components/tooltip";
 export { default as SuggestionList, type SuggestionEntry } from "./components/SuggestionList.vue";
 export { default as PageSearch } from "./components/PageSearch.vue";
+export { default as DocDiffView } from "./components/DocDiffView.vue";
+export { diffDocs, diffInline, diffHasChanges, isDiagram, type DiffBlock, type DiffChange, type DiffInline, type DiffOptions, type DocMark, type DocNode } from "./diff/docdiff";
 
 export { default as BlockFrame } from "./blocks/BlockFrame.vue";
 export { default as BlockMenu } from "./blocks/BlockMenu.vue";
