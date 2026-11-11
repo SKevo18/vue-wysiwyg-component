@@ -75,3 +75,25 @@ body {
   align-items: center;
   font-size: 14px;
 }
+.pg-flush section {
+  padding: 0 5rem;
+}
+.pg-flush .wy-editor {
+  border: 0;
+  background: transparent;
+}
+.pg-flush .wy-surface,
+.pg-flush .wy-surface.has-gutter {
+  padding: 0;
+}
+.pg-swallow-body {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--vc-border);
+  border-radius: 6px;
+}
+.pg-swallow-head {
+  display: flex;
+  justify-content: space-between;
+}
