@@ -195,11 +195,8 @@
 .wy-content .ProseMirror-gapcursor::after {
   border-top-color: var(--vc-fg);
 }
-.wy-content a {
-  cursor: text;
-}
-/* links in a block's own ui (cards, page links, an embedded database) navigate on click */
-.wy-content [contenteditable="false"] a[href],
+/* a plain click opens a link (LinkClicks), in text and in a block's own ui (cards, page links, an embedded database) */
+.wy-content a[href],
 .wy-content [contenteditable="false"] [role="link"] {
   cursor: pointer;
 }
