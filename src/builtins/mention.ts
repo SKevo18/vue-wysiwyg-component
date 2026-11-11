@@ -22,7 +22,7 @@ export function mentionText(a: MentionAttrs, locale: string): string {
 /** a picked user, date or page at `range`, followed by a space */
 export function insertMention(editor: Editor, s: MentionSuggestion, range: { from: number; to: number }) {
   if (s.kind === "page") {
-    insertPageLink(editor, s, range, true);
+    insertPageLink(editor, s, range);
     return;
   }
   const attrs = { kind: s.kind, id: s.id, label: s.label, start: s.start ?? null, end: s.end ?? null, remind: !!s.remind };

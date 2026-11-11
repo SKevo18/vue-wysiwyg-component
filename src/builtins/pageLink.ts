@@ -1,4 +1,5 @@
 import type { Editor } from "@tiptap/core";
+import { TextSelection } from "@tiptap/pm/state";
 import { FileSymlink } from "@lucide/vue";
 import PageLinkView from "../nodes/PageLinkView.vue";
 import type { SuggestionEntry } from "../components/SuggestionList.vue";
@@ -32,12 +33,23 @@ export function pageTarget(href: string, template: string): string {
 /** an emoji icon of a search result; image icons are left to `resolveLink` */
 const emojiIcon = (icon: string | undefined) => (icon && !/^(https?:|\/|data:|blob:)/.test(icon) ? icon : "");
 
-/** a page chip for a picked page at the caret, with a space after it when `space` */
-export function insertPageLink(editor: Editor, s: MentionSuggestion, range: { from: number; to: number }, space: boolean) {
+/** a page chip for a picked page at `range`, followed by one space, with the caret after that space */
+export function insertPageLink(editor: Editor, s: MentionSuggestion, range: { from: number; to: number }) {
   const ctx = contextOf(editor);
   const attrs: PageLinkAttrs = { href: s.href ?? pageHref(ctx.config.base.pageHref, s.id), title: s.label, icon: emojiIcon(s.icon) };
-  const content = [{ type: "pageLink", attrs }, ...(space ? [{ type: "text", text: " " }] : [])];
-  editor.chain().focus().insertContentAt(range, content).run();
+  const next = editor.state.doc.textBetween(range.to, Math.min(range.to + 1, editor.state.doc.content.size), "\n", "\n");
+  const spaced = next === " ";
+  const content = [{ type: "pageLink", attrs }, ...(spaced ? [] : [{ type: "text", text: " " }])];
+  editor
+    .chain()
+    .focus()
+    .insertContentAt(range, content)
+    .command(({ tr }) => {
+      // the chip is one position wide, the space another
+      tr.setSelection(TextSelection.create(tr.doc, range.from + 2));
+      return true;
+    })
+    .run();
 }
 
 /** "Link to page": search pages and insert a page chip at `at` */
@@ -47,7 +59,7 @@ export function openPageSearch(editor: Editor, at: number) {
     search: async (q, signal) => (await searchMentions(ctx.services, q, "page", signal, ctx)).map((s) => mentionEntry(s, ctx)),
     placeholder: ctx.t("pageLink.searchPlaceholder"),
     label: ctx.t("pageLink.search"),
-    onPick: (entry: SuggestionEntry, pos) => insertPageLink(editor, (entry as MentionEntry).suggestion, { from: pos, to: pos }, false),
+    onPick: (entry: SuggestionEntry, pos) => insertPageLink(editor, (entry as MentionEntry).suggestion, { from: pos, to: pos }),
   });
 }
 
