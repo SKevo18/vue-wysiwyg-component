@@ -2963,6 +2963,50 @@ function hasHeaderColumn(table) {
 	});
 	return header;
 }
+// src/editor/headings.ts
+/** headings and toggle headings in document order */
+function tocEntries(doc) {
+	const out = [];
+	doc.descendants((node, pos) => {
+		if (node.type.name === "heading") {
+			if (node.textContent.trim()) out.push({
+				pos,
+				level: node.attrs.level,
+				text: node.textContent.trim()
+			});
+			return false;
+		}
+		if (node.type.name === "details" && node.attrs.heading && String(node.attrs.title ?? "").trim()) out.push({
+			pos,
+			level: node.attrs.heading,
+			text: String(node.attrs.title).trim()
+		});
+		return !node.isTextblock;
+	});
+	return out;
+}
+/** lower case words joined by dashes: "Setts and dens" and "setts-and-dens" both become "setts-and-dens" */
+function slug(text) {
+	return text.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "");
+}
+/** The heading a same-document link (`#Setts and dens` or `#setts-and-dens`) points at: its exact text first, then its slug. */
+function headingFor(doc, hash) {
+	let id = hash.replace(/^#/, "");
+	try {
+		id = decodeURIComponent(id);
+	} catch {}
+	const entries = tocEntries(doc);
+	const want = slug(id);
+	return entries.find((e) => e.text === id) ?? (want ? entries.find((e) => slug(e.text) === want) ?? null : null);
+}
+/** Brings the heading at `pos` to the top of its scroll container. */
+function scrollToHeading(view, pos) {
+	const dom = view.nodeDOM(pos);
+	if (dom instanceof HTMLElement) dom.scrollIntoView({
+		behavior: "smooth",
+		block: "start"
+	});
+}
 // src/editor/behaviour.ts
 var BLOCK_EDIT_EVENT = "wy-block-edit";
 function blockStopEvent({ event }) {
@@ -3040,7 +3084,11 @@ function openHref(services, raw, event) {
 	window.open(href, "_blank", "noopener,noreferrer");
 }
 var DRAG_PX = 4;
-/** a plain click on a link opens it in editable and readonly editors; dragging, shift and multi clicks select text */
+/**
+* A plain click on a link opens it in editable and readonly editors; dragging, shift and multi clicks select text. A
+* link to a heading of this document (`#Heading`) scrolls to it. Blocks that follow their own links (a bookmark, a page
+* link, the table of contents) prevent the click's default, so the editor leaves it alone.
+*/
 var LinkClicks = Extension.create({
 	name: "linkClicks",
 	addOptions() {
@@ -3061,12 +3109,18 @@ var LinkClicks = Extension.create({
 				},
 				click(view, event) {
 					const link = event.target instanceof Element ? event.target.closest("a[href]") : null;
-					if (!link || event.button !== 0 || link.closest(".ProseMirror") !== view.dom) return false;
+					if (!link || event.button !== 0 || event.defaultPrevented || link.closest(".ProseMirror") !== view.dom) return false;
 					event.preventDefault();
 					const moved = !!down && Math.hypot(event.clientX - down.x, event.clientY - down.y) > DRAG_PX;
 					const selecting = window.getSelection()?.isCollapsed === false;
 					if (moved || selecting || event.shiftKey || event.detail > 1) return false;
-					open(link.getAttribute("href") ?? "", event);
+					const href = link.getAttribute("href") ?? "";
+					if (href.startsWith("#")) {
+						const heading = headingFor(view.state.doc, href);
+						if (heading) scrollToHeading(view, heading.pos);
+						return true;
+					}
+					open(href, event);
 					return true;
 				}
 			} }
@@ -4680,11 +4734,7 @@ var TocView_default = /* @__PURE__ */ defineComponent({
 		onBeforeUnmount(() => props.editor.off("transaction", refresh));
 		function go(e, ev) {
 			ev.preventDefault();
-			const dom = props.editor.view.nodeDOM(e.pos);
-			if (dom instanceof HTMLElement) dom.scrollIntoView({
-				behavior: "smooth",
-				block: "start"
-			});
+			scrollToHeading(props.editor.view, e.pos);
 		}
 		return (_ctx, _cache) => {
 			return openBlock(), createBlock(unref(NodeViewWrapper), {
@@ -4740,27 +4790,6 @@ var TocView_default = /* @__PURE__ */ defineComponent({
 	}
 });
 // src/builtins/toc.ts
-/** headings and toggle headings in document order */
-function tocEntries(doc) {
-	const out = [];
-	doc.descendants((node, pos) => {
-		if (node.type.name === "heading") {
-			if (node.textContent.trim()) out.push({
-				pos,
-				level: node.attrs.level,
-				text: node.textContent.trim()
-			});
-			return false;
-		}
-		if (node.type.name === "details" && node.attrs.heading && String(node.attrs.title ?? "").trim()) out.push({
-			pos,
-			level: node.attrs.heading,
-			text: String(node.attrs.title).trim()
-		});
-		return !node.isTextblock;
-	});
-	return out;
-}
 /** `{color=…}` on the line after an atom fence */
 function writeColorLine(state, node) {
 	const attrs = formatBlockAttrs({ color: node.attrs.color });

@@ -16,7 +16,11 @@ export declare function applyLink(editor: Editor, rawHref: string, text: string)
 export declare function removeLink(editor: Editor): void;
 /** the host's `openLink` first (it returns true for routes it handles), otherwise a new tab without an opener */
 export declare function openHref(services: EditorServices, raw: string, event: MouseEvent): void;
-/** a plain click on a link opens it in editable and readonly editors; dragging, shift and multi clicks select text */
+/**
+ * A plain click on a link opens it in editable and readonly editors; dragging, shift and multi clicks select text. A
+ * link to a heading of this document (`#Heading`) scrolls to it. Blocks that follow their own links (a bookmark, a page
+ * link, the table of contents) prevent the click's default, so the editor leaves it alone.
+ */
 export declare const LinkClicks: Extension<{
     open(href: string, event: MouseEvent): void;
 }, any>;
