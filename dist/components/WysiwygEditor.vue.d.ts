@@ -397,6 +397,7 @@ declare const __VLS_base: import("vue").DefineComponent<__VLS_Props, EditorHandl
             label: string;
             language: string;
             languagePlaceholder: string;
+            wrap: string;
         };
         callout: {
             label: string;

@@ -349,6 +349,7 @@ declare const __VLS_export: import("vue").DefineComponent<__VLS_Props, {}, {}, {
             label: string;
             language: string;
             languagePlaceholder: string;
+            wrap: string;
         };
         callout: {
             label: string;

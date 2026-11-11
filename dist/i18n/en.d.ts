@@ -325,6 +325,7 @@ export declare const en: {
         label: string;
         language: string;
         languagePlaceholder: string;
+        wrap: string;
     };
     callout: {
         label: string;

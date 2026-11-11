@@ -18,6 +18,14 @@ export declare const Callout: Node<any, any>;
 export declare const Divider: Node<import("@tiptap/extension-horizontal-rule").HorizontalRuleOptions, any>;
 export declare const ListStyles: Extension<any, any>;
 export declare const FileChips: Extension<any, any>;
+declare module "@tiptap/core" {
+    interface Commands<ReturnType> {
+        codeWrap: {
+            /** turns line wrapping of the code block at the selection on or off (the `nowrap` word of its fence info) */
+            toggleCodeWrap: () => ReturnType;
+        };
+    }
+}
 export declare const GenericCodeBlock: Node<import("@tiptap/extension-code-block").CodeBlockOptions, any>;
 export declare function flattenToParagraph(content: Fragment, schema: Schema): PMNode;
 export declare const InlineTableCell: Node<import("@tiptap/extension-table").TableCellOptions, any>;

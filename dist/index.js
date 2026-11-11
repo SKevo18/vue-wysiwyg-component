@@ -43,6 +43,7 @@ import csharp from "highlight.js/lib/languages/csharp";
 import php from "highlight.js/lib/languages/php";
 import lua from "highlight.js/lib/languages/lua";
 import ruby from "highlight.js/lib/languages/ruby";
+import { NodeSelection, Plugin, PluginKey, Selection, TextSelection } from "@tiptap/pm/state";
 import CodeBlock from "@tiptap/extension-code-block";
 import { HorizontalRule } from "@tiptap/extension-horizontal-rule";
 import Image from "@tiptap/extension-image";
@@ -50,7 +51,6 @@ import { AlignCenter, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, A
 import { Fragment as Fragment$1, Teleport, computed, createBlock, createCommentVNode, createElementBlock, createElementVNode, createSlots, createTextVNode, createVNode, defineComponent, getCurrentInstance, getCurrentScope, inject, mergeProps, nextTick, normalizeClass, normalizeStyle, onBeforeUnmount, onMounted, onScopeDispose, openBlock, provide, ref, renderList, renderSlot, resolveComponent, resolveDynamicComponent, shallowRef, toDisplayString, toRaw, toValue, unref, vModelText, vShow, watch, withCtx, withDirectives, withKeys, withModifiers } from "vue";
 import { EditorContent, NodeViewContent, NodeViewWrapper, VueNodeViewRenderer, VueRenderer, nodeViewProps, useEditor } from "@tiptap/vue-3";
 import { autoUpdate, computePosition, flip, offset, shift, size } from "@floating-ui/dom";
-import { NodeSelection, Plugin, PluginKey, Selection, TextSelection } from "@tiptap/pm/state";
 import Suggestion from "@tiptap/suggestion";
 import { CellSelection, TableMap, moveTableColumn, moveTableRow, selectedRect } from "@tiptap/pm/tables";
 import { redo, undo } from "@tiptap/pm/history";
@@ -715,6 +715,17 @@ var HTML_CALLOUTS = Object.freeze([
 	"warning",
 	"danger"
 ]);
+// src/core/codewrap.ts
+var NOWRAP_RE = /(?:^|\s)nowrap(?=\s|$)/g;
+/** whether a code block with this fence info `meta` (the info after the language) wraps its lines */
+function codeWraps(meta) {
+	return !meta.match(NOWRAP_RE);
+}
+/** the fence info `meta` with the wrap flag set: `nowrap` leads the other words, which stay as they were */
+function setCodeWrap(meta, wrap) {
+	const rest = meta.replace(NOWRAP_RE, "").trim();
+	return wrap ? rest : rest ? `nowrap ${rest}` : "nowrap";
+}
 // src/core/palette.ts
 function isPaletteToken(v) {
 	return isColorToken(v);
@@ -1020,16 +1031,43 @@ var FileChips = Extension.create({
 		}];
 	}
 });
-var GenericCodeBlock = CodeBlock.extend({ addAttributes() {
-	return {
-		...this.parent?.(),
-		meta: {
-			default: "",
-			parseHTML: (el) => el.getAttribute("data-meta") ?? "",
-			renderHTML: (a) => a.meta ? { "data-meta": a.meta } : {}
-		}
-	};
-} }).configure({ defaultLanguage: null });
+var GenericCodeBlock = CodeBlock.extend({
+	addAttributes() {
+		return {
+			...this.parent?.(),
+			meta: {
+				default: "",
+				parseHTML: (el) => setCodeWrap(el.getAttribute("data-meta") ?? "", !el.hasAttribute("data-nowrap")),
+				renderHTML: (a) => {
+					const rest = setCodeWrap(a.meta, true);
+					return {
+						...rest ? { "data-meta": rest } : {},
+						...codeWraps(a.meta) ? {} : { "data-nowrap": "" }
+					};
+				}
+			}
+		};
+	},
+	addCommands() {
+		return {
+			...this.parent?.(),
+			toggleCodeWrap: () => ({ state, tr, dispatch }) => {
+				const { selection } = state;
+				const $from = selection.$from;
+				let pos = -1;
+				if (selection instanceof NodeSelection && selection.node.type.name === this.name) pos = selection.from;
+				else for (let d = $from.depth; d > 0; d--) if ($from.node(d).type.name === this.name) {
+					pos = $from.before(d);
+					break;
+				}
+				if (pos < 0) return false;
+				const meta = String(state.doc.nodeAt(pos).attrs.meta ?? "");
+				if (dispatch) tr.setNodeAttribute(pos, "meta", setCodeWrap(meta, !codeWraps(meta)));
+				return true;
+			}
+		};
+	}
+}).configure({ defaultLanguage: null });
 function flattenToParagraph(content, schema) {
 	const br = schema.nodes.hardBreak;
 	const out = [];
@@ -3871,8 +3909,8 @@ var _hoisted_6$22 = {
 	class: "wy-bookmark-desc"
 };
 var _hoisted_7$18 = { class: "wy-bookmark-url" };
-var _hoisted_8$16 = ["src"];
-var _hoisted_9$13 = ["src"];
+var _hoisted_8$17 = ["src"];
+var _hoisted_9$14 = ["src"];
 var _hoisted_10$12 = ["disabled"];
 var _hoisted_11$8 = ["href"];
 // src/nodes/BookmarkView.vue
@@ -4055,7 +4093,7 @@ var BookmarkView_default = /* @__PURE__ */ defineComponent({
 							src: a.value.icon,
 							alt: "",
 							onError: _cache[2] || (_cache[2] = ($event) => failedIcon.value = true)
-						}, null, 40, _hoisted_8$16)) : (openBlock(), createBlock(unref(Globe), {
+						}, null, 40, _hoisted_8$17)) : (openBlock(), createBlock(unref(Globe), {
 							key: 1,
 							size: 14,
 							"aria-hidden": "true"
@@ -4067,7 +4105,7 @@ var BookmarkView_default = /* @__PURE__ */ defineComponent({
 						alt: "",
 						loading: "lazy",
 						onError: _cache[3] || (_cache[3] = ($event) => failedImage.value = true)
-					}, null, 40, _hoisted_9$13)) : createCommentVNode("", true)], 10, _hoisted_3$32))]),
+					}, null, 40, _hoisted_9$14)) : createCommentVNode("", true)], 10, _hoisted_3$32))]),
 					_: 1
 				}, 8, [
 					"label",
@@ -4233,7 +4271,7 @@ var _hoisted_6$21 = {
 	"aria-hidden": "true"
 };
 var _hoisted_7$17 = ["href"];
-var _hoisted_8$15 = ["href"];
+var _hoisted_8$16 = ["href"];
 // src/nodes/EmbedView.vue
 var EmbedView_default = /* @__PURE__ */ defineComponent({
 	__name: "EmbedView",
@@ -4335,7 +4373,7 @@ var EmbedView_default = /* @__PURE__ */ defineComponent({
 							}, [createVNode(unref(ExternalLink), {
 								class: "wy-menu-icon",
 								size: 16
-							}), createTextVNode(toDisplayString(unref(t)("embed.open")), 1)], 8, _hoisted_8$15)) : createCommentVNode("", true),
+							}), createTextVNode(toDisplayString(unref(t)("embed.open")), 1)], 8, _hoisted_8$16)) : createCommentVNode("", true),
 							_ctx.node.attrs.height && !unref(readonly) ? (openBlock(), createElementBlock("button", {
 								key: 2,
 								type: "button",
@@ -5356,8 +5394,8 @@ var _hoisted_4$26 = {
 var _hoisted_5$24 = ["src"];
 var _hoisted_6$20 = { key: 2 };
 var _hoisted_7$16 = { class: "wy-suggest-text" };
-var _hoisted_8$14 = { class: "wy-suggest-title" };
-var _hoisted_9$12 = {
+var _hoisted_8$15 = { class: "wy-suggest-title" };
+var _hoisted_9$13 = {
 	key: 0,
 	class: "wy-suggest-detail"
 };
@@ -5435,7 +5473,7 @@ var SuggestionList_default = /* @__PURE__ */ defineComponent({
 					key: 1,
 					src: item.icon,
 					alt: ""
-				}, null, 8, _hoisted_5$24)) : item.icon ? (openBlock(), createElementBlock("span", _hoisted_6$20, toDisplayString(item.icon), 1)) : createCommentVNode("", true)]), createElementVNode("span", _hoisted_7$16, [createElementVNode("span", _hoisted_8$14, toDisplayString(item.title), 1), item.detail ? (openBlock(), createElementBlock("span", _hoisted_9$12, toDisplayString(item.detail), 1)) : createCommentVNode("", true)])], 42, _hoisted_3$27)], 64);
+				}, null, 8, _hoisted_5$24)) : item.icon ? (openBlock(), createElementBlock("span", _hoisted_6$20, toDisplayString(item.icon), 1)) : createCommentVNode("", true)]), createElementVNode("span", _hoisted_7$16, [createElementVNode("span", _hoisted_8$15, toDisplayString(item.title), 1), item.detail ? (openBlock(), createElementBlock("span", _hoisted_9$13, toDisplayString(item.detail), 1)) : createCommentVNode("", true)])], 42, _hoisted_3$27)], 64);
 			}), 128)), !__props.items.length && __props.empty ? (openBlock(), createElementBlock("p", _hoisted_10$11, toDisplayString(__props.empty), 1)) : createCommentVNode("", true)], 8, _hoisted_1$32);
 		};
 	}
@@ -5831,8 +5869,8 @@ var _hoisted_4$25 = ["value"];
 var _hoisted_5$23 = { class: "wy-check" };
 var _hoisted_6$19 = ["checked"];
 var _hoisted_7$15 = ["value", "aria-label"];
-var _hoisted_8$13 = { class: "wy-check" };
-var _hoisted_9$11 = ["checked"];
+var _hoisted_8$14 = { class: "wy-check" };
+var _hoisted_9$12 = ["checked"];
 var _hoisted_10$10 = [
 	"value",
 	"min",
@@ -5940,11 +5978,11 @@ var MentionView_default = /* @__PURE__ */ defineComponent({
 							onChange: _cache[2] || (_cache[2] = ($event) => setDate({ time: $event.target.value || null })),
 							onKeydown: onKey
 						}, null, 40, _hoisted_7$15)) : createCommentVNode("", true),
-						createElementVNode("label", _hoisted_8$13, [createElementVNode("input", {
+						createElementVNode("label", _hoisted_8$14, [createElementVNode("input", {
 							type: "checkbox",
 							checked: !!endDate.value,
 							onChange: _cache[3] || (_cache[3] = ($event) => setDate({ end: $event.target.checked ? startDate.value : null }))
-						}, null, 40, _hoisted_9$11), createTextVNode(" " + toDisplayString(unref(t)("mention.endDate")), 1)]),
+						}, null, 40, _hoisted_9$12), createTextVNode(" " + toDisplayString(unref(t)("mention.endDate")), 1)]),
 						endDate.value ? (openBlock(), createElementBlock("input", {
 							key: 1,
 							class: "wy-input is-sm",
@@ -6595,7 +6633,8 @@ var MESSAGES = {
 		code: {
 			label: "Code",
 			language: "Language",
-			languagePlaceholder: "e.g. python"
+			languagePlaceholder: "e.g. python",
+			wrap: "Wrap lines"
 		},
 		callout: {
 			label: "Callout",
@@ -7219,7 +7258,8 @@ var MESSAGES = {
 		code: {
 			label: "Kód",
 			language: "Jazyk",
-			languagePlaceholder: "napr. python"
+			languagePlaceholder: "napr. python",
+			wrap: "Zalamovať riadky"
 		},
 		callout: {
 			label: "Upozornenie",
@@ -7558,8 +7598,8 @@ var _hoisted_7$14 = [
 	"aria-label",
 	"onClick"
 ];
-var _hoisted_8$12 = ["aria-label"];
-var _hoisted_9$10 = [
+var _hoisted_8$13 = ["aria-label"];
+var _hoisted_9$11 = [
 	"title",
 	"aria-label",
 	"onClick"
@@ -7773,8 +7813,8 @@ var EmojiPicker_default = /* @__PURE__ */ defineComponent({
 						title: s.label,
 						"aria-label": s.label,
 						onClick: ($event) => jump(s.id)
-					}, [(openBlock(), createBlock(resolveDynamicComponent(s.icon), { size: 16 }))], 8, _hoisted_9$10);
-				}), 128))], 8, _hoisted_8$12)) : createCommentVNode("", true),
+					}, [(openBlock(), createBlock(resolveDynamicComponent(s.icon), { size: 16 }))], 8, _hoisted_9$11);
+				}), 128))], 8, _hoisted_8$13)) : createCommentVNode("", true),
 				createElementVNode("div", {
 					ref_key: "body",
 					ref: body,
@@ -8123,8 +8163,8 @@ var _hoisted_5$21 = {
 };
 var _hoisted_6$17 = ["aria-label", "disabled"];
 var _hoisted_7$13 = ["aria-label", "disabled"];
-var _hoisted_8$11 = ["aria-label", "disabled"];
-var _hoisted_9$9 = ["aria-label"];
+var _hoisted_8$12 = ["aria-label", "disabled"];
+var _hoisted_9$10 = ["aria-label"];
 // src/nodes/TabsView.vue
 var TabsView_default = /* @__PURE__ */ defineComponent({
 	__name: "TabsView",
@@ -8230,14 +8270,14 @@ var TabsView_default = /* @__PURE__ */ defineComponent({
 							disabled: labels.value.length < 2,
 							onMousedown: _cache[5] || (_cache[5] = withModifiers(() => {}, ["prevent"])),
 							onClick: _cache[6] || (_cache[6] = ($event) => withPos((pos) => unref(removeSection)(_ctx.editor, pos, active.value)))
-						}, [createVNode(unref(Trash2), { size: 14 })], 40, _hoisted_8$11)), [[unref(vTooltip), unref(t)("tabs.remove")]]),
+						}, [createVNode(unref(Trash2), { size: 14 })], 40, _hoisted_8$12)), [[unref(vTooltip), unref(t)("tabs.remove")]]),
 						withDirectives((openBlock(), createElementBlock("button", {
 							type: "button",
 							class: "wy-icon-btn",
 							"aria-label": unref(t)("tabs.add"),
 							onMousedown: _cache[7] || (_cache[7] = withModifiers(() => {}, ["prevent"])),
 							onClick: addTab
-						}, [createVNode(unref(Plus), { size: 14 })], 40, _hoisted_9$9)), [[unref(vTooltip), unref(t)("tabs.add")]])
+						}, [createVNode(unref(Plus), { size: 14 })], 40, _hoisted_9$10)), [[unref(vTooltip), unref(t)("tabs.add")]])
 					])) : createCommentVNode("", true)]), createVNode(unref(NodeViewContent), { class: "wy-tabs-panels" })])]),
 					_: 1
 				}, 8, [
@@ -8362,8 +8402,8 @@ var _hoisted_7$12 = {
 	key: 0,
 	class: "wy-menu-hint"
 };
-var _hoisted_8$10 = { class: "wy-button-action-head" };
-var _hoisted_9$8 = [
+var _hoisted_8$11 = { class: "wy-button-action-head" };
+var _hoisted_9$9 = [
 	"value",
 	"aria-label",
 	"onChange"
@@ -8499,7 +8539,7 @@ var ButtonView_default = /* @__PURE__ */ defineComponent({
 							return openBlock(), createElementBlock("div", {
 								key: i,
 								class: "wy-button-action"
-							}, [createElementVNode("div", _hoisted_8$10, [
+							}, [createElementVNode("div", _hoisted_8$11, [
 								unref(defs)[a.kind]?.icon ? (openBlock(), createBlock(resolveDynamicComponent(unref(defs)[a.kind]?.icon), {
 									key: 0,
 									size: 15,
@@ -8518,7 +8558,7 @@ var ButtonView_default = /* @__PURE__ */ defineComponent({
 								}), 128)), !unref(defs)[a.kind] ? (openBlock(), createElementBlock("option", {
 									key: 0,
 									value: a.kind
-								}, toDisplayString(a.kind), 9, _hoisted_11$5)) : createCommentVNode("", true)], 40, _hoisted_9$8),
+								}, toDisplayString(a.kind), 9, _hoisted_11$5)) : createCommentVNode("", true)], 40, _hoisted_9$9),
 								withDirectives((openBlock(), createElementBlock("button", {
 									type: "button",
 									class: "wy-icon-btn",
@@ -8932,12 +8972,12 @@ var _hoisted_7$11 = {
 	key: 1,
 	class: "wy-ai-status"
 };
-var _hoisted_8$9 = {
+var _hoisted_8$10 = {
 	key: 2,
 	class: "wy-ai-error",
 	role: "alert"
 };
-var _hoisted_9$7 = {
+var _hoisted_9$8 = {
 	key: 3,
 	class: "wy-ai-status"
 };
@@ -9090,7 +9130,7 @@ var AiBlockView_default = /* @__PURE__ */ defineComponent({
 								value: s.id
 							}, toDisplayString(s.label), 9, _hoisted_6$14);
 						}), 128))], 40, _hoisted_5$18)) : createCommentVNode("", true),
-						busy.value ? (openBlock(), createElementBlock("span", _hoisted_7$11, toDisplayString(unref(t)("ai.writing")), 1)) : error.value ? (openBlock(), createElementBlock("span", _hoisted_8$9, toDisplayString(error.value), 1)) : updatedLabel.value ? (openBlock(), createElementBlock("span", _hoisted_9$7, toDisplayString(unref(t)("ai.updated", { date: updatedLabel.value })), 1)) : createCommentVNode("", true),
+						busy.value ? (openBlock(), createElementBlock("span", _hoisted_7$11, toDisplayString(unref(t)("ai.writing")), 1)) : error.value ? (openBlock(), createElementBlock("span", _hoisted_8$10, toDisplayString(error.value), 1)) : updatedLabel.value ? (openBlock(), createElementBlock("span", _hoisted_9$8, toDisplayString(unref(t)("ai.updated", { date: updatedLabel.value })), 1)) : createCommentVNode("", true),
 						_cache[4] || (_cache[4] = createElementVNode("span", { class: "wy-ai-spacer" }, null, -1)),
 						busy.value ? (openBlock(), createElementBlock("button", {
 							key: 4,
@@ -10404,8 +10444,8 @@ function buildConverter(config) {
 			state.closeBlock(node);
 		},
 		codeBlock(state, node) {
-			const lang = String(node.attrs.language ?? "");
 			const meta = String(node.attrs.meta ?? "");
+			const lang = String(node.attrs.language ?? "") || (meta ? "text" : "");
 			writeFence(state, node, lang ? lang + (meta ? " " + meta : "") : "", node.textContent);
 		},
 		heading(state, node) {
@@ -11058,8 +11098,8 @@ var _hoisted_5$17 = [
 ];
 var _hoisted_6$13 = ["placeholder", "aria-label"];
 var _hoisted_7$10 = ["disabled"];
-var _hoisted_8$8 = { class: "wy-menu-heading" };
-var _hoisted_9$6 = [
+var _hoisted_8$9 = { class: "wy-menu-heading" };
+var _hoisted_9$7 = [
 	"data-variant",
 	"aria-pressed",
 	"onClick"
@@ -11149,7 +11189,7 @@ var CalloutView_default = /* @__PURE__ */ defineComponent({
 								t: unref(t),
 								onPick: setColor
 							}, null, 8, ["value", "t"]),
-							createElementVNode("div", _hoisted_8$8, toDisplayString(unref(t)("callout.kinds")), 1),
+							createElementVNode("div", _hoisted_8$9, toDisplayString(unref(t)("callout.kinds")), 1),
 							(openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(kinds), (k) => {
 								return openBlock(), createElementBlock("button", {
 									key: k,
@@ -11162,7 +11202,7 @@ var CalloutView_default = /* @__PURE__ */ defineComponent({
 								}, [createElementVNode("span", {
 									class: "wy-callout-swatch",
 									"data-variant": k
-								}, [createVNode(CalloutIcon_default, { type: k }, null, 8, ["type"])], 8, _hoisted_10$6), createElementVNode("span", null, toDisplayString(kindLabel(k)), 1)], 8, _hoisted_9$6);
+								}, [createVNode(CalloutIcon_default, { type: k }, null, 8, ["type"])], 8, _hoisted_10$6), createElementVNode("span", null, toDisplayString(kindLabel(k)), 1)], 8, _hoisted_9$7);
 							}), 128))
 						]),
 						_: 1
@@ -11524,7 +11564,7 @@ var _hoisted_4$17 = { class: "wy-inline-field" };
 var _hoisted_5$15 = { class: "wy-label" };
 var _hoisted_6$11 = ["value", "aria-label"];
 var _hoisted_7$9 = ["aria-label", "disabled"];
-var _hoisted_8$7 = ["aria-label"];
+var _hoisted_8$8 = ["aria-label"];
 // src/nodes/MediaTools.vue
 var MediaTools_default = /* @__PURE__ */ defineComponent({
 	__name: "MediaTools",
@@ -11641,14 +11681,14 @@ var MediaTools_default = /* @__PURE__ */ defineComponent({
 					"aria-label": unref(t)("image.zoom"),
 					onMousedown: _cache[4] || (_cache[4] = withModifiers(() => {}, ["prevent"])),
 					onClick: _cache[5] || (_cache[5] = ($event) => emit("zoom"))
-				}, [createVNode(unref(ZoomIn), { size: 16 })], 40, _hoisted_8$7)), [[unref(vTooltip), unref(t)("image.zoom")]]) : createCommentVNode("", true),
+				}, [createVNode(unref(ZoomIn), { size: 16 })], 40, _hoisted_8$8)), [[unref(vTooltip), unref(t)("image.zoom")]]) : createCommentVNode("", true),
 				renderSlot(_ctx.$slots, "default")
 			]), renderSlot(_ctx.$slots, "form")], 36);
 		};
 	}
 });
 // src/nodes/CodeBlockView.vue?vue&type=script&setup=true&lang.ts
-var _hoisted_1$20 = { class: "wy-code" };
+var _hoisted_1$20 = ["data-nowrap"];
 var _hoisted_2$17 = ["innerHTML"];
 var _hoisted_3$17 = ["aria-label", "title"];
 var _hoisted_4$16 = { class: "wy-field" };
@@ -11659,6 +11699,11 @@ var _hoisted_6$10 = [
 	"onKeydown"
 ];
 var _hoisted_7$8 = ["value"];
+var _hoisted_8$7 = {
+	key: 0,
+	class: "wy-check wy-code-wrap"
+};
+var _hoisted_9$6 = ["checked", "disabled"];
 var DOUBLE_CLICK_WAIT = 250;
 // src/nodes/CodeBlockView.vue
 var CodeBlockView_default = /* @__PURE__ */ defineComponent({
@@ -11679,6 +11724,7 @@ var CodeBlockView_default = /* @__PURE__ */ defineComponent({
 		const diagram = computed(() => ctx.config.base.diagrams.includes(language.value) ? language.value : null);
 		const sourceShown = computed(() => !diagram.value || sourceOpen.value || selected.value || !props.node.textContent.trim());
 		const layout = computed(() => diagramLayout(String(props.node.attrs.meta ?? "")));
+		const wraps = computed(() => !!diagram.value || codeWraps(String(props.node.attrs.meta ?? "")));
 		const shownAlign = computed(() => layout.value.align ?? "center");
 		const mediaTools = computed(() => !!diagram.value && !readonly.value && (selected.value || sourceOpen.value));
 		const diagramBox = ref(null);
@@ -11753,6 +11799,9 @@ var CodeBlockView_default = /* @__PURE__ */ defineComponent({
 		function setLanguage(e) {
 			update({ language: e.target.value.trim().toLowerCase() || null });
 		}
+		function setWrap(e) {
+			update({ meta: setCodeWrap(String(props.node.attrs.meta ?? ""), e.target.checked) });
+		}
 		function commit(e) {
 			setLanguage(e);
 			menu.value = false;
@@ -11797,6 +11846,12 @@ var CodeBlockView_default = /* @__PURE__ */ defineComponent({
 									value: l
 								}, null, 8, _hoisted_7$8);
 							}), 128))]),
+							!diagram.value ? (openBlock(), createElementBlock("label", _hoisted_8$7, [createElementVNode("input", {
+								type: "checkbox",
+								checked: wraps.value,
+								disabled: unref(readonly),
+								onChange: setWrap
+							}, null, 40, _hoisted_9$6), createTextVNode(" " + toDisplayString(unref(t)("code.wrap")), 1)])) : createCommentVNode("", true),
 							(openBlock(true), createElementBlock(Fragment$1, null, renderList(unref(ctx).codeBlock.filter((x) => x.menu), (h, i) => {
 								return openBlock(), createBlock(resolveDynamicComponent(h.menu), mergeProps({ key: i }, { ref_for: true }, props), null, 16);
 							}), 128))
@@ -11804,7 +11859,10 @@ var CodeBlockView_default = /* @__PURE__ */ defineComponent({
 						_: 1
 					}, 8, ["open", "convert"])]),
 					default: withCtx(() => [
-						createElementVNode("pre", _hoisted_1$20, [!sourceOpen.value ? (openBlock(), createElementBlock("code", {
+						createElementVNode("pre", {
+							class: "wy-code",
+							"data-nowrap": wraps.value ? void 0 : ""
+						}, [!sourceOpen.value ? (openBlock(), createElementBlock("code", {
 							key: 0,
 							class: "wy-code-highlight",
 							"aria-hidden": "true",
@@ -11814,7 +11872,7 @@ var CodeBlockView_default = /* @__PURE__ */ defineComponent({
 							as: "code",
 							class: normalizeClass(language.value ? `language-${language.value}` : ""),
 							spellcheck: "false"
-						}, null, 8, ["class"])]),
+						}, null, 8, ["class"])], 8, _hoisted_1$20),
 						diagram.value ? (openBlock(), createElementBlock("div", {
 							key: 0,
 							ref_key: "diagramBox",
@@ -12919,7 +12977,7 @@ var KEEP_ATTRS = {
 		"data-tex"
 	],
 	MARK: ["data-color"],
-	PRE: ["data-meta"],
+	PRE: ["data-meta", "data-nowrap"],
 	CODE: ["class"],
 	INPUT: ["type", "checked"],
 	DETAILS: ["open", "data-title"]
@@ -18736,4 +18794,4 @@ function convertBlocks(blocks, target, options = {}) {
 function markdownToHtml(md, extensions, base) {
 	return createMarkdown(extensions, { base }).toHtml(md);
 }
-export { AT_LINK, AnchoredPopover_default as AnchoredPopover, BLOCK_EDIT_EVENT, BlockFrame_default as BlockFrame, BlockMenu_default as BlockMenu, CODE_LANGUAGES, DocDiffView_default as DocDiffView, EMBED_PROVIDERS, EmojiPicker_default as EmojiPicker, HTML_CALLOUTS, InlineChip_default as InlineChip, MARKDOWN_CALLOUTS, MESSAGES, PALETTE, PageSearch_default as PageSearch, SaveStatus_default as SaveStatus, SuggestionList_default as SuggestionList, WysiwygEditor_default as WysiwygEditor, blockBody, blockStopEvent, cleanPastedHtml, clipboardText, collaborationCaret, contextOf, convertBlocks, convertTargets, createMarkdown, createWysiwyg, dateLabel, defineEditorExtension, defineFenceBlock, defineInlineBlock, diffDocs, diffHasChanges, diffInline, embedFor, escapeChipLabel, escapeHtml, fenceAtom, fenceClose, fenceFor, fenceOpen, formatButtonActions, formatBytes, formatInfo, highlightCode, inlineBlockNode, inlineBlockToken, inlineChipKeys, inlineSyntaxRule, insertFresh, isBgToken, isColorToken, isDiagram, isImageSrc, isInCell, isTextToken, joinSections, loadEmoji, looksLikeMarkdown, markFresh, markdownToHtml, mediaKind, mentionMarkdown, moveItem, newBlockId, normalizeHref, pageLinkMarkdown, parseButtonActions, parseInfo, parseMentionTarget, parseNaturalDate, pasteAsMarkdown, registerCodeLanguage, renderMath, searchEmoji, splitSections, takeFresh, tokenCss, unescapeChipLabel, useBlockNode, useDraft, useEditorContext, useEditorHandle, useFenceSync, vTooltip, withTone };
+export { AT_LINK, AnchoredPopover_default as AnchoredPopover, BLOCK_EDIT_EVENT, BlockFrame_default as BlockFrame, BlockMenu_default as BlockMenu, CODE_LANGUAGES, DocDiffView_default as DocDiffView, EMBED_PROVIDERS, EmojiPicker_default as EmojiPicker, HTML_CALLOUTS, InlineChip_default as InlineChip, MARKDOWN_CALLOUTS, MESSAGES, PALETTE, PageSearch_default as PageSearch, SaveStatus_default as SaveStatus, SuggestionList_default as SuggestionList, WysiwygEditor_default as WysiwygEditor, blockBody, blockStopEvent, cleanPastedHtml, clipboardText, codeWraps, collaborationCaret, contextOf, convertBlocks, convertTargets, createMarkdown, createWysiwyg, dateLabel, defineEditorExtension, defineFenceBlock, defineInlineBlock, diffDocs, diffHasChanges, diffInline, embedFor, escapeChipLabel, escapeHtml, fenceAtom, fenceClose, fenceFor, fenceOpen, formatButtonActions, formatBytes, formatInfo, highlightCode, inlineBlockNode, inlineBlockToken, inlineChipKeys, inlineSyntaxRule, insertFresh, isBgToken, isColorToken, isDiagram, isImageSrc, isInCell, isTextToken, joinSections, loadEmoji, looksLikeMarkdown, markFresh, markdownToHtml, mediaKind, mentionMarkdown, moveItem, newBlockId, normalizeHref, pageLinkMarkdown, parseButtonActions, parseInfo, parseMentionTarget, parseNaturalDate, pasteAsMarkdown, registerCodeLanguage, renderMath, searchEmoji, setCodeWrap, splitSections, takeFresh, tokenCss, unescapeChipLabel, useBlockNode, useDraft, useEditorContext, useEditorHandle, useFenceSync, vTooltip, withTone };

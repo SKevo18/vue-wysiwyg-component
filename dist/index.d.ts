@@ -30,6 +30,7 @@ export { parseInfo, formatInfo, fenceFor, blockBody, newBlockId, splitSections, 
 export { highlightCode, registerCodeLanguage, escapeHtml, CODE_LANGUAGES } from "./core/highlight";
 export { renderMath, type KatexLike, type KatexLoader } from "./core/math";
 export { formatBytes, isImageSrc, mediaKind } from "./core/media";
+export { codeWraps, setCodeWrap } from "./core/codewrap";
 export { MARKDOWN_CALLOUTS, HTML_CALLOUTS } from "./core/callouts";
 export { embedFor, EMBED_PROVIDERS, type EmbedProvider, type EmbedTarget } from "./core/embeds";
 export { mentionMarkdown, parseMentionTarget, dateLabel, type MentionAttrs, type MentionNodeKind } from "./core/mentions";
