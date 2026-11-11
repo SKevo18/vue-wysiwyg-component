@@ -281,6 +281,19 @@ export const comments = defineEditorExtension({
 });
 ```
 
+## Version diffs
+
+`DocDiffView` shows what changed between two versions of a document. It renders the newer version read-only with the editor's own blocks and node views (images, embeds, bookmarks, diagrams, tables, callouts, toggles and the host's blocks), marks added words and blocks green and keeps removed ones in place, struck through in red. A changed image, embed or diagram shows as the old one removed and the new one added. A moved block is tagged at both ends, and toggles with changes open.
+
+```vue
+<DocDiffView :before="olderJson" :after="newerJson" :extensions="extensions" :base="base" :services="services" @diff="(blocks) => (changed = diffHasChanges(blocks))" />
+```
+
+- `before`, `after`: ProseMirror JSON (`editor.getJSON()`), or strings in `format` (`json`, `markdown`, `html`). `before: null` shows `after` as wholly added. Nodes and marks the schema lacks are dropped.
+- `extensions`, `base`, `services`, `locale`, `messages`: as on `WysiwygEditor`, so the host's nodes render.
+- `diffDocs(before, after, { schema?, atomic? })` is the engine on its own. It returns `DiffBlock`s: blocks matched by longest common subsequence, alike blocks paired as modified with a word diff, containers diffed recursively, moves marked. `atomic(node)` names blocks compared whole (default: mermaid and plantuml code blocks).
+- CSS hooks: `.wy-diff`, `.wy-diff-ins`, `.wy-diff-del`, `.wy-diff-block.wy-diff-added|wy-diff-removed`, `.wy-diff-moved` (its tag is `data-diff-label`), `.wy-diff-changed`.
+
 ## License
 
 MIT

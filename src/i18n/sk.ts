@@ -440,4 +440,9 @@ export const sk: Messages = {
     close: "Zavrieť",
     cancel: "Zrušiť",
   },
+  diff: {
+    movedHere: "Presunuté sem",
+    movedAway: "Presunuté odtiaľto",
+    changed: "Zmenený štýl",
+  },
 };

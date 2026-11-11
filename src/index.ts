@@ -10,6 +10,8 @@ export { default as SuggestionList, type SuggestionEntry } from "./components/Su
 export { default as PageSearch } from "./components/PageSearch.vue";
 export { default as EmojiPicker } from "./components/EmojiPicker.vue";
 export { default as InlineChip } from "./blocks/InlineChip.vue";
+export { default as DocDiffView } from "./components/DocDiffView.vue";
+export { diffDocs, diffInline, diffHasChanges, isDiagram, type DiffBlock, type DiffChange, type DiffInline, type DiffOptions, type DocMark, type DocNode } from "./diff/docdiff";
 
 export { default as BlockFrame } from "./blocks/BlockFrame.vue";
 export { default as BlockMenu } from "./blocks/BlockMenu.vue";
