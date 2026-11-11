@@ -3051,9 +3051,15 @@ var SlashCommand = Extension.create({
 			editor: this.editor,
 			char: "/",
 			pluginKey: SLASH_KEY,
-			allowSpaces: false,
+			allowSpaces: true,
 			startOfLine: false,
-			allow: ({ state, range }) => !state.doc.resolve(range.from).parent.type.spec.code,
+			allow: ({ editor, state, range, isActive }) => {
+				if (state.doc.resolve(range.from).parent.type.spec.code) return false;
+				const query = state.doc.textBetween(range.from + 1, range.to, "\n", "\n");
+				if (!/\s/.test(query)) return true;
+				if (!isActive || /^\s|\s\s/.test(query)) return false;
+				return options.items(query).some((i) => i.enabled(editor));
+			},
 			items: ({ query, editor }) => options.items(query).filter((i) => i.enabled(editor)),
 			command: ({ editor, range, props }) => {
 				if (props.inline || !isInCell(editor.state.selection.$from)) props.run(editor, range);
@@ -3264,18 +3270,31 @@ function insertFresh(editor, type, attrs = {}, range, content) {
 	try {
 		const chain = editor.chain().focus();
 		if (range) chain.deleteRange(range);
-		if (!(!!editor.schema.nodes[type] && chain.insertContent(content ? {
+		const inserted = !!editor.schema.nodes[type] && chain.insertContent(content ? {
 			type,
 			attrs,
 			content
 		} : {
 			type,
 			attrs
-		}).run())) takeFresh(type);
+		}).run();
+		if (takeFresh(type) && inserted) caretAfterAtom(editor);
 	} catch (e) {
 		takeFresh(type);
 		throw e;
 	}
+}
+/** a selected block atom hands the caret to the paragraph after it, which is created when there is none */
+function caretAfterAtom(editor) {
+	const { state, view } = editor;
+	const sel = state.selection;
+	const $after = state.doc.resolve(sel.to);
+	const atom = $after.nodeBefore;
+	if (!atom?.isAtom || !atom.isBlock) return;
+	const tr = state.tr;
+	if (!$after.nodeAfter?.isTextblock) tr.insert(sel.to, state.schema.nodes.paragraph.create());
+	tr.setSelection(TextSelection.create(tr.doc, sel.to + 1));
+	view.dispatch(tr);
 }
 // src/blocks/useBlockNode.ts
 var PORTAL_SELECTOR = "[data-block-portal], .wy-modal, [role=dialog], [role=menu], [role=listbox], .wy-slash";
@@ -5614,21 +5633,26 @@ function pageTarget(href, template) {
 }
 /** an emoji icon of a search result; image icons are left to `resolveLink` */
 var emojiIcon = (icon) => icon && !/^(https?:|\/|data:|blob:)/.test(icon) ? icon : "";
-/** a page chip for a picked page at the caret, with a space after it when `space` */
-function insertPageLink(editor, s, range, space) {
+/** a page chip for a picked page at `range`, followed by one space, with the caret after that space */
+function insertPageLink(editor, s, range) {
 	const ctx = contextOf(editor);
+	const attrs = {
+		href: s.href ?? pageHref(ctx.config.base.pageHref, s.id),
+		title: s.label,
+		icon: emojiIcon(s.icon)
+	};
+	const spaced = editor.state.doc.textBetween(range.to, Math.min(range.to + 1, editor.state.doc.content.size), "\n", "\n") === " ";
 	const content = [{
 		type: "pageLink",
-		attrs: {
-			href: s.href ?? pageHref(ctx.config.base.pageHref, s.id),
-			title: s.label,
-			icon: emojiIcon(s.icon)
-		}
-	}, ...space ? [{
+		attrs
+	}, ...spaced ? [] : [{
 		type: "text",
 		text: " "
-	}] : []];
-	editor.chain().focus().insertContentAt(range, content).run();
+	}]];
+	editor.chain().focus().insertContentAt(range, content).command(({ tr }) => {
+		tr.setSelection(TextSelection.create(tr.doc, range.from + 2));
+		return true;
+	}).run();
 }
 /** "Link to page": search pages and insert a page chip at `at` */
 function openPageSearch(editor, at) {
@@ -5640,7 +5664,7 @@ function openPageSearch(editor, at) {
 		onPick: (entry, pos) => insertPageLink(editor, entry.suggestion, {
 			from: pos,
 			to: pos
-		}, false)
+		})
 	});
 }
 function pageLinkExtension(base) {
@@ -5952,7 +5976,7 @@ function mentionText(a, locale) {
 /** a picked user, date or page at `range`, followed by a space */
 function insertMention(editor, s, range) {
 	if (s.kind === "page") {
-		insertPageLink(editor, s, range, true);
+		insertPageLink(editor, s, range);
 		return;
 	}
 	const attrs = {
@@ -8818,6 +8842,68 @@ var breadcrumbsExtension = {
 		run: (c) => c.insert("breadcrumbs", {})
 	}]
 };
+// src/editor/history.ts
+function isCaptureManager(v) {
+	return !!v && typeof v === "object" && "captureTimeout" in v && "stopCapturing" in v && typeof v.stopCapturing === "function";
+}
+/**
+* Records every local change as one step of a collaborative (Yjs) undo history until the returned function runs,
+* however long the pauses between them (Yjs merges changes only within its capture timeout). Null without one.
+*/
+function captureUndo(state) {
+	const pluginState = state.plugins.find((p) => "key" in p && typeof p.key === "string" && p.key.startsWith("y-undo$"))?.getState(state);
+	const manager = pluginState && typeof pluginState === "object" && "undoManager" in pluginState ? pluginState.undoManager : null;
+	if (!isCaptureManager(manager)) return null;
+	manager.stopCapturing();
+	const timeout = manager.captureTimeout;
+	manager.captureTimeout = Number.POSITIVE_INFINITY;
+	return () => {
+		manager.captureTimeout = timeout;
+		manager.stopCapturing();
+	};
+}
+/** outside the local history and without an update event, keeping the caret where it was */
+function replaceDocument(editor, doc) {
+	const { state, view } = editor;
+	const from = state.selection.from;
+	const tr = state.tr.replaceWith(0, state.doc.content.size, doc.content).setMeta("addToHistory", false).setMeta("preventUpdate", true);
+	tr.setSelection(TextSelection.near(tr.doc.resolve(Math.min(from, tr.doc.content.size)), -1));
+	view.dispatch(tr);
+}
+var ServerHistory = Extension.create({
+	name: "serverHistory",
+	addOptions() {
+		return {
+			bridge: () => null,
+			collaborative: false
+		};
+	},
+	addCommands() {
+		if (this.options.collaborative) return {
+			historyUndo: () => ({ commands }) => commands.undo?.() ?? false,
+			historyRedo: () => ({ commands }) => commands.redo?.() ?? false
+		};
+		const step = (dir) => () => ({ state, dispatch, tr }) => {
+			const before = tr.doc;
+			if ((dir === "undo" ? undo : redo)(state, dispatch) && !tr.doc.eq(before)) return true;
+			const bridge = this.options.bridge();
+			if (!bridge || (dir === "undo" ? !bridge.canUndo() : !bridge.canRedo())) return false;
+			if (dispatch) queueMicrotask(() => void (dir === "undo" ? bridge.undo() : bridge.redo()));
+			return true;
+		};
+		return {
+			historyUndo: step("undo"),
+			historyRedo: step("redo")
+		};
+	},
+	addKeyboardShortcuts() {
+		return {
+			"Mod-z": () => this.editor.commands.historyUndo(),
+			"Mod-Shift-z": () => this.editor.commands.historyRedo(),
+			"Mod-y": () => this.editor.commands.historyRedo()
+		};
+	}
+});
 // src/nodes/AiBlockView.vue?vue&type=script&setup=true&lang.ts
 var _hoisted_1$25 = {
 	key: 0,
@@ -8912,13 +8998,14 @@ var AiBlockView_default = /* @__PURE__ */ defineComponent({
 			if (!run || busy.value || !prompt.value.trim()) return;
 			const before = toRaw(props.node).content;
 			const ctrl = abort = new AbortController();
+			const release = captureUndo(props.editor.state);
 			busy.value = true;
 			error.value = "";
 			let text = "";
 			let frame = 0;
 			const flush = () => {
 				frame = 0;
-				if (!setContent(text, false)) ctrl.abort();
+				if (!setContent(text, !!release)) ctrl.abort();
 			};
 			try {
 				for await (const piece of run({
@@ -8936,7 +9023,11 @@ var AiBlockView_default = /* @__PURE__ */ defineComponent({
 				cancelAnimationFrame(frame);
 				busy.value = false;
 				abort = null;
-				if (text.trim() && setContent(before, false)) setContent(text, true, { updatedAt: (/* @__PURE__ */ new Date()).toISOString() });
+				const written = { updatedAt: (/* @__PURE__ */ new Date()).toISOString() };
+				if (release) {
+					setContent(text.trim() ? text : before, true, text.trim() ? written : void 0);
+					release();
+				} else if (text.trim() && setContent(before, false)) setContent(text, true, written);
 				else setContent(before, false);
 			}
 		}
@@ -8978,7 +9069,8 @@ var AiBlockView_default = /* @__PURE__ */ defineComponent({
 						placeholder: unref(t)("ai.promptPlaceholder"),
 						"aria-label": unref(t)("ai.prompt"),
 						disabled: busy.value,
-						onInput: _cache[0] || (_cache[0] = ($event) => unref(update)({ prompt: $event.target.value })),
+						onFocus: _cache[0] || (_cache[0] = (...args) => unref(startEdit) && unref(startEdit)(...args)),
+						onInput: _cache[1] || (_cache[1] = ($event) => unref(update)({ prompt: $event.target.value })),
 						onKeydown: onPromptKey
 					}, null, 40, _hoisted_3$21)]), createElementVNode("div", _hoisted_4$20, [
 						scopes.value.length ? (openBlock(), createElementBlock("select", {
@@ -8987,7 +9079,7 @@ var AiBlockView_default = /* @__PURE__ */ defineComponent({
 							value: scope.value,
 							"aria-label": unref(t)("ai.scope"),
 							disabled: busy.value,
-							onChange: _cache[1] || (_cache[1] = ($event) => unref(update)({ scope: $event.target.value }))
+							onChange: _cache[2] || (_cache[2] = ($event) => unref(update)({ scope: $event.target.value }))
 						}, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(scopes.value, (s) => {
 							return openBlock(), createElementBlock("option", {
 								key: s.id,
@@ -8995,7 +9087,7 @@ var AiBlockView_default = /* @__PURE__ */ defineComponent({
 							}, toDisplayString(s.label), 9, _hoisted_6$14);
 						}), 128))], 40, _hoisted_5$18)) : createCommentVNode("", true),
 						busy.value ? (openBlock(), createElementBlock("span", _hoisted_7$11, toDisplayString(unref(t)("ai.writing")), 1)) : error.value ? (openBlock(), createElementBlock("span", _hoisted_8$9, toDisplayString(error.value), 1)) : updatedLabel.value ? (openBlock(), createElementBlock("span", _hoisted_9$7, toDisplayString(unref(t)("ai.updated", { date: updatedLabel.value })), 1)) : createCommentVNode("", true),
-						_cache[3] || (_cache[3] = createElementVNode("span", { class: "wy-ai-spacer" }, null, -1)),
+						_cache[4] || (_cache[4] = createElementVNode("span", { class: "wy-ai-spacer" }, null, -1)),
 						busy.value ? (openBlock(), createElementBlock("button", {
 							key: 4,
 							type: "button",
@@ -9010,7 +9102,7 @@ var AiBlockView_default = /* @__PURE__ */ defineComponent({
 							key: 0,
 							type: "button",
 							class: "wy-btn is-sm",
-							onClick: _cache[2] || (_cache[2] = (...args) => unref(finishEdit) && unref(finishEdit)(...args))
+							onClick: _cache[3] || (_cache[3] = (...args) => unref(finishEdit) && unref(finishEdit)(...args))
 						}, toDisplayString(unref(t)("ai.done")), 1)) : createCommentVNode("", true)], 64))
 					])])) : createCommentVNode("", true), createVNode(unref(NodeViewContent), { class: "wy-ai-content" })], 2)]),
 					_: 1
@@ -10911,49 +11003,6 @@ function createFileController(o) {
 		dispose: () => aborter.abort()
 	};
 }
-// src/editor/history.ts
-/** outside the local history and without an update event, keeping the caret where it was */
-function replaceDocument(editor, doc) {
-	const { state, view } = editor;
-	const from = state.selection.from;
-	const tr = state.tr.replaceWith(0, state.doc.content.size, doc.content).setMeta("addToHistory", false).setMeta("preventUpdate", true);
-	tr.setSelection(TextSelection.near(tr.doc.resolve(Math.min(from, tr.doc.content.size)), -1));
-	view.dispatch(tr);
-}
-var ServerHistory = Extension.create({
-	name: "serverHistory",
-	addOptions() {
-		return {
-			bridge: () => null,
-			collaborative: false
-		};
-	},
-	addCommands() {
-		if (this.options.collaborative) return {
-			historyUndo: () => ({ commands }) => commands.undo?.() ?? false,
-			historyRedo: () => ({ commands }) => commands.redo?.() ?? false
-		};
-		const step = (dir) => () => ({ state, dispatch, tr }) => {
-			const before = tr.doc;
-			if ((dir === "undo" ? undo : redo)(state, dispatch) && !tr.doc.eq(before)) return true;
-			const bridge = this.options.bridge();
-			if (!bridge || (dir === "undo" ? !bridge.canUndo() : !bridge.canRedo())) return false;
-			if (dispatch) queueMicrotask(() => void (dir === "undo" ? bridge.undo() : bridge.redo()));
-			return true;
-		};
-		return {
-			historyUndo: step("undo"),
-			historyRedo: step("redo")
-		};
-	},
-	addKeyboardShortcuts() {
-		return {
-			"Mod-z": () => this.editor.commands.historyUndo(),
-			"Mod-Shift-z": () => this.editor.commands.historyRedo(),
-			"Mod-y": () => this.editor.commands.historyRedo()
-		};
-	}
-});
 // src/nodes/CalloutIcon.vue?vue&type=script&setup=true&lang.ts
 var _hoisted_1$24 = ["width", "height"];
 // src/nodes/CalloutIcon.vue
@@ -11546,7 +11595,7 @@ var MediaTools_default = /* @__PURE__ */ defineComponent({
 				style: normalizeStyle(style.value),
 				contenteditable: "false",
 				"data-block-portal": "",
-				onMousedown: _cache[3] || (_cache[3] = withModifiers(() => {}, ["stop"]))
+				onMousedown: _cache[6] || (_cache[6] = withModifiers(() => {}, ["stop"]))
 			}, [createElementVNode("div", _hoisted_1$21, [
 				createElementVNode("div", _hoisted_2$18, [(openBlock(true), createElementBlock(Fragment$1, null, renderList(__props.aligns, (a) => {
 					return withDirectives((openBlock(), createElementBlock("button", {
@@ -11554,8 +11603,9 @@ var MediaTools_default = /* @__PURE__ */ defineComponent({
 						type: "button",
 						"aria-pressed": __props.align === a,
 						"aria-label": unref(t)(`image.align.${a}`),
+						onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
 						onClick: ($event) => emit("align", a)
-					}, [(openBlock(), createBlock(resolveDynamicComponent(ICONS[a]), { size: 16 }))], 8, _hoisted_3$18)), [[unref(vTooltip), unref(t)(`image.align.${a}`)]]);
+					}, [(openBlock(), createBlock(resolveDynamicComponent(ICONS[a]), { size: 16 }))], 40, _hoisted_3$18)), [[unref(vTooltip), unref(t)(`image.align.${a}`)]]);
 				}), 128))]),
 				createElementVNode("label", _hoisted_4$17, [
 					createElementVNode("span", _hoisted_5$15, toDisplayString(unref(t)("image.width")), 1),
@@ -11567,25 +11617,27 @@ var MediaTools_default = /* @__PURE__ */ defineComponent({
 						step: "1",
 						value: __props.width,
 						"aria-label": unref(t)("image.width"),
-						onChange: _cache[0] || (_cache[0] = ($event) => set(Number($event.target.value))),
+						onChange: _cache[1] || (_cache[1] = ($event) => set(Number($event.target.value))),
 						onKeydown: onWidthKey
 					}, null, 40, _hoisted_6$11),
-					_cache[4] || (_cache[4] = createElementVNode("span", { class: "wy-muted" }, "%", -1))
+					_cache[7] || (_cache[7] = createElementVNode("span", { class: "wy-muted" }, "%", -1))
 				]),
 				withDirectives((openBlock(), createElementBlock("button", {
 					type: "button",
 					class: "wy-tool",
 					"aria-label": unref(t)("image.originalSize"),
 					disabled: !__props.resettable,
-					onClick: _cache[1] || (_cache[1] = ($event) => emit("reset"))
-				}, [createVNode(unref(Scaling), { size: 16 })], 8, _hoisted_7$9)), [[unref(vTooltip), unref(t)("image.originalSize")]]),
+					onMousedown: _cache[2] || (_cache[2] = withModifiers(() => {}, ["prevent"])),
+					onClick: _cache[3] || (_cache[3] = ($event) => emit("reset"))
+				}, [createVNode(unref(Scaling), { size: 16 })], 40, _hoisted_7$9)), [[unref(vTooltip), unref(t)("image.originalSize")]]),
 				__props.zoomable ? withDirectives((openBlock(), createElementBlock("button", {
 					key: 0,
 					type: "button",
 					class: "wy-tool",
 					"aria-label": unref(t)("image.zoom"),
-					onClick: _cache[2] || (_cache[2] = ($event) => emit("zoom"))
-				}, [createVNode(unref(ZoomIn), { size: 16 })], 8, _hoisted_8$7)), [[unref(vTooltip), unref(t)("image.zoom")]]) : createCommentVNode("", true),
+					onMousedown: _cache[4] || (_cache[4] = withModifiers(() => {}, ["prevent"])),
+					onClick: _cache[5] || (_cache[5] = ($event) => emit("zoom"))
+				}, [createVNode(unref(ZoomIn), { size: 16 })], 40, _hoisted_8$7)), [[unref(vTooltip), unref(t)("image.zoom")]]) : createCommentVNode("", true),
 				renderSlot(_ctx.$slots, "default")
 			]), renderSlot(_ctx.$slots, "form")], 36);
 		};
@@ -11616,13 +11668,15 @@ var CodeBlockView_default = /* @__PURE__ */ defineComponent({
 		const menu = ref(false);
 		const language = computed(() => props.node.attrs.language ?? "");
 		const editing = ref(false);
-		const highlighted = computed(() => editing.value ? "" : highlightCode(props.node.textContent, language.value));
+		const toolsFocused = ref(false);
+		const tools = ref(null);
+		const sourceOpen = computed(() => editing.value || toolsFocused.value);
+		const highlighted = computed(() => sourceOpen.value ? "" : highlightCode(props.node.textContent, language.value));
 		const diagram = computed(() => ctx.config.base.diagrams.includes(language.value) ? language.value : null);
-		const sourceShown = computed(() => !diagram.value || editing.value || selected.value || !props.node.textContent.trim());
+		const sourceShown = computed(() => !diagram.value || sourceOpen.value || selected.value || !props.node.textContent.trim());
 		const layout = computed(() => diagramLayout(String(props.node.attrs.meta ?? "")));
 		const shownAlign = computed(() => layout.value.align ?? "center");
-		const toolsFocused = ref(false);
-		const mediaTools = computed(() => !!diagram.value && !readonly.value && (selected.value || editing.value || toolsFocused.value));
+		const mediaTools = computed(() => !!diagram.value && !readonly.value && (selected.value || sourceOpen.value));
 		const diagramBox = ref(null);
 		const diagramView = ref(null);
 		let clickTimer = 0;
@@ -11641,12 +11695,18 @@ var CodeBlockView_default = /* @__PURE__ */ defineComponent({
 			const { from, to } = props.editor.state.selection;
 			editing.value = props.editor.isFocused && from > pos && to < pos + props.node.nodeSize;
 		}
+		/** a blur into the tools keeps them: Vue renders between the blur and the focus, which would remove the field taking focus */
+		function onBlur({ event }) {
+			const root = tools.value?.$el;
+			if (root instanceof HTMLElement && event.relatedTarget instanceof Node && root.contains(event.relatedTarget)) toolsFocused.value = true;
+			syncEditing();
+		}
 		props.editor.on("selectionUpdate", syncEditing);
-		props.editor.on("blur", syncEditing);
+		props.editor.on("blur", onBlur);
 		props.editor.on("focus", syncEditing);
 		onBeforeUnmount(() => {
 			props.editor.off("selectionUpdate", syncEditing);
-			props.editor.off("blur", syncEditing);
+			props.editor.off("blur", onBlur);
 			props.editor.off("focus", syncEditing);
 			window.clearTimeout(clickTimer);
 		});
@@ -11698,7 +11758,7 @@ var CodeBlockView_default = /* @__PURE__ */ defineComponent({
 			return openBlock(), createBlock(unref(NodeViewWrapper), {
 				as: "div",
 				class: normalizeClass(["wy-node wy-node-code", {
-					"is-editing": editing.value,
+					"is-editing": sourceOpen.value,
 					"is-diagram": diagram.value,
 					"is-source-hidden": !sourceShown.value
 				}])
@@ -11740,7 +11800,7 @@ var CodeBlockView_default = /* @__PURE__ */ defineComponent({
 						_: 1
 					}, 8, ["open", "convert"])]),
 					default: withCtx(() => [
-						createElementVNode("pre", _hoisted_1$20, [!editing.value ? (openBlock(), createElementBlock("code", {
+						createElementVNode("pre", _hoisted_1$20, [!sourceOpen.value ? (openBlock(), createElementBlock("code", {
 							key: 0,
 							class: "wy-code-highlight",
 							"aria-hidden": "true",
@@ -11785,6 +11845,8 @@ var CodeBlockView_default = /* @__PURE__ */ defineComponent({
 						}, null, 42, _hoisted_3$17)) : createCommentVNode("", true)], 38)) : createCommentVNode("", true),
 						mediaTools.value ? (openBlock(), createBlock(MediaTools_default, {
 							key: 1,
+							ref_key: "tools",
+							ref: tools,
 							box: diagramBox.value,
 							aligns: unref(DIAGRAM_ALIGNS),
 							align: shownAlign.value,
@@ -11858,6 +11920,15 @@ var DetailsView_default = /* @__PURE__ */ defineComponent({
 			if (open.value && typeof pos === "number" && from > pos && to < pos + props.node.nodeSize) props.editor.view.dispatch(props.editor.state.tr.setSelection(NodeSelection.create(props.editor.state.doc, pos)));
 			update({ open: !open.value });
 		}
+		const title = ref(null);
+		onMounted(() => {
+			if (takeFresh("details")) requestAnimationFrame(() => title.value?.focus());
+		});
+		/** Enter or ArrowDown in the title opens a closed toggle first, so the caret lands in its body and not past it */
+		function onTitleKey(e) {
+			if ((e.key === "Enter" || e.key === "ArrowDown") && !open.value && !readonly.value) update({ open: true });
+			onHeaderKey(e);
+		}
 		return (_ctx, _cache) => {
 			return openBlock(), createBlock(unref(NodeViewWrapper), {
 				as: "div",
@@ -11885,13 +11956,15 @@ var DetailsView_default = /* @__PURE__ */ defineComponent({
 						onMousedown: _cache[0] || (_cache[0] = withModifiers(() => {}, ["prevent"])),
 						onClick: toggle
 					}, [createVNode(unref(ChevronRight), { size: 16 })], 40, _hoisted_3$16)), [[unref(vTooltip), unref(t)(open.value ? "details.collapse" : "details.expand")]]), createElementVNode("input", {
+						ref_key: "title",
+						ref: title,
 						class: "wy-details-title",
 						value: _ctx.node.attrs.title,
 						placeholder: unref(t)("details.titlePlaceholder"),
 						"aria-label": unref(t)("details.title"),
 						readonly: unref(readonly),
 						onInput: _cache[1] || (_cache[1] = ($event) => unref(update)({ title: $event.target.value })),
-						onKeydown: _cache[2] || (_cache[2] = (...args) => unref(onHeaderKey) && unref(onHeaderKey)(...args))
+						onKeydown: onTitleKey
 					}, null, 40, _hoisted_4$15)]), withDirectives(createVNode(unref(NodeViewContent), { class: "wy-details-body" }, null, 512), [[vShow, open.value]])], 12, _hoisted_1$19)]),
 					_: 1
 				}, 8, [
